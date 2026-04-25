@@ -85,19 +85,19 @@
 
 
 - [ ] **Phase 5: Utilities & Infrastructure**
-  - [ ] 15. Networking Utilities
-    - [ ] 15.1 Implement RateLimitManager (track requests per endpoint, canMakeRequest, recordRequest, handle rate limit errors)
-    - [ ] 15.2 Implement RetryStrategy (exponential backoff, 60s max delay, retry count, shouldRetry logic)
-    - [ ] 15.3 Write unit tests for networking utilities (rate limit enforcement, backoff calculation, retry logic, 80%+ coverage)
-    - [ ] 15.4 Write property tests for retry strategy (exponential growth, capped delay, 50 scenarios)
+  - [x] 15. Networking Utilities
+    - [x] 15.1 Implement RateLimitManager (track requests per endpoint, canMakeRequest, recordRequest, handle rate limit errors)
+    - [x] 15.2 Implement RetryStrategy (exponential backoff, 60s max delay, retry count, shouldRetry logic)
+    - [x] 15.3 Write unit tests for networking utilities (rate limit enforcement, backoff calculation, retry logic, 80%+ coverage)
+    - [x] 15.4 Write property tests for retry strategy (exponential growth, capped delay, 50 scenarios)
   - [ ] 16. Analytics & Monitoring (Optional)
     - [ ] 16.1 Implement CrashReporter (log crashes locally, Documents storage, respect enableCrashReporting)
     - [ ] 16.2 Implement PerformanceMonitor (track metrics, store locally, generate reports)
     - [ ] 16.3 Implement AnalyticsService (track usage locally, respect enableLocalAnalytics, no external calls)
-  - [ ] 17. Extensions & Helpers
-    - [ ] 17.1 Create Date extensions (formatted(), relative time, tests)
-    - [ ] 17.2 Create View extensions (common modifiers, focus helpers, accessibility helpers)
-    - [ ] 17.3 Create Constants file (API URLs, config defaults, UI constants)
+  - [x] 17. Extensions & Helpers
+    - [x] 17.1 Create Date extensions (formatted(), relative time, tests)
+    - [x] 17.2 Create View extensions (common modifiers, focus helpers, accessibility helpers)
+    - [x] 17.3 Create Constants file (API URLs, config defaults, UI constants)
 
 - [ ] **Phase 6: ViewModels**
   - [ ] 18. Authentication ViewModel
