@@ -157,25 +157,25 @@
     - [ ] 29.1 Create SettingsView (config options, useMocks toggle, enableDebugLogging toggle, stream timeout config, cache expiration config, @AppStorage)
     - [ ] 29.2 Add settings navigation (settings button on dashboard, navigation to settings, test config changes)
 
-- [ ] **Phase 12: App Integration**
-  - [ ] 30. Root App Structure
-    - [ ] 30.1 Create RingTVApp (@main entry point, WindowGroup, initialize app config, dependency injection)
-    - [ ] 30.2 Create ContentView (auth routing, LoginView when not authenticated, MainTabView when authenticated, inject AuthViewModel, handle auth state changes)
-    - [ ] 30.3 Create MainTabView ("Live" tab with DashboardView, "Events" tab with EventsView, configure tab bar, handle tab navigation, proper focus)
-  - [ ] 31. Dependency Injection Setup
-    - [ ] 31.1 Create service factory/container (service initialization, mock vs real API based on settings, service dependencies, inject into ViewModels)
-    - [ ] 31.2 Configure environment objects (pass services through environment, proper lifecycle, test dependency injection)
+- [x] **Phase 12: App Integration**
+  - [x] 30. Root App Structure
+    - [x] 30.1 Create RingTVApp (@main entry point, WindowGroup, initialize app config, dependency injection)
+    - [x] 30.2 Create ContentView (auth routing, LoginView when not authenticated, MainTabView when authenticated, inject AuthViewModel, handle auth state changes)
+    - [x] 30.3 Create MainTabView ("Live" tab with DashboardView, "Events" tab with EventsView, configure tab bar, handle tab navigation, proper focus)
+  - [x] 31. Dependency Injection Setup
+    - [x] 31.1 Create service factory/container (service initialization, mock vs real API based on settings, service dependencies, inject into ViewModels)
+    - [x] 31.2 Configure environment objects (pass services through environment, proper lifecycle, test dependency injection)
 
-- [ ] **Phase 13: Testing Infrastructure**
-  - [ ] 32. Mock Services
-    - [ ] 32.1 Create MockRingAPIClient (all protocol methods, configurable return values, call tracking, error injection)
-    - [ ] 32.2 Create MockKeychainService (in-memory token storage, error injection)
-    - [ ] 32.3 Create MockAuthService (mock authentication, configurable behavior)
-    - [ ] 32.4 Create MockCacheService (in-memory cache, expiration simulation)
-    - [ ] 32.5 Create MockData (sample tokens, devices, events, stream sessions)
-  - [ ] 33. Test Helpers
-    - [ ] 33.1 Create XCTestCase extensions (async test helpers, assertion helpers, common utilities)
-    - [ ] 33.2 Create TestDataGenerators (random tokens, devices, events, filter/sort scenarios for property tests)
+- [x] **Phase 13: Testing Infrastructure**
+  - [x] 32. Mock Services
+    - [x] 32.1 Create MockRingAPIClient (all protocol methods, configurable return values, call tracking, error injection)
+    - [x] 32.2 Create MockKeychainService (in-memory token storage, error injection)
+    - [x] 32.3 Create MockAuthService (mock authentication, configurable behavior)
+    - [x] 32.4 Create MockCacheService (in-memory cache, expiration simulation)
+    - [x] 32.5 Create MockData (sample tokens, devices, events, stream sessions)
+  - [x] 33. Test Helpers
+    - [x] 33.1 Create XCTestCase extensions (async test helpers, assertion helpers, common utilities)
+    - [x] 33.2 Create TestDataGenerators (random tokens, devices, events, filter/sort scenarios for property tests)
 
 
 - [ ] **Phase 14: Integration & Manual Testing**
