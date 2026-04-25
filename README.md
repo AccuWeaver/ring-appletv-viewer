@@ -1,55 +1,128 @@
-# Ring Apple TV Viewer
+# Apple TV Ring Camera Viewer
 
-An Apple TV application for viewing Ring camera live streams and recorded events directly on your television.
+A native tvOS application for viewing Ring camera live streams and recorded events directly on your television.
 
-## Project Goals
+## Prerequisites
 
-This project aims to provide Ring camera owners with a native tvOS experience for monitoring their Ring devices without switching to another device. The app enables users to:
+- Xcode 13.0+
+- tvOS 15.0+ deployment target
+- Apple TV (4th generation or later)
+- Active Ring account with Ring cameras or video doorbells
+- Apple Developer account (for device deployment)
+- [SwiftLint](https://github.com/realm/SwiftLint) for code linting (optional but recommended)
 
-- **Authenticate securely** with Ring credentials (including 2FA support)
-- **View all Ring devices** in an intuitive grid layout on the TV screen
-- **Watch live video streams** from any Ring camera or doorbell
-- **Review recent events** including motion detection and doorbell presses
-- **Play recorded videos** from event history
+## Setup
 
-## Key Features
+1. Clone the repository:
 
-- Native SwiftUI interface optimized for Apple TV remote navigation
-- Secure token management with iOS Keychain integration
-- HLS video streaming with adaptive quality
-- Real-time device status and battery monitoring
-- Background refresh for device list and events
-- Comprehensive error handling and user feedback
+   ```bash
+   git clone <repository-url>
+   cd RingAppleTV
+   ```
 
-## Technical Stack
+2. Open the project in Xcode:
 
-- **Platform**: tvOS 15.0+
-- **Language**: Swift 5.5+
-- **UI Framework**: SwiftUI
-- **Architecture**: MVVM with protocol-based dependency injection
-- **Video Playback**: AVPlayer with HLS streaming
+   ```bash
+   open RingAppleTV.xcodeproj
+   ```
 
-## Project Status
+3. Install SwiftLint (if not already installed):
 
-🚧 **In Development** - Currently in requirements and design phase
+   ```bash
+   brew install swiftlint
+   ```
 
-## Important Notes
+   SwiftLint cannot be added as an SPM dependency — it must be installed separately via Homebrew. The project includes a `.swiftlint.yml` configuration at `RingAppleTV/.swiftlint.yml`. To lint the project manually:
 
-- **Personal Use Only**: This app is for educational purposes and personal use
-- **Unofficial API**: Uses Ring's private API (no official API available)
-- **Not for Distribution**: Not intended for App Store or public distribution
-- **Ring Account Required**: Active Ring account with Ring devices needed
+   ```bash
+   cd RingAppleTV
+   swiftlint lint
+   ```
 
-## Documentation
+4. Set up git hooks (SwiftLint + tests run on every commit):
 
-- [Requirements Document](.kiro/specs/AppleTVRing/requirements.md)
-- Design Document (coming soon)
-- Implementation Tasks (coming soon)
+   ```bash
+   ./scripts/setup.sh
+   ```
+
+   Or manually:
+
+   ```bash
+   git config core.hooksPath .githooks
+   ```
+
+5. Resolve Swift Package Manager dependencies:
+   - Xcode should resolve packages automatically on open
+   - If not, go to File → Packages → Resolve Package Versions
+   - The project uses `Package.swift` at `RingAppleTV/Package.swift`
+
+## Build & Run
+
+1. Select an Apple TV simulator target (e.g., Apple TV 4K) from the scheme selector
+2. Press `Cmd + R` to build and run
+3. Use keyboard arrow keys and Enter to navigate in the simulator
+
+To deploy to a physical Apple TV, connect it via USB-C or configure wireless debugging, then select it as the run destination.
+
+## Project Structure
+
+```
+RingAppleTV/
+├── Package.swift                # SPM package manifest
+├── Info.plist
+├── RingAppleTV.entitlements
+├── Sources/
+│   ├── App/                     # App entry point and root views
+│   │   ├── RingAppleTVApp.swift
+│   │   └── ContentView.swift
+│   ├── Models/                  # Data models (AuthToken, RingDevice, RingEvent, etc.)
+│   ├── Services/
+│   │   ├── Protocols/           # Service protocol definitions
+│   │   └── Implementations/     # Concrete service implementations
+│   ├── ViewModels/              # MVVM view models (@MainActor, ObservableObject)
+│   ├── Views/
+│   │   ├── Authentication/      # Login and 2FA views
+│   │   ├── Dashboard/           # Camera grid and device cards
+│   │   ├── Events/              # Event history list and rows
+│   │   ├── Player/              # HLS video player
+│   │   └── Shared/              # Reusable components (loading, error, empty states)
+│   ├── Utilities/               # Extensions, constants, helpers
+│   └── Resources/               # Assets and resources
+└── Tests/
+    ├── Models/                  # Model unit tests
+    ├── Services/                # Service unit tests
+    ├── ViewModels/              # ViewModel unit tests
+    ├── PropertyTests/           # SwiftCheck property-based tests
+    ├── Mocks/                   # Mock implementations for testing
+    └── Helpers/                 # Test utilities and extensions
+```
+
+## Testing
+
+Run the full test suite from Xcode:
+
+- `Cmd + U` to run all tests
+- Or use the Test Navigator (`Cmd + 6`) to run individual test classes
+
+From the command line:
+
+```bash
+cd RingAppleTV
+swift test
+```
+
+The project targets 80%+ overall code coverage, 90%+ for the service layer, and 100% for model decoding. Property-based tests use [SwiftCheck](https://github.com/typelift/SwiftCheck.git) to verify invariants across generated inputs.
+
+## Ring Protect Subscription
+
+Event recordings require an active Ring Protect subscription. Without it, the app will display event timestamps and types but video playback for recorded events will be unavailable.
+
+## Disclaimer
+
+This is an unofficial application and is not affiliated with, endorsed by, or connected to Ring LLC or Amazon.com, Inc. It uses Ring's private (reverse-engineered) API, which may change without notice.
+
+This project is for personal, educational, non-commercial use only. It is not intended for App Store or public distribution. Use at your own risk — using unofficial APIs may violate Ring's Terms of Service.
 
 ## License
 
 This project is for personal, non-commercial use only.
-
----
-
-**Disclaimer**: This is an unofficial application and is not affiliated with, endorsed by, or connected to Ring LLC or Amazon.com, Inc.

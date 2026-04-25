@@ -1,0 +1,87 @@
+# SwiftLint Configuration for RingAppleTV
+# Install SwiftLint: brew install swiftlint
+# Run manually: swiftlint lint --config .swiftlint.yml
+
+included:
+  - Sources
+
+excluded:
+  - Tests
+  - .build
+  - DerivedData
+
+# Rule configuration
+line_length:
+  warning: 120
+  error: 200
+  ignores_comments: true
+  ignores_urls: true
+
+file_length:
+  warning: 400
+  error: 600
+  ignore_comment_only_lines: true
+
+type_body_length:
+  warning: 300
+  error: 500
+
+function_body_length:
+  warning: 50
+  error: 100
+
+# Disabled rules
+disabled_rules:
+  - large_tuple            # SwiftUI View builders can produce large tuples
+  - trailing_comma         # Allow trailing commas in multi-line collections
+  - todo                   # Allow TODO/FIXME comments during development
+  - opening_brace          # Can conflict with SwiftUI modifier chaining style
+  - type_name              # Allow short type names like ID, VM, etc.
+
+# Opt-in rules
+opt_in_rules:
+  - closure_spacing
+  - collection_alignment
+  - contains_over_filter_count
+  - empty_count
+  - empty_string
+  - fatal_error_message
+  - first_where
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - last_where
+  - modifier_order
+  - overridden_super_call
+  - private_action
+  - private_outlet
+  - redundant_nil_coalescing
+  - sorted_first_last
+  - unowned_variable_capture
+  - vertical_whitespace_closing_braces
+
+# Identifier name configuration
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  max_length:
+    warning: 50
+    error: 60
+  excluded:
+    - id
+    - x
+    - y
+    - i
+    - ok
+    - to
+    - vm
+
+# Nesting
+nesting:
+  type_level: 3
+  function_level: 3
+
+# Cyclomatic complexity
+cyclomatic_complexity:
+  warning: 15
+  error: 25

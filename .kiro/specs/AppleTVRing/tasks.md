@@ -16,39 +16,39 @@
 
 ## Tasks
 
-- [ ] **Phase 1: Project Setup & Foundation**
-  - [ ] 1. Project Initialization
-    - [ ] 1.1 Create new tvOS app project in Xcode (Target: tvOS 15.0+, Swift, SwiftUI)
-    - [ ] 1.2 Configure project settings (bundle ID, signing, Keychain capability)
-    - [ ] 1.3 Create folder structure (App/, Models/, Services/, ViewModels/, Views/, Utilities/, Resources/)
-    - [ ] 1.4 Set up test target (RingAppleTVTests with folder structure)
-    - [ ] 1.5 Configure .gitignore (Xcode, DerivedData, build folders)
-    - [ ] 1.6 Update README.md (setup, build, and structure instructions)
-  - [ ] 2. Development Tools Setup
-    - [ ] 2.1 Install and configure SwiftLint (.swiftlint.yml, build phase)
-    - [ ] 2.2 Set up CI/CD pipeline (.github/workflows/ci.yml, testing, coverage)
-    - [ ] 2.3 Configure pre-commit hooks (SwiftLint, tests)
+- [x] **Phase 1: Project Setup & Foundation**
+  - [x] 1. Project Initialization
+    - [x] 1.1 Create new tvOS app project in Xcode (Target: tvOS 15.0+, Swift, SwiftUI)
+    - [x] 1.2 Configure project settings (bundle ID, signing, Keychain capability)
+    - [x] 1.3 Create folder structure (App/, Models/, Services/, ViewModels/, Views/, Utilities/, Resources/)
+    - [x] 1.4 Set up test target (RingAppleTVTests with folder structure)
+    - [x] 1.5 Configure .gitignore (Xcode, DerivedData, build folders)
+    - [x] 1.6 Update README.md (setup, build, and structure instructions)
+  - [x] 2. Development Tools Setup
+    - [x] 2.1 Install and configure SwiftLint (.swiftlint.yml, build phase)
+    - [x] 2.2 Set up CI/CD pipeline (.github/workflows/ci.yml, testing, coverage)
+    - [x] 2.3 Configure pre-commit hooks (SwiftLint, tests)
 
-- [ ] **Phase 2: Core Data Models**
-  - [ ] 3. Authentication Models
-    - [ ] 3.1 Create AuthToken model (accessToken, refreshToken, expiresAt, isExpired, Codable, tests)
-    - [ ] 3.2 Create AppConfiguration model (all config properties, Codable, defaults, tests)
-  - [ ] 4. Device & Event Models
-    - [ ] 4.1 Create RingDevice model (all properties, DeviceType enum, Codable, Identifiable, JSON tests)
-    - [ ] 4.2 Create RingEvent model (all properties, EventType enum, Codable, Identifiable, JSON tests)
-    - [ ] 4.3 Create StreamSession model (deviceId, hlsURL, createdAt, maxDuration, isValid, remainingTime, tests)
-  - [ ] 5. Error Models
-    - [ ] 5.1 Create RingAPIError enum (all cases, userMessage, tests)
-    - [ ] 5.2 Create KeychainError enum (keychain errors, user messages)
-    - [ ] 5.3 Create CacheError enum (cache errors, error handling)
+- [x] **Phase 2: Core Data Models**
+  - [x] 3. Authentication Models
+    - [x] 3.1 Create AuthToken model (accessToken, refreshToken, expiresAt, isExpired, Codable, tests)
+    - [x] 3.2 Create AppConfiguration model (all config properties, Codable, defaults, tests)
+  - [x] 4. Device & Event Models
+    - [x] 4.1 Create RingDevice model (all properties, DeviceType enum, Codable, Identifiable, JSON tests)
+    - [x] 4.2 Create RingEvent model (all properties, EventType enum, Codable, Identifiable, JSON tests)
+    - [x] 4.3 Create StreamSession model (deviceId, hlsURL, createdAt, maxDuration, isValid, remainingTime, tests)
+  - [x] 5. Error Models
+    - [x] 5.1 Create RingAPIError enum (all cases, userMessage, tests)
+    - [x] 5.2 Create KeychainError enum (keychain errors, user messages)
+    - [x] 5.3 Create CacheError enum (cache errors, error handling)
 
 
 - [ ] **Phase 3: Service Layer - Protocols**
   - [ ] 6. Core Service Protocols
     - [ ] 6.1 Create RingAPIClient protocol (authenticate, refreshToken, fetchDevices, fetchDeviceHealth, requestLiveStream, fetchEvents, fetchEventVideo)
-    - [ ] 6.2 Create AuthService protocol (login, logout, getValidToken, refreshToken)
-    - [ ] 6.3 Create DeviceService protocol (fetchDevices, filterDevices, sortDevices, refreshDevices)
-    - [ ] 6.4 Create VideoService protocol (requestLiveStream, validateStreamSession)
+    - [x] 6.2 Create AuthService protocol (login, logout, getValidToken, refreshToken)
+    - [x] 6.3 Create DeviceService protocol (fetchDevices, filterDevices, sortDevices, refreshDevices)
+    - [-] 6.4 Create VideoService protocol (requestLiveStream, validateStreamSession)
     - [ ] 6.5 Create EventService protocol (fetchEvents, fetchEventVideo, sortEvents)
   - [ ] 7. Infrastructure Service Protocols
     - [ ] 7.1 Create KeychainService protocol (save, load, delete)
@@ -213,7 +213,7 @@
     - [ ] 39.2 Review code quality (run SwiftLint and fix issues, remove debug code, remove unused code, ensure consistent style)
   - [ ] 40. Project Documentation
     - [ ] 40.1 Update README.md (complete setup instructions, build and run instructions, testing instructions, troubleshooting section, screenshots/demo video, update project status)
-    - [ ]* 40.2 Create CONTRIBUTING.md (contribution guidelines, code style guide, PR process, testing requirements)
+    - [ ] 40.2 Create CONTRIBUTING.md (contribution guidelines, code style guide, PR process, testing requirements)
     - [ ] 40.3 Document known issues (list limitations, document workarounds, add future enhancement ideas)
   - [ ] 41. Final Testing & Validation
     - [ ] 41.1 Verify all acceptance criteria (review requirements document, test each acceptance criterion, document test results, fix any failing criteria)
