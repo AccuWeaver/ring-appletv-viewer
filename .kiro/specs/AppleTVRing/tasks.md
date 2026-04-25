@@ -54,34 +54,34 @@
     - [x] 7.1 Create KeychainService protocol (save, load, delete)
     - [x] 7.2 Create CacheService protocol (save, load, remove, clear, isExpired)
 
-- [ ] **Phase 4: Service Layer - Implementations**
-  - [ ] 8. Keychain Service Implementation
-    - [ ] 8.1 Implement DefaultKeychainService (Security framework, kSecClassGenericPassword, service ID)
-    - [ ] 8.2 Write unit tests for KeychainService (save/load, delete, errors, mock keychain, 90%+ coverage)
-    - [ ] 8.3 Write property tests for token persistence (saved=loaded, 100 tokens, AC-1.1.3, AC-1.1.4)
-  - [ ] 9. Cache Service Implementation
-    - [ ] 9.1 Implement DefaultCacheService (FileManager, Documents/Cache, JSON, thread-safe)
-    - [ ] 9.2 Write unit tests for CacheService (save/load, expiration, clear/remove, thread safety, 90%+ coverage)
-    - [ ] 9.3 Write property tests for cache persistence (saved=loaded, expiration, 100 test cases)
-  - [ ] 10. Ring API Client Implementation
-    - [ ] 10.1 Implement DefaultRingAPIClient (URLSession, all methods, error handling, logging without tokens)
-    - [ ] 10.2 Write unit tests for RingAPIClient (all methods, network errors, API errors, JSON parsing, 90%+ coverage)
-  - [ ] 11. Authentication Service Implementation
-    - [ ] 11.1 Implement DefaultAuthService (inject dependencies, login, logout, getValidToken with auto-refresh, validation)
-    - [ ] 11.2 Write unit tests for AuthService (login success/failure, logout, token validation, auto-refresh, 90%+ coverage)
-    - [ ] 11.3 Write property tests for token refresh (refreshed never expired, 100 expired tokens, AC-1.2.1, AC-1.2.5)
-  - [ ] 12. Device Service Implementation
-    - [ ] 12.1 Implement DefaultDeviceService (inject dependencies, fetchDevices with cache, filter, sort, background refresh)
-    - [ ] 12.2 Write unit tests for DeviceService (API fetch, cache fetch, expiration, filter, sort, 90%+ coverage)
-    - [ ] 12.3 Write property tests for device operations (filter subset, sort preserves count, 100 scenarios, AC-2.2.4, AC-2.2.5)
-  - [ ] 13. Video Service Implementation
-    - [ ] 13.1 Implement DefaultVideoService (inject API, requestLiveStream with timeout, session validation, maxStreamDuration, offline handling)
-    - [ ] 13.2 Write unit tests for VideoService (stream success, timeout, offline, session validity, 90%+ coverage)
-    - [ ] 13.3 Write property tests for stream sessions (valid after creation, invalid after timeout, remainingTime≥0, 100 sessions, AC-3.1.5, AC-3.3.4)
-  - [ ] 14. Event Service Implementation
-    - [ ] 14.1 Implement DefaultEventService (inject API, fetchEvents, sortEvents by timestamp, Ring Protect status, 50 event limit)
-    - [ ] 14.2 Write unit tests for EventService (fetch success, sorting, limit, Ring Protect, 90%+ coverage)
-    - [ ] 14.3 Write property tests for event operations (descending order, count≤limit, 100 scenarios, AC-4.2.2, AC-4.1.3)
+- [x] **Phase 4: Service Layer - Implementations**
+  - [x] 8. Keychain Service Implementation
+    - [x] 8.1 Implement DefaultKeychainService (Security framework, kSecClassGenericPassword, service ID)
+    - [x] 8.2 Write unit tests for KeychainService (save/load, delete, errors, mock keychain, 90%+ coverage)
+    - [x] 8.3 Write property tests for token persistence (saved=loaded, 100 tokens, AC-1.1.3, AC-1.1.4)
+  - [x] 9. Cache Service Implementation
+    - [x] 9.1 Implement DefaultCacheService (FileManager, Documents/Cache, JSON, thread-safe)
+    - [x] 9.2 Write unit tests for CacheService (save/load, expiration, clear/remove, thread safety, 90%+ coverage)
+    - [x] 9.3 Write property tests for cache persistence (saved=loaded, expiration, 100 test cases)
+  - [x] 10. Ring API Client Implementation
+    - [x] 10.1 Implement DefaultRingAPIClient (URLSession, all methods, error handling, logging without tokens)
+    - [x] 10.2 Write unit tests for RingAPIClient (all methods, network errors, API errors, JSON parsing, 90%+ coverage)
+  - [x] 11. Authentication Service Implementation
+    - [x] 11.1 Implement DefaultAuthService (inject dependencies, login, logout, getValidToken with auto-refresh, validation)
+    - [x] 11.2 Write unit tests for AuthService (login success/failure, logout, token validation, auto-refresh, 90%+ coverage)
+    - [x] 11.3 Write property tests for token refresh (refreshed never expired, 100 expired tokens, AC-1.2.1, AC-1.2.5)
+  - [x] 12. Device Service Implementation
+    - [x] 12.1 Implement DefaultDeviceService (inject dependencies, fetchDevices with cache, filter, sort, background refresh)
+    - [x] 12.2 Write unit tests for DeviceService (API fetch, cache fetch, expiration, filter, sort, 90%+ coverage)
+    - [x] 12.3 Write property tests for device operations (filter subset, sort preserves count, 100 scenarios, AC-2.2.4, AC-2.2.5)
+  - [x] 13. Video Service Implementation
+    - [x] 13.1 Implement DefaultVideoService (inject API, requestLiveStream with timeout, session validation, maxStreamDuration, offline handling)
+    - [x] 13.2 Write unit tests for VideoService (stream success, timeout, offline, session validity, 90%+ coverage)
+    - [x] 13.3 Write property tests for stream sessions (valid after creation, invalid after timeout, remainingTime≥0, 100 sessions, AC-3.1.5, AC-3.3.4)
+  - [x] 14. Event Service Implementation
+    - [x] 14.1 Implement DefaultEventService (inject API, fetchEvents, sortEvents by timestamp, Ring Protect status, 50 event limit)
+    - [x] 14.2 Write unit tests for EventService (fetch success, sorting, limit, Ring Protect, 90%+ coverage)
+    - [x] 14.3 Write property tests for event operations (descending order, count≤limit, 100 scenarios, AC-4.2.2, AC-4.1.3)
 
 
 - [ ] **Phase 5: Utilities & Infrastructure**

@@ -6,7 +6,8 @@ import PackageDescription
 let package = Package(
     name: "RingAppleTV",
     platforms: [
-        .tvOS(.v15)
+        .tvOS(.v15),
+        .macOS(.v12)
     ],
     products: [
         .library(
