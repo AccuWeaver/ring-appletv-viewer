@@ -99,19 +99,19 @@
     - [x] 17.2 Create View extensions (common modifiers, focus helpers, accessibility helpers)
     - [x] 17.3 Create Constants file (API URLs, config defaults, UI constants)
 
-- [ ] **Phase 6: ViewModels**
-  - [ ] 18. Authentication ViewModel
-    - [ ] 18.1 Create AuthViewModel (ViewState enum, inject AuthService, login, logout, error handling, @MainActor)
-    - [ ] 18.2 Write unit tests for AuthViewModel (login success/failure, error messages, state transitions, 80%+ coverage)
-  - [ ] 19. Dashboard ViewModel
-    - [ ] 19.1 Create DashboardViewModel (ViewState, inject DeviceService, loadDevices, refresh, background refresh 60s, filter/sort, @MainActor)
-    - [ ] 19.2 Write unit tests for DashboardViewModel (load success/failure, background refresh, cancellation, filter/sort, 80%+ coverage)
-  - [ ] 20. Player ViewModel
-    - [ ] 20.1 Create PlayerViewModel (ViewState, inject VideoService, requestStream, play/pause, error with retry, track duration, expiration, @MainActor)
-    - [ ] 20.2 Write unit tests for PlayerViewModel (stream success/failure, retry, expiration, 80%+ coverage)
-  - [ ] 21. Events ViewModel
-    - [ ] 21.1 Create EventsViewModel (ViewState, inject EventService, loadEvents, refresh, Ring Protect status, sort descending, @MainActor)
-    - [ ] 21.2 Write unit tests for EventsViewModel (load success/failure, Ring Protect message, sorting, 80%+ coverage)
+- [x] **Phase 6: ViewModels**
+  - [x] 18. Authentication ViewModel
+    - [x] 18.1 Create AuthViewModel (ViewState enum, inject AuthService, login, logout, error handling, @MainActor)
+    - [x] 18.2 Write unit tests for AuthViewModel (login success/failure, error messages, state transitions, 80%+ coverage)
+  - [x] 19. Dashboard ViewModel
+    - [x] 19.1 Create DashboardViewModel (ViewState, inject DeviceService, loadDevices, refresh, background refresh 60s, filter/sort, @MainActor)
+    - [x] 19.2 Write unit tests for DashboardViewModel (load success/failure, background refresh, cancellation, filter/sort, 80%+ coverage)
+  - [x] 20. Player ViewModel
+    - [x] 20.1 Create PlayerViewModel (ViewState, inject VideoService, requestStream, play/pause, error with retry, track duration, expiration, @MainActor)
+    - [x] 20.2 Write unit tests for PlayerViewModel (stream success/failure, retry, expiration, 80%+ coverage)
+  - [x] 21. Events ViewModel
+    - [x] 21.1 Create EventsViewModel (ViewState, inject EventService, loadEvents, refresh, Ring Protect status, sort descending, @MainActor)
+    - [x] 21.2 Write unit tests for EventsViewModel (load success/failure, Ring Protect message, sorting, 80%+ coverage)
 
 
 - [ ] **Phase 7: Views - Authentication**
