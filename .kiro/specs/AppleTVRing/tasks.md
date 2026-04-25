@@ -114,45 +114,45 @@
     - [x] 21.2 Write unit tests for EventsViewModel (load success/failure, Ring Protect message, sorting, 80%+ coverage)
 
 
-- [ ] **Phase 7: Views - Authentication**
-  - [ ] 22. Login View
-    - [ ] 22.1 Create LoginView (Ring logo, email TextField, password SecureField, login Button, loading indicator, error display, inject AuthViewModel, focus management)
-    - [ ] 22.2 Implement accessibility (VoiceOver labels, hints, test with VoiceOver, proper focus order)
-    - [ ] 22.3 Manual testing (simulator with keyboard, focus navigation, error states, loading states)
+- [x] **Phase 7: Views - Authentication**
+  - [x] 22. Login View
+    - [x] 22.1 Create LoginView (Ring logo, email TextField, password SecureField, login Button, loading indicator, error display, inject AuthViewModel, focus management)
+    - [x] 22.2 Implement accessibility (VoiceOver labels, hints, test with VoiceOver, proper focus order)
+    - [x] 22.3 Manual testing (simulator with keyboard, focus navigation, error states, loading states)
 
-- [ ] **Phase 8: Views - Dashboard**
-  - [ ] 23. Device Card View
-    - [ ] 23.1 Create DeviceCardView (snapshot/placeholder, device name, online/offline indicator, battery level, focus effect, focusable/tappable)
-    - [ ] 23.2 Implement accessibility (VoiceOver labels with device info, hints, values for status, test with VoiceOver)
-  - [ ] 24. Dashboard View
-    - [ ] 24.1 Create DashboardView (nav bar with title, refresh button, 2-3 column LazyVGrid, inject DashboardViewModel, navigate to PlayerView, loading/empty/error states)
-    - [ ] 24.2 Implement focus management (grid items focusable, test with remote, visible focus indicators)
-    - [ ] 24.3 Implement accessibility (VoiceOver support, test with VoiceOver, navigation announcements)
-    - [ ] 24.4 Manual testing (simulator, mock data, all states, refresh functionality)
+- [x] **Phase 8: Views - Dashboard**
+  - [x] 23. Device Card View
+    - [x] 23.1 Create DeviceCardView (snapshot/placeholder, device name, online/offline indicator, battery level, focus effect, focusable/tappable)
+    - [x] 23.2 Implement accessibility (VoiceOver labels with device info, hints, values for status, test with VoiceOver)
+  - [x] 24. Dashboard View
+    - [x] 24.1 Create DashboardView (nav bar with title, refresh button, 2-3 column LazyVGrid, inject DashboardViewModel, navigate to PlayerView, loading/empty/error states)
+    - [x] 24.2 Implement focus management (grid items focusable, test with remote, visible focus indicators)
+    - [x] 24.3 Implement accessibility (VoiceOver support, test with VoiceOver, navigation announcements)
+    - [x] 24.4 Manual testing (simulator, mock data, all states, refresh functionality)
 
-- [ ] **Phase 9: Views - Video Player**
-  - [ ] 25. Player View
-    - [ ] 25.1 Create PlayerView (AVPlayer for HLS, device name overlay, loading indicator, error overlay with retry, inject PlayerViewModel, Select for play/pause, Menu for back, full-screen)
-    - [ ] 25.2 Implement playback controls (play/pause toggle, return to dashboard, retry on error, display stream status)
-    - [ ] 25.3 Implement accessibility (VoiceOver labels for controls, hints, announce playback state, test with VoiceOver)
-    - [ ] 25.4 Manual testing (simulator with mock URLs, play/pause, error handling, navigation, real device with actual streams)
+- [x] **Phase 9: Views - Video Player**
+  - [x] 25. Player View
+    - [x] 25.1 Create PlayerView (AVPlayer for HLS, device name overlay, loading indicator, error overlay with retry, inject PlayerViewModel, Select for play/pause, Menu for back, full-screen)
+    - [x] 25.2 Implement playback controls (play/pause toggle, return to dashboard, retry on error, display stream status)
+    - [x] 25.3 Implement accessibility (VoiceOver labels for controls, hints, announce playback state, test with VoiceOver)
+    - [x] 25.4 Manual testing (simulator with mock URLs, play/pause, error handling, navigation, real device with actual streams)
 
-- [ ] **Phase 10: Views - Events**
-  - [ ] 26. Event Row View
-    - [ ] 26.1 Create EventRowView (thumbnail, event type icon, formatted timestamp, device name, focus effect, focusable/tappable)
-    - [ ] 26.2 Implement accessibility (VoiceOver labels with event info, hints, test with VoiceOver)
-  - [ ] 27. Events View
-    - [ ] 27.1 Create EventsView (nav bar with title, scrollable List/LazyVStack, inject EventsViewModel, navigate to PlayerView, loading/empty/error states, Ring Protect message)
-    - [ ] 27.2 Implement focus management (list items focusable, test scrolling with remote, verify focus indicators)
-    - [ ] 27.3 Implement accessibility (VoiceOver support, test with VoiceOver, proper list navigation)
-    - [ ] 27.4 Manual testing (simulator, mock data, all states, event playback navigation)
+- [x] **Phase 10: Views - Events**
+  - [x] 26. Event Row View
+    - [x] 26.1 Create EventRowView (thumbnail, event type icon, formatted timestamp, device name, focus effect, focusable/tappable)
+    - [x] 26.2 Implement accessibility (VoiceOver labels with event info, hints, test with VoiceOver)
+  - [x] 27. Events View
+    - [x] 27.1 Create EventsView (nav bar with title, scrollable List/LazyVStack, inject EventsViewModel, navigate to PlayerView, loading/empty/error states, Ring Protect message)
+    - [x] 27.2 Implement focus management (list items focusable, test scrolling with remote, verify focus indicators)
+    - [x] 27.3 Implement accessibility (VoiceOver support, test with VoiceOver, proper list navigation)
+    - [x] 27.4 Manual testing (simulator, mock data, all states, event playback navigation)
 
 
 - [ ] **Phase 11: Views - Shared Components**
-  - [ ] 28. Shared UI Components
-    - [ ] 28.1 Create LoadingView (skeleton loaders for device cards, activity indicators, configurable styles)
-    - [ ] 28.2 Create ErrorView (error message, retry button, configurable text, proper focus)
-    - [ ] 28.3 Create EmptyStateView (empty message, helpful guidance, configurable message/icon)
+  - [x] 28. Shared UI Components
+    - [x] 28.1 Create LoadingView (skeleton loaders for device cards, activity indicators, configurable styles)
+    - [x] 28.2 Create ErrorView (error message, retry button, configurable text, proper focus)
+    - [x] 28.3 Create EmptyStateView (empty message, helpful guidance, configurable message/icon)
   - [ ] 29. Settings View (Optional)
     - [ ] 29.1 Create SettingsView (config options, useMocks toggle, enableDebugLogging toggle, stream timeout config, cache expiration config, @AppStorage)
     - [ ] 29.2 Add settings navigation (settings button on dashboard, navigation to settings, test config changes)
