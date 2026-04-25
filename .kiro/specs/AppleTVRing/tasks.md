@@ -43,16 +43,16 @@
     - [x] 5.3 Create CacheError enum (cache errors, error handling)
 
 
-- [ ] **Phase 3: Service Layer - Protocols**
-  - [ ] 6. Core Service Protocols
-    - [ ] 6.1 Create RingAPIClient protocol (authenticate, refreshToken, fetchDevices, fetchDeviceHealth, requestLiveStream, fetchEvents, fetchEventVideo)
+- [x] **Phase 3: Service Layer - Protocols**
+  - [x] 6. Core Service Protocols
+    - [x] 6.1 Create RingAPIClient protocol (authenticate, refreshToken, fetchDevices, fetchDeviceHealth, requestLiveStream, fetchEvents, fetchEventVideo)
     - [x] 6.2 Create AuthService protocol (login, logout, getValidToken, refreshToken)
     - [x] 6.3 Create DeviceService protocol (fetchDevices, filterDevices, sortDevices, refreshDevices)
-    - [-] 6.4 Create VideoService protocol (requestLiveStream, validateStreamSession)
-    - [ ] 6.5 Create EventService protocol (fetchEvents, fetchEventVideo, sortEvents)
-  - [ ] 7. Infrastructure Service Protocols
-    - [ ] 7.1 Create KeychainService protocol (save, load, delete)
-    - [ ] 7.2 Create CacheService protocol (save, load, remove, clear, isExpired)
+    - [x] 6.4 Create VideoService protocol (requestLiveStream, validateStreamSession)
+    - [x] 6.5 Create EventService protocol (fetchEvents, fetchEventVideo, sortEvents)
+  - [x] 7. Infrastructure Service Protocols
+    - [x] 7.1 Create KeychainService protocol (save, load, delete)
+    - [x] 7.2 Create CacheService protocol (save, load, remove, clear, isExpired)
 
 - [ ] **Phase 4: Service Layer - Implementations**
   - [ ] 8. Keychain Service Implementation
