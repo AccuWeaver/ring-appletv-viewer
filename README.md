@@ -2,7 +2,11 @@
 
 A native tvOS application for viewing Ring camera live streams and recorded events on your Apple TV.
 
-**Status**: v1.0 — Feature complete. Authentication, device management, live streaming, and event history are implemented and tested.
+**Status**: v1.1 — Authentication, device management, and event history working against Ring's live API. Live streaming pending WebRTC implementation. Dashboard redesigned to match Ring app style.
+
+## Screenshots
+
+![Dashboard](docs/screenshots/dashboard.png)
 
 ## Prerequisites
 
@@ -11,6 +15,7 @@ A native tvOS application for viewing Ring camera live streams and recorded even
 - Apple TV (4th generation or later)
 - Active Ring account with Ring cameras or video doorbells
 - Apple Developer account (for device deployment)
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (for project file generation)
 - [SwiftLint](https://github.com/realm/SwiftLint) (optional, for linting)
 
 ## Setup
@@ -19,31 +24,38 @@ A native tvOS application for viewing Ring camera live streams and recorded even
 
    ```bash
    git clone <repository-url>
-   cd RingAppleTV
+   cd ring-appletv-viewer
    ```
 
-2. Open in Xcode:
+2. Generate the Xcode project:
+
+   ```bash
+   brew install xcodegen  # if not already installed
+   cd RingAppleTV
+   xcodegen generate
+   ```
+
+3. Open in Xcode:
 
    ```bash
    open RingAppleTV.xcodeproj
    ```
 
-3. Resolve Swift Package Manager dependencies:
+4. Resolve Swift Package Manager dependencies:
    - Xcode resolves packages automatically on open
    - If not: File → Packages → Resolve Package Versions
-   - Package manifest: `RingAppleTV/Package.swift`
 
-4. (Optional) Install SwiftLint:
+5. (Optional) Install SwiftLint:
 
    ```bash
    brew install swiftlint
-   cd RingAppleTV && swiftlint lint
+   swiftlint lint
    ```
 
-5. Set up git hooks:
+6. Set up git hooks:
 
    ```bash
-   git config core.hooksPath .githooks
+   cd .. && git config core.hooksPath .githooks
    ```
 
 ## Build & Run
@@ -53,6 +65,17 @@ A native tvOS application for viewing Ring camera live streams and recorded even
 3. Use keyboard arrow keys and Enter to navigate in the simulator
 
 For physical Apple TV: connect via USB-C or configure wireless debugging, then select as run destination.
+
+## Project Generation
+
+This project uses [XcodeGen](https://github.com/yonaskolb/XcodeGen) to generate the `.xcodeproj` from `project.yml`. After adding new source files, regenerate:
+
+```bash
+cd RingAppleTV
+xcodegen generate
+```
+
+This ensures proper Xcode group hierarchy matching the folder structure on disk.
 
 ## Testing
 
@@ -81,28 +104,29 @@ Run all tests:
 ```
 RingAppleTV/
 ├── Package.swift
+├── project.yml          # XcodeGen spec
 ├── Info.plist
 ├── Sources/
-│   ├── App/           # Entry point, ContentView, MainTabView, ServiceContainer
-│   ├── Models/        # AuthToken, RingDevice, RingEvent, StreamSession, errors
+│   ├── App/             # Entry point, ContentView, MainTabView, ServiceContainer
+│   ├── Models/          # AuthToken, RingDevice, RingEvent, StreamSession, errors
 │   ├── Services/
-│   │   ├── Protocols/       # Service interfaces
-│   │   └── Implementations/ # Production implementations
-│   ├── ViewModels/    # Auth, Dashboard, Player, Events ViewModels
+│   │   ├── Protocols/         # Service interfaces
+│   │   └── Implementations/   # Production implementations
+│   ├── ViewModels/      # Auth, Dashboard, Player, Events ViewModels
 │   ├── Views/
-│   │   ├── Authentication/  # Login + 2FA
-│   │   ├── Dashboard/       # Camera grid + device cards
-│   │   ├── Events/          # Event history list
-│   │   ├── Player/          # HLS video player
-│   │   └── Shared/          # Loading, Error, EmptyState views
-│   └── Utilities/     # Extensions, constants, rate limiting, retry
+│   │   ├── Authentication/    # Login + 2FA (with TOTP/SMS detection)
+│   │   ├── Dashboard/         # Camera grid + Ring-style device cards
+│   │   ├── Events/            # Event history list
+│   │   ├── Player/            # Video player (WebRTC pending)
+│   │   └── Shared/            # Loading, Error, EmptyState, RevealableSecureField
+│   └── Utilities/       # Extensions, constants, rate limiting, retry
 └── Tests/
-    ├── Models/        # Model unit tests
-    ├── Services/      # Service unit tests
-    ├── ViewModels/    # ViewModel unit tests
-    ├── PropertyTests/ # SwiftCheck property-based tests
-    ├── Mocks/         # Mock service implementations
-    └── Helpers/       # Test utilities
+    ├── Models/          # Model unit tests
+    ├── Services/        # Service unit tests
+    ├── ViewModels/      # ViewModel unit tests
+    ├── PropertyTests/   # SwiftCheck property-based tests
+    ├── Mocks/           # Mock service implementations
+    └── Helpers/         # Test utilities
 ```
 
 ## Architecture
@@ -114,6 +138,16 @@ MVVM with protocol-based dependency injection:
 - **Services** — Protocol-defined, injected via init, business logic layer
 - **Infrastructure** — Ring API client, Keychain, file cache
 
+## Authentication
+
+The app supports Ring's two-factor authentication with automatic detection of the 2FA method:
+
+- **TOTP (Authenticator app)** — Shows "Enter the code from your authenticator app"
+- **SMS** — Shows "A verification code has been sent via SMS"
+- **Email** — Shows "A verification code has been sent to your email"
+
+The 2FA method is parsed from Ring's 412 response body (`tsv_state` field).
+
 ## Troubleshooting
 
 | Issue | Solution |
@@ -122,8 +156,10 @@ MVVM with protocol-based dependency injection:
 | Simulator keyboard not working | Hardware → Keyboard → Connect Hardware Keyboard |
 | Tests fail with keychain errors | Tests use mock keychain — ensure test target is selected |
 | "No such module" errors | Clean build folder (`Cmd + Shift + K`), then rebuild |
-| Stream playback fails in simulator | HLS streams require network access; use mock URLs for testing |
+| Xcode shows "Recovered References" | Regenerate project: `cd RingAppleTV && xcodegen generate` |
+| Live stream shows "not yet supported" | Ring uses WebRTC/SIP — HLS not available. WebRTC implementation planned. |
 | App Transport Security errors | The app enforces HTTPS-only; Ring API endpoints use HTTPS |
+| Xcode hangs on open | Disable Xcode AI/Predictive Code Completion, clear derived data |
 
 ## Ring Protect Subscription
 
