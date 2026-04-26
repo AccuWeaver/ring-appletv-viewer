@@ -103,7 +103,10 @@ enum TestDataGenerators {
         let maxDuration = c.generate(using: Int.arbitrary.suchThat { $0 > 0 && $0 <= 1200 })
         return StreamSession(
             deviceId: c.generate(using: Int.arbitrary.suchThat { $0 > 0 }),
-            hlsURL: URL(string: "https://ring.com/live/stream.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date().addingTimeInterval(-Double(secondsAgo)),
             maxDuration: Double(maxDuration)
         )

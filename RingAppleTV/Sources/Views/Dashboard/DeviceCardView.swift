@@ -1,31 +1,51 @@
 import SwiftUI
 
-/// A card displaying a Ring device's snapshot, name, status, and battery level.
-/// Designed for the dashboard grid with tvOS focus engine support.
+/// A card displaying a Ring device's snapshot, name, and status.
+/// Styled to match the native Ring app: snapshot-dominant with overlaid info.
 struct DeviceCardView: View {
     let device: RingDevice
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Snapshot / placeholder
+        ZStack(alignment: .topLeading) {
+            // Snapshot / placeholder background
             snapshotArea
 
-            // Device info
-            VStack(alignment: .leading, spacing: 6) {
-                Text(device.description)
-                    .font(.system(size: Constants.UI.bodySize, weight: .medium))
-                    .lineLimit(1)
+            // Overlaid info
+            VStack {
+                // Top row: status dot + device name + type icon
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(device.isOnline ? Color.green : Color.red)
+                        .frame(width: 10, height: 10)
 
-                HStack(spacing: 8) {
-                    deviceTypeIcon
-                    statusIndicator
+                    Text(device.description)
+                        .font(.system(size: Constants.UI.captionSize, weight: .semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
+
                     Spacer()
-                    batteryIndicator
+
+                    Image(systemName: iconForDeviceType)
+                        .font(.system(size: Constants.UI.captionSize))
+                        .foregroundColor(.white)
+                        .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
                 }
+                .padding(.horizontal, 12)
+                .padding(.top, 10)
+
+                Spacer()
+
+                // Bottom row: battery (if available)
+                HStack {
+                    batteryIndicator
+                    Spacer()
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 10)
             }
-            .padding(.horizontal, 4)
         }
-        .cardStyle()
+        .clipShape(RoundedRectangle(cornerRadius: Constants.UI.cornerRadius))
         .focusableCard()
         .accessibilityCard(
             label: accessibilityLabelText,
@@ -37,23 +57,40 @@ struct DeviceCardView: View {
 
     private var snapshotArea: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: Constants.UI.cornerRadius / 2)
-                .fill(Color.gray.opacity(0.2))
+            // Dark background
+            RoundedRectangle(cornerRadius: Constants.UI.cornerRadius)
+                .fill(Color(white: 0.15))
                 .aspectRatio(16 / 9, contentMode: .fit)
 
-            Image(systemName: "video.fill")
-                .font(.system(size: 40))
-                .foregroundColor(.secondary)
+            // Gradient overlay for text readability
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [.black.opacity(0.6), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 50)
+
+                Spacer()
+
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.5)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 40)
+            }
+
+            // Camera icon placeholder (shown when no snapshot)
+            if device.snapshotURL == nil {
+                Image(systemName: "video.fill")
+                    .font(.system(size: 36))
+                    .foregroundColor(.gray.opacity(0.5))
+            }
         }
     }
 
     // MARK: - Device Type Icon
-
-    private var deviceTypeIcon: some View {
-        Image(systemName: iconForDeviceType)
-            .font(.system(size: Constants.UI.captionSize))
-            .foregroundColor(.secondary)
-    }
 
     private var iconForDeviceType: String {
         switch device.deviceType {
@@ -68,19 +105,6 @@ struct DeviceCardView: View {
         }
     }
 
-    // MARK: - Status Indicator
-
-    private var statusIndicator: some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(device.isOnline ? Color.green : Color.red)
-                .frame(width: 10, height: 10)
-            Text(device.isOnline ? "Online" : "Offline")
-                .font(.system(size: Constants.UI.captionSize))
-                .foregroundColor(.secondary)
-        }
-    }
-
     // MARK: - Battery
 
     @ViewBuilder
@@ -90,9 +114,10 @@ struct DeviceCardView: View {
                 Image(systemName: batteryIconName(for: battery))
                     .foregroundColor(batteryColor(for: battery))
                 Text("\(battery)%")
-                    .font(.system(size: Constants.UI.captionSize))
-                    .foregroundColor(.secondary)
+                    .font(.system(size: Constants.UI.captionSize - 4))
+                    .foregroundColor(.white.opacity(0.8))
             }
+            .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
         }
     }
 

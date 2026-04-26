@@ -49,7 +49,7 @@ final class DefaultRingAPIClient: RingAPIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        request.setValue(twoFactorCode, forHTTPHeaderField: "2fa-support")
+        request.setValue("true", forHTTPHeaderField: "2fa-support")
         request.setValue(twoFactorCode, forHTTPHeaderField: "2fa-code")
 
         let body: [String: String] = [
@@ -94,8 +94,14 @@ final class DefaultRingAPIClient: RingAPIClient {
 
         log("Fetching devices")
 
-        let wrapper = try await perform(request, decoding: DevicesWrapper.self)
-        return wrapper.allDevices
+        do {
+            let wrapper = try await perform(request, decoding: DevicesWrapper.self)
+            log("Successfully decoded DevicesWrapper with \(wrapper.allDevices.count) devices")
+            return wrapper.allDevices
+        } catch {
+            log("Failed to decode devices wrapper: \(error)")
+            throw error
+        }
     }
 
     // MARK: - Request Live Stream
@@ -164,33 +170,68 @@ final class DefaultRingAPIClient: RingAPIClient {
 
         let statusCode = httpResponse.statusCode
         log("Response status \(statusCode) for \(request.url?.path ?? "unknown")")
+        
+        // Debug: Log response body for non-success codes
+        if statusCode < 200 || statusCode >= 300 {
+            if let bodyString = String(data: data, encoding: .utf8) {
+                log("Response body: \(bodyString)")
+            }
+        }
 
-        try mapStatusCode(statusCode)
+        try mapStatusCode(statusCode, data: data)
 
         do {
             let decoder = JSONDecoder()
-            return try decoder.decode(T.self, from: data)
+            let result = try decoder.decode(T.self, from: data)
+            log("Successfully decoded response of type \(T.self)")
+            return result
         } catch {
             log("Decoding error: \(error.localizedDescription)")
+            if let bodyString = String(data: data, encoding: .utf8) {
+                log("Failed to decode response body: \(bodyString)")
+            }
             throw RingAPIError.decodingError(error.localizedDescription)
         }
     }
 
     /// Maps HTTP status codes to `RingAPIError`. Successful codes (200-299) pass through.
-    private func mapStatusCode(_ statusCode: Int) throws {
+    private func mapStatusCode(_ statusCode: Int, data: Data? = nil) throws {
         switch statusCode {
         case 200...299:
             return
+        case 400:
+            throw RingAPIError.twoFactorInvalid
         case 401:
             throw RingAPIError.invalidCredentials
         case 412:
-            throw RingAPIError.twoFactorRequired
+            let method = parseTwoFactorMethod(from: data)
+            throw RingAPIError.twoFactorRequired(method: method)
         case 429:
             throw RingAPIError.rateLimited
         case 500...599:
             throw RingAPIError.serverError(statusCode)
         default:
             throw RingAPIError.unknown("HTTP \(statusCode)")
+        }
+    }
+
+    /// Parses the 2FA method from a 412 response body.
+    /// Ring returns `"tsv_state"` indicating the method: `"sms"`, `"totp"`, or `"email"`.
+    private func parseTwoFactorMethod(from data: Data?) -> TwoFactorMethod {
+        guard let data = data,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let tsvState = json["tsv_state"] as? String else {
+            return .unknown
+        }
+        switch tsvState.lowercased() {
+        case "totp":
+            return .authenticator
+        case "sms":
+            return .sms
+        case "email":
+            return .email
+        default:
+            return .unknown
         }
     }
 

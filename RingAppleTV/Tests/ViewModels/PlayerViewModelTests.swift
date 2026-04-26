@@ -14,7 +14,10 @@ final class PlayerViewModelTests: XCTestCase {
     private func makeSession(valid: Bool = true) -> StreamSession {
         StreamSession(
             deviceId: 42,
-            hlsURL: URL(string: "https://ring.com/stream/42")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: valid ? Date() : Date().addingTimeInterval(-7200),
             maxDuration: 600
         )

@@ -9,11 +9,13 @@ struct LoginView: View {
     enum Field: Hashable {
         case email
         case password
+        case showPasswordToggle
         case twoFactorCode
         case loginButton
     }
 
     @FocusState private var focusedField: Field?
+    @State private var showPassword = false
 
     // MARK: - Body
 
@@ -41,19 +43,54 @@ struct LoginView: View {
                     .focused($focusedField, equals: .email)
                     .accessibilityLabel(Text("Email address"))
                     .accessibilityHint(Text("Enter your Ring account email"))
+                    .onSubmit {
+                        focusedField = .password
+                    }
 
-                SecureField("Password", text: $viewModel.password)
-                    .textContentType(.password)
-                    .focused($focusedField, equals: .password)
-                    .accessibilityLabel(Text("Password"))
-                    .accessibilityHint(Text("Enter your Ring account password"))
+                RevealableSecureField(
+                    placeholder: "Password",
+                    text: $viewModel.password,
+                    isRevealed: $showPassword
+                )
+                .textContentType(.password)
+                .focused($focusedField, equals: .password)
+                .accessibilityLabel(Text("Password"))
+                .accessibilityHint(Text("Enter your Ring account password"))
+                .onSubmit {
+                    focusedField = .showPasswordToggle
+                }
+
+                Button {
+                    showPassword.toggle()
+                } label: {
+                    HStack {
+                        Image(systemName: showPassword ? "eye.slash" : "eye")
+                        Text(showPassword ? "Hide Password" : "Show Password")
+                            .font(.system(size: Constants.UI.captionSize))
+                    }
+                }
+                .focused($focusedField, equals: .showPasswordToggle)
+                .accessibilityLabel(Text(showPassword ? "Hide password" : "Show password"))
+                .onSubmit {
+                    if viewModel.requiresTwoFactor {
+                        focusedField = .twoFactorCode
+                    } else {
+                        focusedField = .loginButton
+                    }
+                }
+
 
                 if viewModel.requiresTwoFactor {
                     TextField("Verification Code", text: $viewModel.twoFactorCode)
                         .keyboardType(.numberPad)
                         .focused($focusedField, equals: .twoFactorCode)
                         .accessibilityLabel(Text("Two-factor verification code"))
-                        .accessibilityHint(Text("Enter the code sent to your device"))
+                        .accessibilityHint(Text(viewModel.twoFactorMethod == .authenticator
+                            ? "Enter the code from your authenticator app"
+                            : "Enter the verification code"))
+                        .onSubmit {
+                            focusedField = .loginButton
+                        }
                 }
             }
             .frame(maxWidth: 500)
@@ -70,10 +107,10 @@ struct LoginView: View {
 
             // 2FA prompt
             if viewModel.requiresTwoFactor, case .idle = viewModel.state {
-                Text("A verification code has been sent to your device.")
+                Text(twoFactorPromptMessage)
                     .font(.system(size: Constants.UI.captionSize))
                     .foregroundColor(.secondary)
-                    .accessibilityLabel(Text("A verification code has been sent to your device"))
+                    .accessibilityLabel(Text(twoFactorPromptMessage))
             }
 
             // Login button
@@ -88,6 +125,19 @@ struct LoginView: View {
     }
 
     // MARK: - Login Button
+
+    private var twoFactorPromptMessage: String {
+        switch viewModel.twoFactorMethod {
+        case .authenticator:
+            return "Enter the code from your authenticator app."
+        case .sms:
+            return "A verification code has been sent via SMS."
+        case .email:
+            return "A verification code has been sent to your email."
+        case .unknown:
+            return "Enter your two-factor verification code."
+        }
+    }
 
     @ViewBuilder
     private var loginButton: some View {

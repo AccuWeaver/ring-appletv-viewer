@@ -40,11 +40,38 @@ struct PlayerView: View {
 
     private func playerContent(session: StreamSession) -> some View {
         ZStack(alignment: .topLeading) {
-            // AVPlayer
-            VideoPlayer(player: AVPlayer(url: session.hlsURL))
-                .ignoresSafeArea()
-                .accessibilityLabel(Text("Live stream from \(device.description)"))
-                .accessibilityHint(Text("Press Select to play or pause. Press Menu to go back."))
+            if session.isSipSession {
+                // Ring uses SIP/WebRTC — HLS not available
+                VStack(spacing: 24) {
+                    Image(systemName: "video.badge.ellipsis")
+                        .font(.system(size: 60))
+                        .foregroundColor(.secondary)
+
+                    Text("Live streaming not yet supported")
+                        .font(.system(size: Constants.UI.titleSize, weight: .semibold))
+                        .foregroundColor(.white)
+
+                    Text("Ring uses WebRTC for live video. HLS streaming is not available from Ring's API. WebRTC support is planned for a future update.")
+                        .font(.system(size: Constants.UI.captionSize))
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 80)
+
+                    Button("Back") {
+                        dismiss()
+                    }
+                    .font(.system(size: Constants.UI.bodySize))
+                    .accessibilityLabel(Text("Go back"))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.black)
+            } else {
+                // Future: HLS playback if Ring ever provides it
+                Text("Unsupported stream protocol")
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black)
+            }
 
             // Device name overlay
             deviceNameOverlay

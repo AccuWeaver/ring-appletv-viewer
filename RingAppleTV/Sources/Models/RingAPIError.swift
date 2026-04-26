@@ -1,9 +1,17 @@
 import Foundation
 
+/// The type of two-factor authentication configured on the user's account.
+enum TwoFactorMethod: Equatable {
+    case sms
+    case authenticator
+    case email
+    case unknown
+}
+
 /// Errors originating from Ring API interactions.
 enum RingAPIError: Error, Equatable {
     case invalidCredentials
-    case twoFactorRequired
+    case twoFactorRequired(method: TwoFactorMethod)
     case twoFactorInvalid
     case tokenExpired
     case tokenRefreshFailed
@@ -20,8 +28,17 @@ enum RingAPIError: Error, Equatable {
         switch self {
         case .invalidCredentials:
             return "Invalid email or password. Please try again."
-        case .twoFactorRequired:
-            return "Two-factor authentication code required."
+        case .twoFactorRequired(let method):
+            switch method {
+            case .authenticator:
+                return "Enter the verification code from your authenticator app."
+            case .sms:
+                return "A verification code has been sent via SMS."
+            case .email:
+                return "A verification code has been sent to your email."
+            case .unknown:
+                return "Two-factor authentication code required."
+            }
         case .twoFactorInvalid:
             return "Invalid verification code. Please try again."
         case .tokenExpired:

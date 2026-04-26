@@ -184,7 +184,7 @@ final class RetryStrategyTests: XCTestCase {
     }
 
     func testShouldNotRetryTwoFactorRequired() {
-        XCTAssertFalse(RetryStrategy.shouldRetry(error: .twoFactorRequired, attempt: 0))
+        XCTAssertFalse(RetryStrategy.shouldRetry(error: .twoFactorRequired(method: .sms), attempt: 0))
     }
 
     func testShouldNotRetryTwoFactorInvalid() {

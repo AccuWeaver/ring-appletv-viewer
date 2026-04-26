@@ -4,17 +4,27 @@ import SwiftUI
 /// Shows `LoginView` when not authenticated, `MainTabView` when authenticated.
 struct ContentView: View {
     @ObservedObject var container: ServiceContainer
+    
+    // Observe authViewModel directly to react to state changes
+    @ObservedObject private var authViewModel: AuthViewModel
+    
+    init(container: ServiceContainer) {
+        self.container = container
+        self.authViewModel = container.authViewModel
+    }
 
     var body: some View {
-        Group {
-            if container.authViewModel.isAuthenticated {
+        let _ = print("🔄 [ContentView] Rendering, isAuthenticated: \(authViewModel.isAuthenticated)")
+        
+        return Group {
+            if authViewModel.isAuthenticated {
                 MainTabView(container: container)
             } else {
-                LoginView(viewModel: container.authViewModel)
+                LoginView(viewModel: authViewModel)
             }
         }
         .task {
-            await container.authViewModel.checkExistingAuth()
+            await authViewModel.checkExistingAuth()
         }
     }
 }

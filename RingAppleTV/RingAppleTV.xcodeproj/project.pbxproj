@@ -1,0 +1,641 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		00A47E10AD7067487C338D3D /* RingAPIClientProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = F464F5B43F68F12A468F8B4C /* RingAPIClientProtocol.swift */; };
+		0216D8551ED45DD00F645D50 /* DefaultDeviceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C77C5F9BB4C80144D3B65A /* DefaultDeviceService.swift */; };
+		0297E3CFAE1108292A2416A5 /* DeviceCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C46EF0BAB75E8208F3A5F312 /* DeviceCardView.swift */; };
+		032848BB826891020C25ED86 /* RingDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = F542A15318BD38878A6EE65F /* RingDevice.swift */; };
+		05EB79B4326E42F1756B96B0 /* ViewState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8144BEAF7CCCD375A0B2B9C9 /* ViewState.swift */; };
+		1090AC299E9B65E35E9C1A46 /* RingAPIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B2442AE28021BA2C070B878 /* RingAPIError.swift */; };
+		11C34CC9E0EC36533937CE5E /* DefaultCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67B3C253329C080A02076EF1 /* DefaultCacheService.swift */; };
+		1713E33659CB4465B1543722 /* EventServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E533D5DF19D3343CC7FA01F /* EventServiceProtocol.swift */; };
+		194B751F6FF4AC5FAE6AD0AA /* StreamSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68188868983E7120393D016F /* StreamSession.swift */; };
+		213292C98649A116D6C6C06B /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEEACBFA2E10FD99A252FD64 /* AuthViewModel.swift */; };
+		27D330B6BEAD96EF54A11CE4 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46B086FE1DF3B4844C53E20E /* MainTabView.swift */; };
+		30446238E4B002BC270F9515 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AF12EBBECB84BE1088F140B /* EmptyStateView.swift */; };
+		371A82BED8125E077EF4F72C /* RevealableSecureField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DE63A31A7A4D1D89E3A7177 /* RevealableSecureField.swift */; };
+		43521F1DB96FF773F4D187B4 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29CB71ED1CE623CC6D0943B8 /* LoginView.swift */; };
+		56D6AFC39AA451A25915E328 /* RateLimitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39EF2CBBB667DAAFBC07B1F9 /* RateLimitManager.swift */; };
+		5899C74A5DA1F6B24D9DA924 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC3E26CFCD98630831A8C86D /* DashboardViewModel.swift */; };
+		5DBBFBD64695A1720F78EF9E /* AuthTokenResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = D99A1914A8ADEE08910EC6DC /* AuthTokenResponse.swift */; };
+		5E9FD867F70D799ECC1EDA30 /* StreamSessionResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01A1F2378E60CB1819488804 /* StreamSessionResponse.swift */; };
+		681B512A9AE33BAE2179E5E0 /* RingAppleTVApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B279E24ADE00F7C6B24F00C /* RingAppleTVApp.swift */; };
+		6B3F2BAA6A0A0E5298EC3A74 /* AuthToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5F550B34FC8700DF8DE617 /* AuthToken.swift */; };
+		70723A4892234ACDF1012073 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBDCC14F97F609F97822736 /* DashboardView.swift */; };
+		7307C7DC04CBA98C78DCD243 /* VideoServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04C6ADF1E774140B4AD5725B /* VideoServiceProtocol.swift */; };
+		7727CC84196EE6EF25292725 /* RingDeviceResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60CA873B64D522ADFF082823 /* RingDeviceResponse.swift */; };
+		79813BDAA25C4D6BA7F0DB67 /* DefaultRingAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50C52D1D54AEDE35C2018A6 /* DefaultRingAPIClient.swift */; };
+		8232D09A88E2FC69316C01E7 /* RingEventResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1408728090E7288115483DB1 /* RingEventResponse.swift */; };
+		898777680995D0F40B44E6AE /* DeviceFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC380126EE3228008AE8189 /* DeviceFilter.swift */; };
+		8E4791DCACAB31ED710E255F /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8C1C50B4C32BD340926167 /* AppConfiguration.swift */; };
+		91B26304D58176162FE24315 /* ServiceContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE3C9C519E36FA42EB9F54DC /* ServiceContainer.swift */; };
+		9604C80CE31339ACE45E8817 /* RetryStrategy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37BEBCC444AE3B42BD591D67 /* RetryStrategy.swift */; };
+		9BA723501C1A3DC7B51A97F0 /* DefaultAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBA4D76097C6E69AB722D39 /* DefaultAuthService.swift */; };
+		9DD07A4FC7FC6510F9A52095 /* AuthServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC545F0BA8F0545F2617A18C /* AuthServiceProtocol.swift */; };
+		9E9CE220955390460B4D718F /* EventsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECB72F9174569E076A9411C /* EventsView.swift */; };
+		A428C8D04BEE93E07AE06DBA /* DefaultKeychainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 876756043363CAAC63BE0D95 /* DefaultKeychainService.swift */; };
+		A43A2D9EC4A3BD55B5DC5748 /* CacheError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B46E1E7FE282C131A41B6496 /* CacheError.swift */; };
+		A9D31DFBFE0BF11A3E48D500 /* DefaultVideoService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F602594E47F59BD8306B56 /* DefaultVideoService.swift */; };
+		AE3F84AAB351B5B977F941BA /* RingEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0498C9E2297FCFA8A1DFF8 /* RingEvent.swift */; };
+		B3890B73623245A22A461047 /* KeychainError.swift in Sources */ = {isa = PBXBuildFile; fileRef = C13DD1F3FDAE6A014835F89F /* KeychainError.swift */; };
+		B3C87C4889A5C4FAD0BF3465 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0A54148E73070857143B0C /* ContentView.swift */; };
+		B6FC790F1C91A84F95C97923 /* CacheServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7C7B7D40C5E55718E2A344 /* CacheServiceProtocol.swift */; };
+		BADE280321326138A98EDDAB /* EventsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 398A182260324D9974F2D5D5 /* EventsViewModel.swift */; };
+		BC61F7902EDAAB80BBFC3809 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E7D6A6FA9C897CD89D9B667 /* Constants.swift */; };
+		BE069189AA9E5A4DB862A846 /* DefaultEventService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE74F4EA7488DF9CD7B2C4B5 /* DefaultEventService.swift */; };
+		CA84372CB361A9CD3ED1F82D /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD701046FF97DC3865CCA67C /* ErrorView.swift */; };
+		CD9A9512ACCEE8872DBAD39B /* PlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 900D47E8EB6FFB6B4FAEDDD6 /* PlayerViewModel.swift */; };
+		D32DA80289C187930E7D575C /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4F6313442B3B360C41AA8C6 /* LoadingView.swift */; };
+		DB3A029EB4E52CF26497EEF8 /* KeychainServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = F16DD32B81CE82CECAA07B7F /* KeychainServiceProtocol.swift */; };
+		DDA78023DF4D889D06D66C43 /* EventRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B092035C2CA6DB1F3011F946 /* EventRowView.swift */; };
+		DE83C9BEFB461C317D2351D6 /* DeviceServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B4767010F7C2757B47851F1 /* DeviceServiceProtocol.swift */; };
+		E7E793BF64FBA53CCAB0CBE4 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F18E3B7675874A3FE224B5D /* PlayerView.swift */; };
+		F055E69580370DED1F738F5B /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76C587B829F19C310855B1D4 /* View+Extensions.swift */; };
+		F5217B7DF43870A621D4A51B /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C13201EE27808D60995A58B0 /* Date+Extensions.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		01A1F2378E60CB1819488804 /* StreamSessionResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSessionResponse.swift; sourceTree = "<group>"; };
+		01CC70E81AEE8850787D3C91 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		02CC59F8BA7E065FAE58F2DC /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		04C6ADF1E774140B4AD5725B /* VideoServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoServiceProtocol.swift; sourceTree = "<group>"; };
+		0B4767010F7C2757B47851F1 /* DeviceServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceServiceProtocol.swift; sourceTree = "<group>"; };
+		0CBA4D76097C6E69AB722D39 /* DefaultAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultAuthService.swift; sourceTree = "<group>"; };
+		0ED9269DB47BE3B08099F154 /* RingAppleTV.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = RingAppleTV.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1408728090E7288115483DB1 /* RingEventResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingEventResponse.swift; sourceTree = "<group>"; };
+		29CB71ED1CE623CC6D0943B8 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		2A0A54148E73070857143B0C /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		2B2442AE28021BA2C070B878 /* RingAPIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingAPIError.swift; sourceTree = "<group>"; };
+		37BEBCC444AE3B42BD591D67 /* RetryStrategy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetryStrategy.swift; sourceTree = "<group>"; };
+		398A182260324D9974F2D5D5 /* EventsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsViewModel.swift; sourceTree = "<group>"; };
+		39EF2CBBB667DAAFBC07B1F9 /* RateLimitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RateLimitManager.swift; sourceTree = "<group>"; };
+		3E533D5DF19D3343CC7FA01F /* EventServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventServiceProtocol.swift; sourceTree = "<group>"; };
+		46B086FE1DF3B4844C53E20E /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		4BC380126EE3228008AE8189 /* DeviceFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceFilter.swift; sourceTree = "<group>"; };
+		4D5221790E9129D8A687259B /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		592DB1F475D25D54DE2B05B6 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		60CA873B64D522ADFF082823 /* RingDeviceResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingDeviceResponse.swift; sourceTree = "<group>"; };
+		64BAD38700D1C2350D9F6926 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		67B3C253329C080A02076EF1 /* DefaultCacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultCacheService.swift; sourceTree = "<group>"; };
+		68188868983E7120393D016F /* StreamSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSession.swift; sourceTree = "<group>"; };
+		76C587B829F19C310855B1D4 /* View+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Extensions.swift"; sourceTree = "<group>"; };
+		776BA4D9912FA0C44B593CF6 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		7F18E3B7675874A3FE224B5D /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
+		8144BEAF7CCCD375A0B2B9C9 /* ViewState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewState.swift; sourceTree = "<group>"; };
+		876756043363CAAC63BE0D95 /* DefaultKeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultKeychainService.swift; sourceTree = "<group>"; };
+		900D47E8EB6FFB6B4FAEDDD6 /* PlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewModel.swift; sourceTree = "<group>"; };
+		9AF12EBBECB84BE1088F140B /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
+		9B279E24ADE00F7C6B24F00C /* RingAppleTVApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingAppleTVApp.swift; sourceTree = "<group>"; };
+		9D2E5E4C67E1239EA787A30E /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		9DE63A31A7A4D1D89E3A7177 /* RevealableSecureField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealableSecureField.swift; sourceTree = "<group>"; };
+		9E7D6A6FA9C897CD89D9B667 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		A1F602594E47F59BD8306B56 /* DefaultVideoService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultVideoService.swift; sourceTree = "<group>"; };
+		A6024444CCC2AACA7F91C61B /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		AC18CFE991078FFE02A4728F /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		B092035C2CA6DB1F3011F946 /* EventRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventRowView.swift; sourceTree = "<group>"; };
+		B46E1E7FE282C131A41B6496 /* CacheError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheError.swift; sourceTree = "<group>"; };
+		BBBDCC14F97F609F97822736 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		BC3E26CFCD98630831A8C86D /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
+		BD701046FF97DC3865CCA67C /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
+		BDAF4C718859D551A635F5D1 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		BEEACBFA2E10FD99A252FD64 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
+		C13201EE27808D60995A58B0 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
+		C13DD1F3FDAE6A014835F89F /* KeychainError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainError.swift; sourceTree = "<group>"; };
+		C46EF0BAB75E8208F3A5F312 /* DeviceCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCardView.swift; sourceTree = "<group>"; };
+		C48365BE3750F481F6523E3A /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		CB7C7B7D40C5E55718E2A344 /* CacheServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheServiceProtocol.swift; sourceTree = "<group>"; };
+		CD0498C9E2297FCFA8A1DFF8 /* RingEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingEvent.swift; sourceTree = "<group>"; };
+		CE74F4EA7488DF9CD7B2C4B5 /* DefaultEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultEventService.swift; sourceTree = "<group>"; };
+		CF5F550B34FC8700DF8DE617 /* AuthToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthToken.swift; sourceTree = "<group>"; };
+		D4F6313442B3B360C41AA8C6 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
+		D99A1914A8ADEE08910EC6DC /* AuthTokenResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthTokenResponse.swift; sourceTree = "<group>"; };
+		DC8C1C50B4C32BD340926167 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
+		E50C52D1D54AEDE35C2018A6 /* DefaultRingAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultRingAPIClient.swift; sourceTree = "<group>"; };
+		E7C77C5F9BB4C80144D3B65A /* DefaultDeviceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultDeviceService.swift; sourceTree = "<group>"; };
+		EC545F0BA8F0545F2617A18C /* AuthServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServiceProtocol.swift; sourceTree = "<group>"; };
+		EECB72F9174569E076A9411C /* EventsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventsView.swift; sourceTree = "<group>"; };
+		F16DD32B81CE82CECAA07B7F /* KeychainServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainServiceProtocol.swift; sourceTree = "<group>"; };
+		F464F5B43F68F12A468F8B4C /* RingAPIClientProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingAPIClientProtocol.swift; sourceTree = "<group>"; };
+		F542A15318BD38878A6EE65F /* RingDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingDevice.swift; sourceTree = "<group>"; };
+		FE3C9C519E36FA42EB9F54DC /* ServiceContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceContainer.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		107A895ED6DD1430F94BB6E7 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B14D1AECC7C7E3361DB50CCF /* Implementations */,
+				191B7A16C834E534B8335091 /* Protocols */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		15988600E1DC7DCE9CD77208 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				AC18CFE991078FFE02A4728F /* .gitkeep */,
+				9E7D6A6FA9C897CD89D9B667 /* Constants.swift */,
+				C13201EE27808D60995A58B0 /* Date+Extensions.swift */,
+				39EF2CBBB667DAAFBC07B1F9 /* RateLimitManager.swift */,
+				37BEBCC444AE3B42BD591D67 /* RetryStrategy.swift */,
+				76C587B829F19C310855B1D4 /* View+Extensions.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		191B7A16C834E534B8335091 /* Protocols */ = {
+			isa = PBXGroup;
+			children = (
+				01CC70E81AEE8850787D3C91 /* .gitkeep */,
+				EC545F0BA8F0545F2617A18C /* AuthServiceProtocol.swift */,
+				CB7C7B7D40C5E55718E2A344 /* CacheServiceProtocol.swift */,
+				0B4767010F7C2757B47851F1 /* DeviceServiceProtocol.swift */,
+				3E533D5DF19D3343CC7FA01F /* EventServiceProtocol.swift */,
+				F16DD32B81CE82CECAA07B7F /* KeychainServiceProtocol.swift */,
+				F464F5B43F68F12A468F8B4C /* RingAPIClientProtocol.swift */,
+				04C6ADF1E774140B4AD5725B /* VideoServiceProtocol.swift */,
+			);
+			path = Protocols;
+			sourceTree = "<group>";
+		};
+		243B2EED7F16D74589A11610 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				4D5221790E9129D8A687259B /* .gitkeep */,
+				9AF12EBBECB84BE1088F140B /* EmptyStateView.swift */,
+				BD701046FF97DC3865CCA67C /* ErrorView.swift */,
+				D4F6313442B3B360C41AA8C6 /* LoadingView.swift */,
+				9DE63A31A7A4D1D89E3A7177 /* RevealableSecureField.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		387823852FF1172B5244CFF9 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				592DB1F475D25D54DE2B05B6 /* .gitkeep */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		3BFF46B703CB42FFEDFD3294 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				67D7E5B0BCA7D14F4C800ACB /* App */,
+				A28E4D753877E17E38CC9191 /* Models */,
+				387823852FF1172B5244CFF9 /* Resources */,
+				107A895ED6DD1430F94BB6E7 /* Services */,
+				15988600E1DC7DCE9CD77208 /* Utilities */,
+				660819AE09035E53B72168F8 /* ViewModels */,
+				B41908FBB561AF2EE772F4D3 /* Views */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		3C52E584E59AB4D1F22713F2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0ED9269DB47BE3B08099F154 /* RingAppleTV.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		63A6424C53B18DD4C47F21D8 /* Authentication */ = {
+			isa = PBXGroup;
+			children = (
+				776BA4D9912FA0C44B593CF6 /* .gitkeep */,
+				29CB71ED1CE623CC6D0943B8 /* LoginView.swift */,
+			);
+			path = Authentication;
+			sourceTree = "<group>";
+		};
+		65E1CED23D1FCE4CF8EC47A6 /* Dashboard */ = {
+			isa = PBXGroup;
+			children = (
+				A6024444CCC2AACA7F91C61B /* .gitkeep */,
+				BBBDCC14F97F609F97822736 /* DashboardView.swift */,
+				C46EF0BAB75E8208F3A5F312 /* DeviceCardView.swift */,
+			);
+			path = Dashboard;
+			sourceTree = "<group>";
+		};
+		660819AE09035E53B72168F8 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				02CC59F8BA7E065FAE58F2DC /* .gitkeep */,
+				BEEACBFA2E10FD99A252FD64 /* AuthViewModel.swift */,
+				BC3E26CFCD98630831A8C86D /* DashboardViewModel.swift */,
+				398A182260324D9974F2D5D5 /* EventsViewModel.swift */,
+				900D47E8EB6FFB6B4FAEDDD6 /* PlayerViewModel.swift */,
+				8144BEAF7CCCD375A0B2B9C9 /* ViewState.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		67D7E5B0BCA7D14F4C800ACB /* App */ = {
+			isa = PBXGroup;
+			children = (
+				2A0A54148E73070857143B0C /* ContentView.swift */,
+				46B086FE1DF3B4844C53E20E /* MainTabView.swift */,
+				9B279E24ADE00F7C6B24F00C /* RingAppleTVApp.swift */,
+				FE3C9C519E36FA42EB9F54DC /* ServiceContainer.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		7EAF936AEA3B978A50A78FFF /* Events */ = {
+			isa = PBXGroup;
+			children = (
+				C48365BE3750F481F6523E3A /* .gitkeep */,
+				B092035C2CA6DB1F3011F946 /* EventRowView.swift */,
+				EECB72F9174569E076A9411C /* EventsView.swift */,
+			);
+			path = Events;
+			sourceTree = "<group>";
+		};
+		84AB28F4DEBE6BB2192FA3AB = {
+			isa = PBXGroup;
+			children = (
+				3BFF46B703CB42FFEDFD3294 /* Sources */,
+				3C52E584E59AB4D1F22713F2 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A28E4D753877E17E38CC9191 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				BDAF4C718859D551A635F5D1 /* .gitkeep */,
+				DC8C1C50B4C32BD340926167 /* AppConfiguration.swift */,
+				CF5F550B34FC8700DF8DE617 /* AuthToken.swift */,
+				D99A1914A8ADEE08910EC6DC /* AuthTokenResponse.swift */,
+				B46E1E7FE282C131A41B6496 /* CacheError.swift */,
+				4BC380126EE3228008AE8189 /* DeviceFilter.swift */,
+				C13DD1F3FDAE6A014835F89F /* KeychainError.swift */,
+				2B2442AE28021BA2C070B878 /* RingAPIError.swift */,
+				F542A15318BD38878A6EE65F /* RingDevice.swift */,
+				60CA873B64D522ADFF082823 /* RingDeviceResponse.swift */,
+				CD0498C9E2297FCFA8A1DFF8 /* RingEvent.swift */,
+				1408728090E7288115483DB1 /* RingEventResponse.swift */,
+				68188868983E7120393D016F /* StreamSession.swift */,
+				01A1F2378E60CB1819488804 /* StreamSessionResponse.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A5A6A9A144CEA5DE149D69A9 /* Player */ = {
+			isa = PBXGroup;
+			children = (
+				64BAD38700D1C2350D9F6926 /* .gitkeep */,
+				7F18E3B7675874A3FE224B5D /* PlayerView.swift */,
+			);
+			path = Player;
+			sourceTree = "<group>";
+		};
+		B14D1AECC7C7E3361DB50CCF /* Implementations */ = {
+			isa = PBXGroup;
+			children = (
+				9D2E5E4C67E1239EA787A30E /* .gitkeep */,
+				0CBA4D76097C6E69AB722D39 /* DefaultAuthService.swift */,
+				67B3C253329C080A02076EF1 /* DefaultCacheService.swift */,
+				E7C77C5F9BB4C80144D3B65A /* DefaultDeviceService.swift */,
+				CE74F4EA7488DF9CD7B2C4B5 /* DefaultEventService.swift */,
+				876756043363CAAC63BE0D95 /* DefaultKeychainService.swift */,
+				E50C52D1D54AEDE35C2018A6 /* DefaultRingAPIClient.swift */,
+				A1F602594E47F59BD8306B56 /* DefaultVideoService.swift */,
+			);
+			path = Implementations;
+			sourceTree = "<group>";
+		};
+		B41908FBB561AF2EE772F4D3 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				63A6424C53B18DD4C47F21D8 /* Authentication */,
+				65E1CED23D1FCE4CF8EC47A6 /* Dashboard */,
+				7EAF936AEA3B978A50A78FFF /* Events */,
+				A5A6A9A144CEA5DE149D69A9 /* Player */,
+				243B2EED7F16D74589A11610 /* Shared */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2606450BB6B5AD962B92BE04 /* RingAppleTV */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D58C360078B9252884156F94 /* Build configuration list for PBXNativeTarget "RingAppleTV" */;
+			buildPhases = (
+				EB1248C757A5AFE581DEC32D /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RingAppleTV;
+			packageProductDependencies = (
+			);
+			productName = RingAppleTV;
+			productReference = 0ED9269DB47BE3B08099F154 /* RingAppleTV.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		FECFDFA2CD2DF4481A42F484 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					2606450BB6B5AD962B92BE04 = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = FD52D5E6F2E61300B9DFB821 /* Build configuration list for PBXProject "RingAppleTV" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 84AB28F4DEBE6BB2192FA3AB;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3C52E584E59AB4D1F22713F2 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				2606450BB6B5AD962B92BE04 /* RingAppleTV */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		EB1248C757A5AFE581DEC32D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8E4791DCACAB31ED710E255F /* AppConfiguration.swift in Sources */,
+				9DD07A4FC7FC6510F9A52095 /* AuthServiceProtocol.swift in Sources */,
+				6B3F2BAA6A0A0E5298EC3A74 /* AuthToken.swift in Sources */,
+				5DBBFBD64695A1720F78EF9E /* AuthTokenResponse.swift in Sources */,
+				213292C98649A116D6C6C06B /* AuthViewModel.swift in Sources */,
+				A43A2D9EC4A3BD55B5DC5748 /* CacheError.swift in Sources */,
+				B6FC790F1C91A84F95C97923 /* CacheServiceProtocol.swift in Sources */,
+				BC61F7902EDAAB80BBFC3809 /* Constants.swift in Sources */,
+				B3C87C4889A5C4FAD0BF3465 /* ContentView.swift in Sources */,
+				70723A4892234ACDF1012073 /* DashboardView.swift in Sources */,
+				5899C74A5DA1F6B24D9DA924 /* DashboardViewModel.swift in Sources */,
+				F5217B7DF43870A621D4A51B /* Date+Extensions.swift in Sources */,
+				9BA723501C1A3DC7B51A97F0 /* DefaultAuthService.swift in Sources */,
+				11C34CC9E0EC36533937CE5E /* DefaultCacheService.swift in Sources */,
+				0216D8551ED45DD00F645D50 /* DefaultDeviceService.swift in Sources */,
+				BE069189AA9E5A4DB862A846 /* DefaultEventService.swift in Sources */,
+				A428C8D04BEE93E07AE06DBA /* DefaultKeychainService.swift in Sources */,
+				79813BDAA25C4D6BA7F0DB67 /* DefaultRingAPIClient.swift in Sources */,
+				A9D31DFBFE0BF11A3E48D500 /* DefaultVideoService.swift in Sources */,
+				0297E3CFAE1108292A2416A5 /* DeviceCardView.swift in Sources */,
+				898777680995D0F40B44E6AE /* DeviceFilter.swift in Sources */,
+				DE83C9BEFB461C317D2351D6 /* DeviceServiceProtocol.swift in Sources */,
+				30446238E4B002BC270F9515 /* EmptyStateView.swift in Sources */,
+				CA84372CB361A9CD3ED1F82D /* ErrorView.swift in Sources */,
+				DDA78023DF4D889D06D66C43 /* EventRowView.swift in Sources */,
+				1713E33659CB4465B1543722 /* EventServiceProtocol.swift in Sources */,
+				9E9CE220955390460B4D718F /* EventsView.swift in Sources */,
+				BADE280321326138A98EDDAB /* EventsViewModel.swift in Sources */,
+				B3890B73623245A22A461047 /* KeychainError.swift in Sources */,
+				DB3A029EB4E52CF26497EEF8 /* KeychainServiceProtocol.swift in Sources */,
+				D32DA80289C187930E7D575C /* LoadingView.swift in Sources */,
+				43521F1DB96FF773F4D187B4 /* LoginView.swift in Sources */,
+				27D330B6BEAD96EF54A11CE4 /* MainTabView.swift in Sources */,
+				E7E793BF64FBA53CCAB0CBE4 /* PlayerView.swift in Sources */,
+				CD9A9512ACCEE8872DBAD39B /* PlayerViewModel.swift in Sources */,
+				56D6AFC39AA451A25915E328 /* RateLimitManager.swift in Sources */,
+				9604C80CE31339ACE45E8817 /* RetryStrategy.swift in Sources */,
+				371A82BED8125E077EF4F72C /* RevealableSecureField.swift in Sources */,
+				00A47E10AD7067487C338D3D /* RingAPIClientProtocol.swift in Sources */,
+				1090AC299E9B65E35E9C1A46 /* RingAPIError.swift in Sources */,
+				681B512A9AE33BAE2179E5E0 /* RingAppleTVApp.swift in Sources */,
+				032848BB826891020C25ED86 /* RingDevice.swift in Sources */,
+				7727CC84196EE6EF25292725 /* RingDeviceResponse.swift in Sources */,
+				AE3F84AAB351B5B977F941BA /* RingEvent.swift in Sources */,
+				8232D09A88E2FC69316C01E7 /* RingEventResponse.swift in Sources */,
+				91B26304D58176162FE24315 /* ServiceContainer.swift in Sources */,
+				194B751F6FF4AC5FAE6AD0AA /* StreamSession.swift in Sources */,
+				5E9FD867F70D799ECC1EDA30 /* StreamSessionResponse.swift in Sources */,
+				7307C7DC04CBA98C78DCD243 /* VideoServiceProtocol.swift in Sources */,
+				F055E69580370DED1F738F5B /* View+Extensions.swift in Sources */,
+				05EB79B4326E42F1756B96B0 /* ViewState.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		259229C1999FF8F875089C75 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TVOS_DEPLOYMENT_TARGET = 15.0;
+			};
+			name = Debug;
+		};
+		5DA63609471DE7C165BDF9CC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGN_ENTITLEMENTS = RingAppleTV.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MTL_ENABLE_DEBUG_INFO = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ringappletv;
+				SDKROOT = appletvos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		7822D6171CAAA06519F13FCF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGN_ENTITLEMENTS = RingAppleTV.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ringappletv;
+				SDKROOT = appletvos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 3;
+			};
+			name = Debug;
+		};
+		FB05158F20B58060715CB915 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TVOS_DEPLOYMENT_TARGET = 15.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D58C360078B9252884156F94 /* Build configuration list for PBXNativeTarget "RingAppleTV" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7822D6171CAAA06519F13FCF /* Debug */,
+				5DA63609471DE7C165BDF9CC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		FD52D5E6F2E61300B9DFB821 /* Build configuration list for PBXProject "RingAppleTV" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				259229C1999FF8F875089C75 /* Debug */,
+				FB05158F20B58060715CB915 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = FECFDFA2CD2DF4481A42F484 /* Project object */;
+}

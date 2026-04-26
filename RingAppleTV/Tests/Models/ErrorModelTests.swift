@@ -8,7 +8,7 @@ final class RingAPIErrorTests: XCTestCase {
     /// All RingAPIError cases for exhaustive testing.
     private let allCases: [RingAPIError] = [
         .invalidCredentials,
-        .twoFactorRequired,
+        .twoFactorRequired(method: .unknown),
         .twoFactorInvalid,
         .tokenExpired,
         .tokenRefreshFailed,
@@ -51,7 +51,7 @@ final class RingAPIErrorTests: XCTestCase {
             "Invalid email or password. Please try again."
         )
         XCTAssertEqual(
-            RingAPIError.twoFactorRequired.userMessage,
+            RingAPIError.twoFactorRequired(method: .unknown).userMessage,
             "Two-factor authentication code required."
         )
         XCTAssertEqual(
@@ -91,7 +91,8 @@ final class RingAPIErrorTests: XCTestCase {
 
     func testEquatableSimpleCases() {
         XCTAssertEqual(RingAPIError.invalidCredentials, RingAPIError.invalidCredentials)
-        XCTAssertEqual(RingAPIError.twoFactorRequired, RingAPIError.twoFactorRequired)
+        XCTAssertEqual(RingAPIError.twoFactorRequired(method: .sms), RingAPIError.twoFactorRequired(method: .sms))
+        XCTAssertNotEqual(RingAPIError.twoFactorRequired(method: .sms), RingAPIError.twoFactorRequired(method: .authenticator))
         XCTAssertEqual(RingAPIError.deviceOffline, RingAPIError.deviceOffline)
         XCTAssertEqual(RingAPIError.streamUnavailable, RingAPIError.streamUnavailable)
         XCTAssertEqual(RingAPIError.rateLimited, RingAPIError.rateLimited)
