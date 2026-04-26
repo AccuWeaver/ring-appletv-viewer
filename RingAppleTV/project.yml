@@ -1,0 +1,42 @@
+name: RingAppleTV
+options:
+  bundleIdPrefix: com
+  deploymentTarget:
+    tvOS: "15.0"
+  xcodeVersion: "15.4"
+
+targets:
+  RingAppleTV:
+    type: application
+    platform: tvOS
+    sources:
+      - path: Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ringappletv
+        INFOPLIST_FILE: Info.plist
+        CODE_SIGN_ENTITLEMENTS: RingAppleTV.entitlements
+        CODE_SIGN_STYLE: Automatic
+        SWIFT_VERSION: "5.0"
+        SWIFT_EMIT_LOC_STRINGS: "YES"
+        TARGETED_DEVICE_FAMILY: "3"
+        ASSETCATALOG_COMPILER_APPICON_NAME: "App Icon & Top Shelf Image"
+      configs:
+        Debug:
+          SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG
+          DEBUG_INFORMATION_FORMAT: dwarf
+          ENABLE_TESTABILITY: "YES"
+          GCC_DYNAMIC_NO_PIC: "NO"
+          GCC_OPTIMIZATION_LEVEL: "0"
+          MTL_ENABLE_DEBUG_INFO: INCLUDE_SOURCE
+          ONLY_ACTIVE_ARCH: "YES"
+          COPY_PHASE_STRIP: "NO"
+        Release:
+          SWIFT_OPTIMIZATION_LEVEL: "-O"
+          SWIFT_COMPILATION_MODE: wholemodule
+          DEBUG_INFORMATION_FORMAT: "dwarf-with-dsym"
+          ENABLE_NS_ASSERTIONS: "NO"
+          MTL_ENABLE_DEBUG_INFO: "NO"
+          VALIDATE_PRODUCT: "YES"
+          COPY_PHASE_STRIP: "NO"

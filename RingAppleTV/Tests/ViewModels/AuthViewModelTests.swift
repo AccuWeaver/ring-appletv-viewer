@@ -79,7 +79,7 @@ final class AuthViewModelTests: XCTestCase {
 
     func testTwoFactorRequired_setsRequiresTwoFactor() async {
         let (sut, mock) = makeSUT()
-        mock.loginResult = .failure(RingAPIError.twoFactorRequired)
+        mock.loginResult = .failure(RingAPIError.twoFactorRequired(method: .authenticator))
 
         await sut.login()
 

@@ -146,7 +146,10 @@ enum MockData {
     static var validStreamSession: StreamSession {
         StreamSession(
             deviceId: 1001,
-            hlsURL: URL(string: "https://ring.com/live/1001/stream.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date(),
             maxDuration: 600
         )
@@ -156,7 +159,10 @@ enum MockData {
     static var expiredStreamSession: StreamSession {
         StreamSession(
             deviceId: 1001,
-            hlsURL: URL(string: "https://ring.com/live/1001/stream.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date().addingTimeInterval(-700),
             maxDuration: 600
         )

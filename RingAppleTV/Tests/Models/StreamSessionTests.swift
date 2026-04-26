@@ -8,7 +8,10 @@ final class StreamSessionTests: XCTestCase {
     func testCodableRoundTrip() throws {
         let session = StreamSession(
             deviceId: 42,
-            hlsURL: URL(string: "https://ring.com/live/42.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date(timeIntervalSince1970: 2_000_000_000),
             maxDuration: 600
         )
@@ -27,7 +30,10 @@ final class StreamSessionTests: XCTestCase {
     func testCodableRoundTripPreservesAllFields() throws {
         let session = StreamSession(
             deviceId: 1,
-            hlsURL: URL(string: "https://example.com/stream.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date(timeIntervalSince1970: 1_700_000_000),
             maxDuration: 300
         )
@@ -41,7 +47,10 @@ final class StreamSessionTests: XCTestCase {
         let decoded = try decoder.decode(StreamSession.self, from: data)
 
         XCTAssertEqual(decoded.deviceId, 1)
-        XCTAssertEqual(decoded.hlsURL, URL(string: "https://example.com/stream.m3u8")!)
+        XCTAssertEqual(decoded.sipServerIp, "52.12.182.65")
+        XCTAssertEqual(decoded.sipServerPort, 15064)
+        XCTAssertEqual(decoded.sipSessionId, "test-session")
+        XCTAssertEqual(decoded.protocol_, "sip")
         XCTAssertEqual(decoded.createdAt, Date(timeIntervalSince1970: 1_700_000_000))
         XCTAssertEqual(decoded.maxDuration, 300)
     }
@@ -51,7 +60,10 @@ final class StreamSessionTests: XCTestCase {
     func testIsValidReturnsTrueForRecentSession() {
         let session = StreamSession(
             deviceId: 1,
-            hlsURL: URL(string: "https://ring.com/live.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date(),
             maxDuration: 600
         )
@@ -61,7 +73,10 @@ final class StreamSessionTests: XCTestCase {
     func testIsValidReturnsFalseForExpiredSession() {
         let session = StreamSession(
             deviceId: 1,
-            hlsURL: URL(string: "https://ring.com/live.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date.distantPast,
             maxDuration: 600
         )
@@ -71,7 +86,10 @@ final class StreamSessionTests: XCTestCase {
     func testIsValidReturnsFalseWhenMaxDurationIsZero() {
         let session = StreamSession(
             deviceId: 1,
-            hlsURL: URL(string: "https://ring.com/live.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date(),
             maxDuration: 0
         )
@@ -83,7 +101,10 @@ final class StreamSessionTests: XCTestCase {
     func testRemainingTimeIsNonNegativeForExpiredSession() {
         let session = StreamSession(
             deviceId: 1,
-            hlsURL: URL(string: "https://ring.com/live.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date.distantPast,
             maxDuration: 600
         )
@@ -93,7 +114,10 @@ final class StreamSessionTests: XCTestCase {
     func testRemainingTimeIsPositiveForRecentSession() {
         let session = StreamSession(
             deviceId: 1,
-            hlsURL: URL(string: "https://ring.com/live.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date(),
             maxDuration: 600
         )
@@ -105,7 +129,10 @@ final class StreamSessionTests: XCTestCase {
         // Session created 100 seconds ago with 600s max
         let session = StreamSession(
             deviceId: 1,
-            hlsURL: URL(string: "https://ring.com/live.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date().addingTimeInterval(-100),
             maxDuration: 600
         )
@@ -117,7 +144,10 @@ final class StreamSessionTests: XCTestCase {
     func testRemainingTimeNeverExceedsMaxDuration() {
         let session = StreamSession(
             deviceId: 1,
-            hlsURL: URL(string: "https://ring.com/live.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date(),
             maxDuration: 300
         )
@@ -127,7 +157,10 @@ final class StreamSessionTests: XCTestCase {
     func testRemainingTimeEqualsMaxDurationWhenJustCreated() {
         let session = StreamSession(
             deviceId: 1,
-            hlsURL: URL(string: "https://ring.com/live.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date(),
             maxDuration: 600
         )
@@ -139,53 +172,71 @@ final class StreamSessionTests: XCTestCase {
         // Created exactly maxDuration seconds ago
         let session = StreamSession(
             deviceId: 1,
-            hlsURL: URL(string: "https://ring.com/live.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date().addingTimeInterval(-600),
             maxDuration: 600
         )
         XCTAssertEqual(session.remainingTime, 0, accuracy: 1.0)
     }
 
+    // MARK: - isSipSession
+
+    func testIsSipSessionReturnsTrueForSipProtocol() {
+        let session = StreamSession(
+            deviceId: 1,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
+            createdAt: Date(),
+            maxDuration: 600
+        )
+        XCTAssertTrue(session.isSipSession)
+    }
+
+    func testIsSipSessionReturnsFalseForOtherProtocol() {
+        let session = StreamSession(
+            deviceId: 1,
+            sipServerIp: nil,
+            sipServerPort: nil,
+            sipSessionId: nil,
+            protocol_: "webrtc",
+            createdAt: Date(),
+            maxDuration: 600
+        )
+        XCTAssertFalse(session.isSipSession)
+    }
+
     // MARK: - Equatable
 
     func testEquatableForEqualSessions() {
         let date = Date(timeIntervalSince1970: 1_700_000_000)
-        let url = URL(string: "https://ring.com/live.m3u8")!
-        let a = StreamSession(deviceId: 1, hlsURL: url, createdAt: date, maxDuration: 600)
-        let b = StreamSession(deviceId: 1, hlsURL: url, createdAt: date, maxDuration: 600)
+        let a = StreamSession(deviceId: 1, sipServerIp: "52.12.182.65", sipServerPort: 15064, sipSessionId: "test-session", protocol_: "sip", createdAt: date, maxDuration: 600)
+        let b = StreamSession(deviceId: 1, sipServerIp: "52.12.182.65", sipServerPort: 15064, sipSessionId: "test-session", protocol_: "sip", createdAt: date, maxDuration: 600)
         XCTAssertEqual(a, b)
     }
 
     func testEquatableForDifferentDeviceId() {
         let date = Date(timeIntervalSince1970: 1_700_000_000)
-        let url = URL(string: "https://ring.com/live.m3u8")!
-        let a = StreamSession(deviceId: 1, hlsURL: url, createdAt: date, maxDuration: 600)
-        let b = StreamSession(deviceId: 2, hlsURL: url, createdAt: date, maxDuration: 600)
+        let a = StreamSession(deviceId: 1, sipServerIp: "52.12.182.65", sipServerPort: 15064, sipSessionId: "test-session", protocol_: "sip", createdAt: date, maxDuration: 600)
+        let b = StreamSession(deviceId: 2, sipServerIp: "52.12.182.65", sipServerPort: 15064, sipSessionId: "test-session", protocol_: "sip", createdAt: date, maxDuration: 600)
         XCTAssertNotEqual(a, b)
     }
 
-    func testEquatableForDifferentURL() {
+    func testEquatableForDifferentSipServerIp() {
         let date = Date(timeIntervalSince1970: 1_700_000_000)
-        let a = StreamSession(
-            deviceId: 1,
-            hlsURL: URL(string: "https://ring.com/a.m3u8")!,
-            createdAt: date,
-            maxDuration: 600
-        )
-        let b = StreamSession(
-            deviceId: 1,
-            hlsURL: URL(string: "https://ring.com/b.m3u8")!,
-            createdAt: date,
-            maxDuration: 600
-        )
+        let a = StreamSession(deviceId: 1, sipServerIp: "52.12.182.65", sipServerPort: 15064, sipSessionId: "test-session", protocol_: "sip", createdAt: date, maxDuration: 600)
+        let b = StreamSession(deviceId: 1, sipServerIp: "10.0.0.1", sipServerPort: 15064, sipSessionId: "test-session", protocol_: "sip", createdAt: date, maxDuration: 600)
         XCTAssertNotEqual(a, b)
     }
 
     func testEquatableForDifferentMaxDuration() {
         let date = Date(timeIntervalSince1970: 1_700_000_000)
-        let url = URL(string: "https://ring.com/live.m3u8")!
-        let a = StreamSession(deviceId: 1, hlsURL: url, createdAt: date, maxDuration: 600)
-        let b = StreamSession(deviceId: 1, hlsURL: url, createdAt: date, maxDuration: 300)
+        let a = StreamSession(deviceId: 1, sipServerIp: "52.12.182.65", sipServerPort: 15064, sipSessionId: "test-session", protocol_: "sip", createdAt: date, maxDuration: 600)
+        let b = StreamSession(deviceId: 1, sipServerIp: "52.12.182.65", sipServerPort: 15064, sipSessionId: "test-session", protocol_: "sip", createdAt: date, maxDuration: 300)
         XCTAssertNotEqual(a, b)
     }
 }
@@ -200,26 +251,48 @@ final class StreamSessionResponseTests: XCTestCase {
     func testDecodingFromSnakeCaseJSON() throws {
         let json = """
         {
-            "device_id": 42,
-            "hls_url": "https://ring.com/live/42.m3u8",
-            "max_duration": 600
+            "doorbot_id": 42,
+            "sip_server_ip": "52.12.182.65",
+            "sip_server_port": 15064,
+            "sip_server_tls": true,
+            "sip_session_id": "test-session-id",
+            "sip_from": "sip:device@ring.com",
+            "sip_to": "sip:session@52.12.182.65:15064",
+            "sip_token": "",
+            "sip_endpoints": null,
+            "expires_in": 600,
+            "protocol": "sip",
+            "state": "ringing"
         }
         """.data(using: .utf8)!
 
         let response = try JSONDecoder().decode(StreamSessionResponse.self, from: json)
 
-        XCTAssertEqual(response.deviceId, 42)
-        XCTAssertEqual(response.hlsURL, "https://ring.com/live/42.m3u8")
-        XCTAssertEqual(response.maxDuration, 600)
+        XCTAssertEqual(response.doorbotId, 42)
+        XCTAssertEqual(response.sipServerIp, "52.12.182.65")
+        XCTAssertEqual(response.sipServerPort, 15064)
+        XCTAssertEqual(response.sipServerTls, true)
+        XCTAssertEqual(response.sipSessionId, "test-session-id")
+        XCTAssertEqual(response.protocol_, "sip")
+        XCTAssertEqual(response.expiresIn, 600)
     }
 
     // MARK: - toDomain()
 
     func testToDomainProducesCorrectStreamSession() {
         let response = StreamSessionResponse(
-            deviceId: 42,
-            hlsURL: "https://ring.com/live/42.m3u8",
-            maxDuration: 600
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipServerTls: true,
+            sipSessionId: "test-session",
+            sipFrom: "sip:test@ring.com",
+            sipTo: "sip:device@52.12.182.65:15064",
+            sipToken: "",
+            sipEndpoints: nil,
+            doorbotId: 42,
+            expiresIn: 600,
+            protocol_: "sip",
+            state: "ringing"
         )
 
         let before = Date()
@@ -227,7 +300,10 @@ final class StreamSessionResponseTests: XCTestCase {
         let after = Date()
 
         XCTAssertEqual(session.deviceId, 42)
-        XCTAssertEqual(session.hlsURL, URL(string: "https://ring.com/live/42.m3u8")!)
+        XCTAssertEqual(session.sipServerIp, "52.12.182.65")
+        XCTAssertEqual(session.sipServerPort, 15064)
+        XCTAssertEqual(session.sipSessionId, "test-session")
+        XCTAssertEqual(session.protocol_, "sip")
         XCTAssertEqual(session.maxDuration, 600)
 
         // createdAt should be approximately now
@@ -237,20 +313,38 @@ final class StreamSessionResponseTests: XCTestCase {
 
     func testToDomainSessionIsValid() {
         let response = StreamSessionResponse(
-            deviceId: 1,
-            hlsURL: "https://ring.com/live.m3u8",
-            maxDuration: 600
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipServerTls: true,
+            sipSessionId: "test-session",
+            sipFrom: "sip:test@ring.com",
+            sipTo: "sip:device@52.12.182.65:15064",
+            sipToken: "",
+            sipEndpoints: nil,
+            doorbotId: 1,
+            expiresIn: 600,
+            protocol_: "sip",
+            state: "ringing"
         )
 
         let session = response.toDomain()
         XCTAssertTrue(session.isValid)
     }
 
-    func testToDomainWithZeroMaxDuration() {
+    func testToDomainWithZeroExpiresIn() {
         let response = StreamSessionResponse(
-            deviceId: 1,
-            hlsURL: "https://ring.com/live.m3u8",
-            maxDuration: 0
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipServerTls: true,
+            sipSessionId: "test-session",
+            sipFrom: "sip:test@ring.com",
+            sipTo: "sip:device@52.12.182.65:15064",
+            sipToken: "",
+            sipEndpoints: nil,
+            doorbotId: 1,
+            expiresIn: 0,
+            protocol_: "sip",
+            state: "ringing"
         )
 
         let session = response.toDomain()
@@ -258,15 +352,24 @@ final class StreamSessionResponseTests: XCTestCase {
         XCTAssertEqual(session.remainingTime, 0)
     }
 
-    func testToDomainWithInvalidURLFallsBack() {
+    func testToDomainWithNilExpiresInDefaultsTo600() {
         let response = StreamSessionResponse(
-            deviceId: 1,
-            hlsURL: "",
-            maxDuration: 600
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipServerTls: true,
+            sipSessionId: "test-session",
+            sipFrom: "sip:test@ring.com",
+            sipTo: "sip:device@52.12.182.65:15064",
+            sipToken: "",
+            sipEndpoints: nil,
+            doorbotId: 1,
+            expiresIn: nil,
+            protocol_: "sip",
+            state: "ringing"
         )
 
         let session = response.toDomain()
-        // Falls back to about:blank for invalid URL
-        XCTAssertEqual(session.hlsURL, URL(string: "about:blank")!)
+        XCTAssertEqual(session.maxDuration, 600)
+        XCTAssertTrue(session.isValid)
     }
 }

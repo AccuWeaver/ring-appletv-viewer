@@ -94,9 +94,18 @@ private let validDevicesJSON = """
 
 private let validStreamSessionJSON = """
 {
-    "device_id": 42,
-    "hls_url": "https://ring.com/stream/42.m3u8",
-    "max_duration": 600
+    "doorbot_id": 42,
+    "sip_server_ip": "52.12.182.65",
+    "sip_server_port": 15064,
+    "sip_server_tls": true,
+    "sip_session_id": "test-session-id",
+    "sip_from": "sip:device@ring.com",
+    "sip_to": "sip:session@52.12.182.65:15064",
+    "sip_token": "",
+    "sip_endpoints": null,
+    "expires_in": 600,
+    "protocol": "sip",
+    "state": "ringing"
 }
 """.data(using: .utf8)!
 
@@ -195,7 +204,7 @@ final class RingAPIClientTests: XCTestCase {
         _ = try await sut.authenticate(email: "user@example.com", password: "pass123", twoFactorCode: "654321")
 
         let captured = MockURLProtocol.capturedRequests.first
-        XCTAssertEqual(captured?.value(forHTTPHeaderField: "2fa-support"), "654321")
+        XCTAssertEqual(captured?.value(forHTTPHeaderField: "2fa-support"), "true")
         XCTAssertEqual(captured?.value(forHTTPHeaderField: "2fa-code"), "654321")
     }
 
@@ -280,9 +289,11 @@ final class RingAPIClientTests: XCTestCase {
 
         let session = try await sut.requestLiveStream(deviceId: 42, token: "token")
 
-        XCTAssertEqual(session.deviceId, 42)
-        XCTAssertEqual(session.hlsURL, "https://ring.com/stream/42.m3u8")
-        XCTAssertEqual(session.maxDuration, 600)
+        XCTAssertEqual(session.doorbotId, 42)
+        XCTAssertEqual(session.sipServerIp, "52.12.182.65")
+        XCTAssertEqual(session.sipServerPort, 15064)
+        XCTAssertEqual(session.protocol_, "sip")
+        XCTAssertEqual(session.expiresIn, 600)
     }
 
     func testRequestLiveStreamRequestConstruction() async throws {
@@ -404,7 +415,11 @@ final class RingAPIClientTests: XCTestCase {
             _ = try await sut.authenticate(email: "user@example.com", password: "pass")
             XCTFail("Expected twoFactorRequired error")
         } catch let error as RingAPIError {
-            XCTAssertEqual(error, .twoFactorRequired)
+            if case .twoFactorRequired = error {
+                // expected — method depends on response body
+            } else {
+                XCTFail("Expected twoFactorRequired, got \(error)")
+            }
         } catch {
             XCTFail("Unexpected error: \(error)")
         }

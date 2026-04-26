@@ -15,9 +15,18 @@ private func makeValidToken() -> AuthToken {
 
 private func makeStreamResponse(deviceId: Int = 1, maxDuration: Int = 600) -> StreamSessionResponse {
     StreamSessionResponse(
-        deviceId: deviceId,
-        hlsURL: "https://ring.com/live/stream.m3u8",
-        maxDuration: maxDuration
+        sipServerIp: "52.12.182.65",
+        sipServerPort: 15064,
+        sipServerTls: true,
+        sipSessionId: "test-session",
+        sipFrom: "sip:test@ring.com",
+        sipTo: "sip:device@52.12.182.65:15064",
+        sipToken: "",
+        sipEndpoints: nil,
+        doorbotId: deviceId,
+        expiresIn: maxDuration,
+        protocol_: "sip",
+        state: "ringing"
     )
 }
 
@@ -58,12 +67,13 @@ final class VideoServiceTests: XCTestCase {
         XCTAssertEqual(mockAuth.getValidTokenCalls, 1)
     }
 
-    func testRequestLiveStreamUsesCorrectHLSURL() async throws {
+    func testRequestLiveStreamUsesSipSession() async throws {
         mockAPI.requestLiveStreamResult = .success(makeStreamResponse())
 
         let session = try await sut.requestLiveStream(for: 1)
 
-        XCTAssertEqual(session.hlsURL.absoluteString, "https://ring.com/live/stream.m3u8")
+        XCTAssertEqual(session.sipServerIp, "52.12.182.65")
+        XCTAssertTrue(session.isSipSession)
     }
 
     // MARK: - requestLiveStream — Auth Error
@@ -132,7 +142,10 @@ final class VideoServiceTests: XCTestCase {
     func testValidateStreamSessionReturnsTrueForValidSession() {
         let session = StreamSession(
             deviceId: 1,
-            hlsURL: URL(string: "https://ring.com/stream.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date(),
             maxDuration: 600
         )
@@ -142,7 +155,10 @@ final class VideoServiceTests: XCTestCase {
     func testValidateStreamSessionReturnsFalseForExpiredSession() {
         let session = StreamSession(
             deviceId: 1,
-            hlsURL: URL(string: "https://ring.com/stream.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date().addingTimeInterval(-700),
             maxDuration: 600
         )
@@ -152,7 +168,10 @@ final class VideoServiceTests: XCTestCase {
     func testValidateStreamSessionReturnsFalseForZeroDuration() {
         let session = StreamSession(
             deviceId: 1,
-            hlsURL: URL(string: "https://ring.com/stream.m3u8")!,
+            sipServerIp: "52.12.182.65",
+            sipServerPort: 15064,
+            sipSessionId: "test-session",
+            protocol_: "sip",
             createdAt: Date(),
             maxDuration: 0
         )

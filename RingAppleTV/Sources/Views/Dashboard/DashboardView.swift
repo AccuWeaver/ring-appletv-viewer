@@ -60,17 +60,26 @@ struct DashboardView: View {
 
     private func deviceGrid(_ devices: [RingDevice]) -> some View {
         ScrollView {
-            LazyVGrid(columns: columns, spacing: Constants.UI.gridSpacing) {
-                ForEach(devices) { device in
-                    NavigationLink {
-                        playerViewBuilder(device)
-                    } label: {
-                        DeviceCardView(device: device)
+            VStack(alignment: .leading, spacing: Constants.UI.gridSpacing / 2) {
+                // Section header
+                Text("Cameras")
+                    .font(.system(size: Constants.UI.titleSize, weight: .bold))
+                    .padding(.horizontal, Constants.UI.gridSpacing)
+                    .padding(.top, 8)
+
+                LazyVGrid(columns: columns, spacing: Constants.UI.gridSpacing) {
+                    ForEach(devices) { device in
+                        NavigationLink {
+                            playerViewBuilder(device)
+                        } label: {
+                            DeviceCardView(device: device)
+                        }
+                        .buttonStyle(.card)
                     }
-                    .buttonStyle(.card)
                 }
+                .padding(.horizontal, Constants.UI.gridSpacing)
             }
-            .padding(Constants.UI.gridSpacing)
+            .padding(.bottom, Constants.UI.gridSpacing)
         }
     }
 }
