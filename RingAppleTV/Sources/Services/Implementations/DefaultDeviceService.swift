@@ -2,7 +2,7 @@ import Foundation
 
 /// Production implementation of `DeviceService` that fetches Ring devices from
 /// the API with cache-first strategy, and provides filtering/sorting.
-final class DefaultDeviceService: DeviceService {
+final class DefaultDeviceService: DeviceService, @unchecked Sendable {
 
     // MARK: - Dependencies
 

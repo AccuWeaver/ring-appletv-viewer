@@ -51,8 +51,7 @@ enum MockData {
             address: "123 Main St",
             batteryLife: 85,
             features: RingDevice.DeviceFeatures(motionDetection: true, nightVision: true),
-            isOnline: true,
-            snapshotURL: nil
+            isOnline: true
         )
     }
 
@@ -66,8 +65,7 @@ enum MockData {
             address: nil,
             batteryLife: 62,
             features: RingDevice.DeviceFeatures(motionDetection: true, nightVision: true),
-            isOnline: true,
-            snapshotURL: nil
+            isOnline: true
         )
     }
 
@@ -81,8 +79,7 @@ enum MockData {
             address: nil,
             batteryLife: nil,
             features: RingDevice.DeviceFeatures(motionDetection: true, nightVision: false),
-            isOnline: false,
-            snapshotURL: nil
+            isOnline: false
         )
     }
 
@@ -153,6 +150,17 @@ enum MockData {
             createdAt: Date(),
             maxDuration: 600
         )
+    }
+
+    // MARK: - Snapshots
+
+    /// A minimal valid JPEG image (smallest possible 1×1 pixel JPEG).
+    static var sampleJPEGData: Data {
+        Data([
+            0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46,
+            0x49, 0x46, 0x00, 0x01, 0x01, 0x00, 0x00, 0x01,
+            0x00, 0x01, 0x00, 0x00, 0xFF, 0xD9
+        ])
     }
 
     /// An expired stream session.

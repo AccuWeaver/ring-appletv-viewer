@@ -14,8 +14,7 @@ final class RingDeviceTests: XCTestCase {
             address: "123 Main St",
             batteryLife: 85,
             features: RingDevice.DeviceFeatures(motionDetection: true, nightVision: false),
-            isOnline: true,
-            snapshotURL: URL(string: "https://example.com/snap.jpg")
+            isOnline: true
         )
 
         let data = try JSONEncoder().encode(device)
@@ -33,8 +32,7 @@ final class RingDeviceTests: XCTestCase {
             address: nil,
             batteryLife: nil,
             features: nil,
-            isOnline: false,
-            snapshotURL: nil
+            isOnline: false
         )
 
         let data = try JSONEncoder().encode(device)
@@ -45,7 +43,6 @@ final class RingDeviceTests: XCTestCase {
         XCTAssertNil(decoded.address)
         XCTAssertNil(decoded.batteryLife)
         XCTAssertNil(decoded.features)
-        XCTAssertNil(decoded.snapshotURL)
     }
 
     // MARK: - Identifiable
@@ -59,8 +56,7 @@ final class RingDeviceTests: XCTestCase {
             address: nil,
             batteryLife: nil,
             features: nil,
-            isOnline: true,
-            snapshotURL: nil
+            isOnline: true
         )
 
         XCTAssertEqual(device.id, 99)
@@ -72,7 +68,7 @@ final class RingDeviceTests: XCTestCase {
         let a = RingDevice(
             id: 1, description: "D", deviceType: .doorbell,
             firmwareVersion: nil, address: nil, batteryLife: nil,
-            features: nil, isOnline: true, snapshotURL: nil
+            features: nil, isOnline: true
         )
         let b = a
         XCTAssertEqual(a, b)
@@ -82,12 +78,12 @@ final class RingDeviceTests: XCTestCase {
         let a = RingDevice(
             id: 1, description: "D", deviceType: .doorbell,
             firmwareVersion: nil, address: nil, batteryLife: nil,
-            features: nil, isOnline: true, snapshotURL: nil
+            features: nil, isOnline: true
         )
         let b = RingDevice(
             id: 2, description: "D", deviceType: .doorbell,
             firmwareVersion: nil, address: nil, batteryLife: nil,
-            features: nil, isOnline: true, snapshotURL: nil
+            features: nil, isOnline: true
         )
         XCTAssertNotEqual(a, b)
     }
@@ -98,7 +94,7 @@ final class RingDeviceTests: XCTestCase {
         let device = RingDevice(
             id: 1, description: "D", deviceType: .doorbell,
             firmwareVersion: nil, address: nil, batteryLife: nil,
-            features: nil, isOnline: true, snapshotURL: nil
+            features: nil, isOnline: true
         )
         XCTAssertNil(device.batteryLife)
     }
@@ -107,7 +103,7 @@ final class RingDeviceTests: XCTestCase {
         let device = RingDevice(
             id: 1, description: "D", deviceType: .doorbell,
             firmwareVersion: nil, address: nil, batteryLife: 72,
-            features: nil, isOnline: true, snapshotURL: nil
+            features: nil, isOnline: true
         )
         XCTAssertEqual(device.batteryLife, 72)
     }
@@ -116,7 +112,7 @@ final class RingDeviceTests: XCTestCase {
         let device = RingDevice(
             id: 1, description: "D", deviceType: .doorbell,
             firmwareVersion: nil, address: nil, batteryLife: nil,
-            features: nil, isOnline: true, snapshotURL: nil
+            features: nil, isOnline: true
         )
         XCTAssertNil(device.features)
     }
@@ -126,36 +122,17 @@ final class RingDeviceTests: XCTestCase {
         let device = RingDevice(
             id: 1, description: "D", deviceType: .doorbell,
             firmwareVersion: nil, address: nil, batteryLife: nil,
-            features: features, isOnline: true, snapshotURL: nil
+            features: features, isOnline: true
         )
         XCTAssertEqual(device.features?.motionDetection, true)
         XCTAssertEqual(device.features?.nightVision, true)
-    }
-
-    func testOptionalSnapshotURLNil() {
-        let device = RingDevice(
-            id: 1, description: "D", deviceType: .doorbell,
-            firmwareVersion: nil, address: nil, batteryLife: nil,
-            features: nil, isOnline: true, snapshotURL: nil
-        )
-        XCTAssertNil(device.snapshotURL)
-    }
-
-    func testOptionalSnapshotURLPresent() {
-        let url = URL(string: "https://example.com/snap.jpg")!
-        let device = RingDevice(
-            id: 1, description: "D", deviceType: .doorbell,
-            firmwareVersion: nil, address: nil, batteryLife: nil,
-            features: nil, isOnline: true, snapshotURL: url
-        )
-        XCTAssertEqual(device.snapshotURL, url)
     }
 
     func testMutableIsOnline() {
         var device = RingDevice(
             id: 1, description: "D", deviceType: .doorbell,
             firmwareVersion: nil, address: nil, batteryLife: nil,
-            features: nil, isOnline: false, snapshotURL: nil
+            features: nil, isOnline: false
         )
         XCTAssertFalse(device.isOnline)
         device.isOnline = true
@@ -326,8 +303,6 @@ final class RingDeviceResponseTests: XCTestCase {
         XCTAssertEqual(response.firmwareVersion, "1.4.26")
         XCTAssertEqual(response.address, "123 Main St")
         XCTAssertEqual(response.batteryLife, "85")
-        XCTAssertEqual(response.features?["motion_detection"], true)
-        XCTAssertEqual(response.features?["night_vision"], false)
     }
 
     func testDecodingWithNullOptionals() throws {
@@ -348,7 +323,6 @@ final class RingDeviceResponseTests: XCTestCase {
         XCTAssertNil(response.firmwareVersion)
         XCTAssertNil(response.address)
         XCTAssertNil(response.batteryLife)
-        XCTAssertNil(response.features)
     }
 
     func testDecodingWithMissingOptionals() throws {
@@ -367,7 +341,6 @@ final class RingDeviceResponseTests: XCTestCase {
         XCTAssertNil(response.firmwareVersion)
         XCTAssertNil(response.address)
         XCTAssertNil(response.batteryLife)
-        XCTAssertNil(response.features)
     }
 
     // MARK: - toDomain()
@@ -379,8 +352,7 @@ final class RingDeviceResponseTests: XCTestCase {
             kind: "spotlight_cam",
             firmwareVersion: "2.0.1",
             address: "456 Oak Ave",
-            batteryLife: "72",
-            features: ["motion_detection": true]
+            batteryLife: "72"
         )
 
         let device = response.toDomain()
@@ -391,9 +363,7 @@ final class RingDeviceResponseTests: XCTestCase {
         XCTAssertEqual(device.firmwareVersion, "2.0.1")
         XCTAssertEqual(device.address, "456 Oak Ave")
         XCTAssertEqual(device.batteryLife, 72)
-        XCTAssertNil(device.features) // features dict is not mapped to DeviceFeatures
         XCTAssertTrue(device.isOnline)
-        XCTAssertNil(device.snapshotURL)
     }
 
     func testToDomainWithUnknownKind() {
@@ -403,8 +373,7 @@ final class RingDeviceResponseTests: XCTestCase {
             kind: "some_future_device",
             firmwareVersion: nil,
             address: nil,
-            batteryLife: nil,
-            features: nil
+            batteryLife: nil
         )
 
         let device = response.toDomain()
@@ -418,8 +387,7 @@ final class RingDeviceResponseTests: XCTestCase {
             kind: "doorbell",
             firmwareVersion: nil,
             address: nil,
-            batteryLife: "not_a_number",
-            features: nil
+            batteryLife: "not_a_number"
         )
 
         let device = response.toDomain()
@@ -433,8 +401,7 @@ final class RingDeviceResponseTests: XCTestCase {
             kind: "doorbell",
             firmwareVersion: nil,
             address: nil,
-            batteryLife: nil,
-            features: nil
+            batteryLife: nil
         )
 
         let device = response.toDomain()
@@ -456,7 +423,7 @@ final class RingDeviceResponseTests: XCTestCase {
             let response = RingDeviceResponse(
                 id: 1, description: "D", kind: kind,
                 firmwareVersion: nil, address: nil,
-                batteryLife: nil, features: nil
+                batteryLife: nil
             )
             XCTAssertEqual(
                 response.toDomain().deviceType, expectedType,
@@ -469,7 +436,7 @@ final class RingDeviceResponseTests: XCTestCase {
         let response = RingDeviceResponse(
             id: 1, description: "D", kind: "doorbell",
             firmwareVersion: nil, address: nil,
-            batteryLife: nil, features: nil
+            batteryLife: nil
         )
         XCTAssertTrue(response.toDomain().isOnline)
     }

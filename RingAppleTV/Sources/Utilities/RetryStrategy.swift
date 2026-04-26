@@ -34,6 +34,7 @@ struct RetryStrategy {
              .decodingError,
              .deviceOffline,
              .streamUnavailable,
+             .noSnapshotAvailable,
              .unknown:
             return false
         }

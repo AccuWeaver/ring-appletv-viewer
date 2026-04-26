@@ -11,7 +11,7 @@ extension XCTestCase {
         timeout: TimeInterval = 5,
         file: StaticString = #filePath,
         line: UInt = #line,
-        _ block: @escaping () async throws -> Void
+        _ block: @escaping @Sendable () async throws -> Void
     ) {
         let expectation = expectation(description: "async operation")
         Task {

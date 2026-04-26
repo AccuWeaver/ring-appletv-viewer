@@ -6,6 +6,7 @@ import AVKit
 struct PlayerView: View {
     @ObservedObject var viewModel: PlayerViewModel
     let device: RingDevice
+    let snapshotData: Data?
 
     @Environment(\.dismiss) private var dismiss
 
@@ -42,29 +43,43 @@ struct PlayerView: View {
         ZStack(alignment: .topLeading) {
             if session.isSipSession {
                 // Ring uses SIP/WebRTC — HLS not available
-                VStack(spacing: 24) {
-                    Image(systemName: "video.badge.ellipsis")
-                        .font(.system(size: 60))
-                        .foregroundColor(.secondary)
-
-                    Text("Live streaming not yet supported")
-                        .font(.system(size: Constants.UI.titleSize, weight: .semibold))
-                        .foregroundColor(.white)
-
-                    Text("Ring uses WebRTC for live video. HLS streaming is not available from Ring's API. WebRTC support is planned for a future update.")
-                        .font(.system(size: Constants.UI.captionSize))
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 80)
-
-                    Button("Back") {
-                        dismiss()
+                ZStack {
+                    // Snapshot backdrop or solid black fallback
+                    if let snapshotData,
+                       let uiImage = UIImage(data: snapshotData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .clipped()
+                            .overlay(Color.black.opacity(0.6))
+                    } else {
+                        Color.black
                     }
-                    .font(.system(size: Constants.UI.bodySize))
-                    .accessibilityLabel(Text("Go back"))
+
+                    VStack(spacing: 24) {
+                        Image(systemName: "video.badge.ellipsis")
+                            .font(.system(size: 60))
+                            .foregroundColor(.secondary)
+
+                        Text("Live streaming not yet supported")
+                            .font(.system(size: Constants.UI.titleSize, weight: .semibold))
+                            .foregroundColor(.white)
+
+                        Text("Ring uses WebRTC for live video. HLS streaming is not available from Ring's API. WebRTC support is planned for a future update.")
+                            .font(.system(size: Constants.UI.captionSize))
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 80)
+
+                        Button("Back") {
+                            dismiss()
+                        }
+                        .font(.system(size: Constants.UI.bodySize))
+                        .accessibilityLabel(Text("Go back"))
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.black)
             } else {
                 // Future: HLS playback if Ring ever provides it
                 Text("Unsupported stream protocol")

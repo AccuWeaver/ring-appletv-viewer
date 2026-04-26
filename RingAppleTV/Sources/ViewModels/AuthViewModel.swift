@@ -15,7 +15,7 @@ final class AuthViewModel: ObservableObject {
 
     // MARK: - Dependencies
 
-    private let authService: AuthService
+    private nonisolated(unsafe) let authService: AuthService
 
     // MARK: - Computed
 

@@ -11,7 +11,7 @@ final class EventsViewModel: ObservableObject {
 
     // MARK: - Dependencies
 
-    private let eventService: EventService
+    private nonisolated(unsafe) let eventService: EventService
 
     // MARK: - Init
 

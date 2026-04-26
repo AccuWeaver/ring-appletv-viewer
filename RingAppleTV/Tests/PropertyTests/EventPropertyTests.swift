@@ -4,11 +4,11 @@ import SwiftCheck
 
 // MARK: - Generators
 
-private let eventTypeGen: Gen<RingEvent.EventType> = Gen<RingEvent.EventType>.fromElements(of: [
+private nonisolated(unsafe) let eventTypeGen: Gen<RingEvent.EventType> = Gen<RingEvent.EventType>.fromElements(of: [
     .motion, .ding, .onDemand
 ])
 
-private let eventGen: Gen<RingEvent> = Gen<RingEvent>.compose { c in
+private nonisolated(unsafe) let eventGen: Gen<RingEvent> = Gen<RingEvent>.compose { c in
     // Random date within the last 48 hours
     let offsetSeconds = c.generate(using: Int.arbitrary.suchThat { $0 >= 0 && $0 < 172_800 })
 
@@ -24,8 +24,14 @@ private let eventGen: Gen<RingEvent> = Gen<RingEvent>.compose { c in
     )
 }
 
+extension RingEvent: Arbitrary {
+    public static var arbitrary: Gen<RingEvent> {
+        eventGen
+    }
+}
+
 /// Generates event lists of varying sizes (0–200).
-private let eventListGen: Gen<[RingEvent]> = Gen<Int>.fromElements(in: 0...200).flatMap { count in
+private nonisolated(unsafe) let eventListGen: Gen<[RingEvent]> = Gen<Int>.fromElements(in: 0...200).flatMap { count in
     Gen<[RingEvent]>.compose { c in
         (0..<count).map { _ in c.generate(using: eventGen) }
     }
@@ -41,7 +47,7 @@ final class EventPropertyTests: XCTestCase {
     /// Feature: AppleTVRing, Property 7: Event processing enforces limit and descending order
     func testEventProcessingEnforcesLimitAndDescendingOrder() {
         property("Feature: AppleTVRing, Property 7: Event processing enforces limit and descending order")
-            <- forAll(eventListGen) { (events: [RingEvent]) in
+            <- forAll(eventListGen) { events -> Bool in
                 let processed = DefaultEventService.processEvents(events)
 
                 // Count must be <= 50

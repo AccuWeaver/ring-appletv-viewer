@@ -20,8 +20,7 @@ private func makeDeviceResponse(id: Int = 1, description: String = "Front Door",
         kind: kind,
         firmwareVersion: "1.0",
         address: nil,
-        batteryLife: "80",
-        features: nil
+        batteryLife: "80"
     )
 }
 
@@ -39,8 +38,7 @@ private func makeDevice(
         address: nil,
         batteryLife: 80,
         features: nil,
-        isOnline: isOnline,
-        snapshotURL: nil
+        isOnline: isOnline
     )
 }
 

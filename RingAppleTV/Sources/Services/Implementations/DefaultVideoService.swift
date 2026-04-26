@@ -1,6 +1,6 @@
 import Foundation
 
-/// Production implementation of `VideoService` that requests HLS live streams
+/// Production implementation of `VideoService` that requests live stream sessions
 /// from Ring devices and validates session lifetimes.
 final class DefaultVideoService: VideoService {
 

@@ -21,6 +21,7 @@ final class ServiceContainer: ObservableObject {
     let deviceService: DeviceService
     let videoService: VideoService
     let eventService: EventService
+    let snapshotService: SnapshotService
 
     // MARK: - ViewModels
 
@@ -60,16 +61,22 @@ final class ServiceContainer: ObservableObject {
             authService: authService,
             apiClient: apiClient
         )
+        let snapshotService: SnapshotService = DefaultSnapshotService(
+            authService: authService,
+            apiClient: apiClient
+        )
 
         self.authService = authService
         self.deviceService = deviceService
         self.videoService = videoService
         self.eventService = eventService
+        self.snapshotService = snapshotService
 
         // 3. ViewModels
         self.authViewModel = AuthViewModel(authService: authService)
         self.dashboardViewModel = DashboardViewModel(
             deviceService: deviceService,
+            snapshotService: snapshotService,
             refreshInterval: configuration.deviceRefreshInterval
         )
         self.eventsViewModel = EventsViewModel(eventService: eventService)

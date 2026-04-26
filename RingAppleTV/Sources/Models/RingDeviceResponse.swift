@@ -27,8 +27,7 @@ struct RingDeviceResponse: Codable {
             address: address,
             batteryLife: batteryLife.flatMap { Int($0) },
             features: nil,
-            isOnline: true,
-            snapshotURL: nil
+            isOnline: true
         )
     }
 }

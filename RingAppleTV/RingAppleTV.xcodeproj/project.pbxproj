@@ -58,6 +58,9 @@
 		E7E793BF64FBA53CCAB0CBE4 /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F18E3B7675874A3FE224B5D /* PlayerView.swift */; };
 		F055E69580370DED1F738F5B /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76C587B829F19C310855B1D4 /* View+Extensions.swift */; };
 		F5217B7DF43870A621D4A51B /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C13201EE27808D60995A58B0 /* Date+Extensions.swift */; };
+		AA1111111111111111111111 /* SnapshotServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2222222222222222222222 /* SnapshotServiceProtocol.swift */; };
+		AA3333333333333333333333 /* DefaultSnapshotService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA4444444444444444444444 /* DefaultSnapshotService.swift */; };
+		AA5555555555555555555555 /* BackgroundRefreshManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA6666666666666666666666 /* BackgroundRefreshManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -124,6 +127,9 @@
 		F464F5B43F68F12A468F8B4C /* RingAPIClientProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingAPIClientProtocol.swift; sourceTree = "<group>"; };
 		F542A15318BD38878A6EE65F /* RingDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingDevice.swift; sourceTree = "<group>"; };
 		FE3C9C519E36FA42EB9F54DC /* ServiceContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceContainer.swift; sourceTree = "<group>"; };
+		AA2222222222222222222222 /* SnapshotServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotServiceProtocol.swift; sourceTree = "<group>"; };
+		AA4444444444444444444444 /* DefaultSnapshotService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultSnapshotService.swift; sourceTree = "<group>"; };
+		AA6666666666666666666666 /* BackgroundRefreshManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundRefreshManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -159,6 +165,7 @@
 				3E533D5DF19D3343CC7FA01F /* EventServiceProtocol.swift */,
 				F16DD32B81CE82CECAA07B7F /* KeychainServiceProtocol.swift */,
 				F464F5B43F68F12A468F8B4C /* RingAPIClientProtocol.swift */,
+				AA2222222222222222222222 /* SnapshotServiceProtocol.swift */,
 				04C6ADF1E774140B4AD5725B /* VideoServiceProtocol.swift */,
 			);
 			path = Protocols;
@@ -241,6 +248,7 @@
 		67D7E5B0BCA7D14F4C800ACB /* App */ = {
 			isa = PBXGroup;
 			children = (
+				AA6666666666666666666666 /* BackgroundRefreshManager.swift */,
 				2A0A54148E73070857143B0C /* ContentView.swift */,
 				46B086FE1DF3B4844C53E20E /* MainTabView.swift */,
 				9B279E24ADE00F7C6B24F00C /* RingAppleTVApp.swift */,
@@ -307,6 +315,7 @@
 				CE74F4EA7488DF9CD7B2C4B5 /* DefaultEventService.swift */,
 				876756043363CAAC63BE0D95 /* DefaultKeychainService.swift */,
 				E50C52D1D54AEDE35C2018A6 /* DefaultRingAPIClient.swift */,
+				AA4444444444444444444444 /* DefaultSnapshotService.swift */,
 				A1F602594E47F59BD8306B56 /* DefaultVideoService.swift */,
 			);
 			path = Implementations;
@@ -433,6 +442,9 @@
 				7307C7DC04CBA98C78DCD243 /* VideoServiceProtocol.swift in Sources */,
 				F055E69580370DED1F738F5B /* View+Extensions.swift in Sources */,
 				05EB79B4326E42F1756B96B0 /* ViewState.swift in Sources */,
+				AA1111111111111111111111 /* SnapshotServiceProtocol.swift in Sources */,
+				AA3333333333333333333333 /* DefaultSnapshotService.swift in Sources */,
+				AA5555555555555555555555 /* BackgroundRefreshManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

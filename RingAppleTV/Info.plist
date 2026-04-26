@@ -35,5 +35,9 @@
         <key>NSAllowsArbitraryLoads</key>
         <false/>
     </dict>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.ringappletv.snapshot-refresh</string>
+    </array>
 </dict>
 </plist>
