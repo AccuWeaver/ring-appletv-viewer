@@ -2,7 +2,7 @@ import SwiftUI
 import AVKit
 
 /// Full-screen video player for Ring live streams and event playback.
-/// Integrates AVPlayer for HLS, with loading/error overlays and Siri Remote controls.
+/// Displays snapshot backdrop for SIP/WebRTC sessions, with loading/error overlays and Siri Remote controls.
 struct PlayerView: View {
     @ObservedObject var viewModel: PlayerViewModel
     let device: RingDevice

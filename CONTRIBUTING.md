@@ -44,6 +44,16 @@ Thank you for your interest in contributing to the Apple TV Ring Camera Viewer.
 - New views follow the existing folder structure under `Views/`
 - Use `ViewState<T>` for all ViewModel state management
 - Errors should propagate as `RingAPIError` and be mapped to user-friendly messages at the ViewModel layer
+- For services that cache data, follow the `DefaultSnapshotService` pattern: inject dependencies via init, use `NSCache` for binary data or `CacheService` for `Codable` models
+- Use Swift actors for thread-safe mutable state (see `InFlightStore` in `DefaultSnapshotService`)
+- Background tasks should be registered in `BackgroundRefreshManager` and scheduled via `BGTaskScheduler`
+
+## Documentation
+
+- Update `RELEASE_NOTES.md` when adding user-facing features
+- Update `KNOWN_ISSUES.md` when discovering limitations
+- Add architecture docs in `docs/` for complex subsystems (see `docs/SNAPSHOT_ARCHITECTURE.md`)
+- Include ASCII flow diagrams for non-trivial data flows
 
 ## Security
 

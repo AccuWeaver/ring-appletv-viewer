@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Main dashboard showing a grid of Ring devices.
+/// Main dashboard showing a grid of Ring devices with live snapshot thumbnails.
 /// Supports pull-to-refresh, loading/empty/error states, and navigation to the player.
 struct DashboardView: View {
     @ObservedObject var viewModel: DashboardViewModel
