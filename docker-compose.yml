@@ -1,0 +1,66 @@
+# Docker Compose stack for local Ring Partner API mock testing.
+#
+# Services:
+#   backend   — Python/FastAPI auth backend + mock Ring Partner API endpoints
+#   mediamtx  — WebRTC/RTSP media server (serves the test pattern via WHEP)
+#   ffmpeg    — Generates a test video pattern and publishes it to mediamtx
+#
+# Usage:
+#   docker compose up -d       # start everything in background
+#   docker compose logs -f     # tail logs
+#   docker compose down        # stop everything
+#
+# Once running, the tvOS app can connect to:
+#   http://<your-lan-ip>:8000    (backend + mock API)
+#   http://<your-lan-ip>:8889    (mediamtx WHEP, reached via backend proxy)
+
+services:
+  backend:
+    build:
+      context: ./partner-auth-backend
+    container_name: ring-partner-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Local dev credentials (not real Ring credentials)
+      RING_CLIENT_ID: local_dev_client_id
+      RING_CLIENT_SECRET: local_dev_client_secret
+      RING_HMAC_KEY: 5E5CqTiFx16SS2V7Ipak1nvTBKQPaXipDLCjgjSj+Nk=
+      APP_API_KEY: local-dev-api-key
+      TOKEN_ENCRYPTION_KEY: z-6mRAl-NHWoVYqHFG_sEjGk9iy2lpnWyDWDpVBy-u0=
+      DATABASE_PATH: /data/tokens.db
+      LOG_LEVEL: INFO
+      # Mock WHEP proxy points at mediamtx via the docker network
+      MEDIAMTX_WHEP_URL: http://mediamtx:8889/test/whep
+    volumes:
+      - backend-data:/data
+    depends_on:
+      - mediamtx
+
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: ring-mediamtx
+    restart: unless-stopped
+    ports:
+      - "8554:8554"   # RTSP (ffmpeg publishes here)
+      - "8889:8889"   # WHEP (app subscribes here)
+      - "8189:8189/udp" # WebRTC ICE
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+
+  ffmpeg:
+    image: linuxserver/ffmpeg:latest
+    container_name: ring-ffmpeg
+    restart: unless-stopped
+    depends_on:
+      - mediamtx
+    # Wait a moment for mediamtx to start, then publish a continuous test pattern.
+    entrypoint: >
+      sh -c "sleep 5 && ffmpeg -re -stream_loop -1
+      -f lavfi -i 'testsrc2=size=1280x720:rate=30'
+      -c:v libx264 -preset ultrafast -tune zerolatency -b:v 2M
+      -f rtsp rtsp://mediamtx:8554/test"
+
+volumes:
+  backend-data:

@@ -1,0 +1,20 @@
+# Minimal mediamtx config for local WebRTC testing
+# Allows the /test path to be published via RTSP and subscribed via WHEP
+
+paths:
+  test:
+    # Allow any RTSP/WHIP publisher
+    source: publisher
+
+# Allow all connections (local dev only - never use in production)
+authInternalUsers:
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: publish
+      - action: read
+      - action: playback
+      - action: api
+      - action: metrics
+      - action: pprof
