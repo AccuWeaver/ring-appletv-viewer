@@ -24,8 +24,7 @@
 
 ### API Endpoints
 
-- `GET /clients_api/snapshots/image/{device_id}` — Fetch latest cached JPEG snapshot
-- `POST /clients_api/doorbots/{device_id}/snapshot` — Request Ring to capture a new snapshot
+- `POST /v1/devices/{device_id}/media/image/download` — Fetch latest cached JPEG snapshot via Partner API
 
 ### Codebase Cleanup
 
@@ -45,20 +44,19 @@
 
 ## v1.1 — Ring API Compatibility & Dashboard Redesign
 
-### Authentication Fixes
+### Authentication
 
-- Fixed `2fa-support` header: was incorrectly sending the TOTP code as the header value instead of `"true"`
-- Added 2FA method detection: parses `tsv_state` from Ring's 412 response to distinguish between SMS, TOTP (authenticator app), and email-based 2FA
-- Shows method-appropriate prompt ("Enter the code from your authenticator app" vs "A verification code has been sent via SMS")
-- Fixed bad 2FA code handling: HTTP 400 now maps to `twoFactorInvalid` instead of resetting the entire login flow
-- Added `RevealableSecureField` custom component for tvOS password visibility without view-swap focus issues
+- Migrated to OAuth 2.0 Device Authorization Grant (RFC 8628) for account linking
+- Device code flow: TV displays user code, user authorizes on phone/computer
+- Proactive token refresh when within 60 seconds of expiry
+- Secure Keychain storage for access and refresh tokens
 
-### Ring API Compatibility
+### Ring Partner API Compatibility
 
-- Fixed device decoding: removed `features: [String: Bool]?` field from `RingDeviceResponse` — Ring's actual API returns a deeply nested object, not a flat dictionary
-- Updated `StreamSession` and `StreamSessionResponse` to match Ring's actual SIP/WebRTC response format (was incorrectly expecting HLS URLs)
-- `PlayerView` now shows an informational message about WebRTC requirement instead of crashing on missing HLS URL
-- Added HTTP 400 → `twoFactorInvalid` error mapping in API client
+- Migrated to Ring Partner API (Amazon Vision API at `api.amazonvision.com/v1`)
+- Device discovery uses JSON:API format with string device IDs
+- WHEP-based live streaming replaces SIP signaling
+- `PartnerAPIError` replaces legacy error handling with rate-limit retry and proactive token refresh
 
 ### Dashboard Redesign
 
@@ -76,9 +74,9 @@
 
 ### Test Updates
 
-- Updated all stream session tests for new SIP-based model
-- Updated error model tests for `TwoFactorMethod` associated value
-- Updated API client tests for corrected `2fa-support` header and SIP response format
+- Updated all stream session tests for new WHEP-based model
+- Updated error model tests for `PartnerAPIError` cases
+- Updated API client tests for Partner API response format
 - Updated retry strategy tests for new error signatures
 
 ---
@@ -87,9 +85,9 @@
 
 ### Features
 
-- **Authentication**: Email/password login with two-factor authentication, automatic token refresh, secure Keychain storage
+- **Authentication**: OAuth 2.0 Device Authorization Grant with account linking, automatic token refresh, secure Keychain storage
 - **Device Dashboard**: Grid view of all Ring cameras and doorbells with online/offline status, filtering by name/type/status, sorting options, 60-second background refresh
-- **Live Streaming**: Stream session management (HLS assumed — corrected in v1.1)
+- **Live Streaming**: WHEP-based stream session management with WebRTC
 - **Event History**: Chronological event list (motion, doorbell press, on-demand), event video playback (requires Ring Protect), 50-event limit per device
 - **tvOS Optimized**: Focus Engine navigation, 10-foot UI design, Siri Remote support, VoiceOver accessibility
 
@@ -107,7 +105,6 @@
 
 ### Known Limitations
 
-- Uses Ring's unofficial private API (may break without notice)
-- Stream sessions limited to ~10 minutes
+- Stream sessions limited by device power source (30s battery / 60s line-powered)
 - Event video requires Ring Protect subscription
 - See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) for full details
