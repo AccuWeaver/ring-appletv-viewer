@@ -1,0 +1,53 @@
+name: Build WebRTC
+
+on:
+  workflow_dispatch:
+    inputs:
+      ios:
+        description: "Build iOS libraries"
+        required: true
+        default: true
+        type: boolean
+      macos:
+        description: "Build macOS libraries"
+        required: true
+        default: true
+        type: boolean
+      mac_catalyst:
+        description: "Build Mac Catalyst libraries"
+        required: true
+        default: true
+        type: boolean
+      tvos:
+        description: "Build tvOS libraries"
+        required: true
+        default: true
+        type: boolean
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Build WebRTC
+        env:
+          IOS: ${{ inputs.ios }}
+          MACOS: ${{ inputs.macos }}
+          MAC_CATALYST: ${{ inputs.mac_catalyst }}
+          TVOS: ${{ inputs.tvos }}
+        run: sh scripts/build.sh
+
+      - name: Upload xcframework
+        uses: actions/upload-artifact@v4
+        with:
+          name: WebRTC.xcframework
+          path: out/WebRTC.xcframework.zip
+          if-no-files-found: error
