@@ -12,7 +12,9 @@ struct RevealableSecureField: View {
 
     var body: some View {
         TextField(placeholder, text: displayBinding)
+            #if os(iOS) || os(tvOS)
             .autocapitalization(.none)
+            #endif
             .disableAutocorrection(true)
     }
 

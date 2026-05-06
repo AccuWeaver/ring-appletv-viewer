@@ -18,10 +18,19 @@ let package = Package(
         .package(url: "https://github.com/typelift/SwiftCheck.git", from: "0.12.0")
     ],
     targets: [
+        .binaryTarget(
+            name: "WebRTC",
+            path: "WebRTC.xcframework"
+        ),
         .target(
             name: "RingAppleTV",
-            dependencies: [],
-            path: "Sources"
+            dependencies: [
+                .target(name: "WebRTC", condition: .when(platforms: [.iOS, .macOS, .tvOS]))
+            ],
+            path: "Sources",
+            exclude: [
+                "App/RingAppleTVApp.swift"
+            ]
         ),
         .testTarget(
             name: "RingAppleTVTests",

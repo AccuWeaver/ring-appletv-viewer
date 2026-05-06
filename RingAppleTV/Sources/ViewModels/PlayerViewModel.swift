@@ -1,6 +1,10 @@
 import Foundation
+import Combine
+#if canImport(WebRTC)
+import WebRTC
+#endif
 
-/// Manages live stream playback: requesting streams, play/pause, retry, and session tracking.
+/// Manages live stream playback using WHEP + WebRTC via StreamSessionManager.
 @MainActor
 final class PlayerViewModel: ObservableObject {
 
@@ -8,40 +12,102 @@ final class PlayerViewModel: ObservableObject {
 
     @Published var state: ViewState<StreamSession> = .idle
     @Published var isPlaying = false
+    @Published var connectionState: WebRTCConnectionState = .disconnected
+    #if canImport(WebRTC)
+    @Published var videoTrack: RTCVideoTrack?
+    #endif
 
     // MARK: - Dependencies
 
-    nonisolated(unsafe) private let videoService: VideoService
+    let streamSessionManager: StreamSessionManagerProtocol?
 
     // MARK: - Session tracking
 
-    private var currentSession: StreamSession?
-    private var lastDeviceId: Int?
+    private var lastDeviceId: String?
+    private var lastPowerSource: PowerSource?
+    private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Init
 
-    init(videoService: VideoService) {
-        self.videoService = videoService
+    init(streamSessionManager: StreamSessionManagerProtocol? = nil) {
+        self.streamSessionManager = streamSessionManager
+        subscribeToConnectionState()
+    }
+
+    // MARK: - Connection State Subscription
+
+    private func subscribeToConnectionState() {
+        guard let manager = streamSessionManager else { return }
+        manager.connectionStatePublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] newState in
+                self?.connectionState = newState
+            }
+            .store(in: &cancellables)
+
+        #if canImport(WebRTC)
+        // Subscribe to the manager's videoTrack publisher so the view re-renders
+        // when the track arrives via didAddReceiver.
+        if let concreteManager = manager as? StreamSessionManager {
+            concreteManager.$videoTrack
+                .receive(on: DispatchQueue.main)
+                .sink { [weak self] track in
+                    self?.videoTrack = track
+                }
+                .store(in: &cancellables)
+        }
+        #endif
     }
 
     // MARK: - Actions
 
     /// Request a live stream for the given device.
-    func requestStream(for deviceId: Int) async {
+    func requestStream(for deviceId: String, powerSource: PowerSource) async {
         lastDeviceId = deviceId
+        lastPowerSource = powerSource
         state = .loading
         isPlaying = false
 
         do {
-            let session = try await videoService.requestLiveStream(for: deviceId)
-            currentSession = session
+            guard let manager = streamSessionManager else {
+                // No WebRTC stream manager — likely running in mock mode or on a platform
+                // without WebRTC support. Transition to .loaded so the view can render a
+                // fallback (e.g., HLS playback) instead of showing an error.
+                let fallbackSession = StreamSession(
+                    deviceId: deviceId,
+                    sessionURL: URL(string: "https://mock.local/session")!,
+                    powerSource: powerSource,
+                    createdAt: Date()
+                )
+                state = .loaded(fallbackSession)
+                isPlaying = true
+                return
+            }
+
+            try await manager.startStream(deviceId: deviceId, powerSource: powerSource)
+
+            // Create a representative StreamSession for the UI
+            let session = StreamSession(
+                deviceId: deviceId,
+                sessionURL: URL(string: "https://api.amazonvision.com/v1/session")!,
+                powerSource: powerSource,
+                createdAt: Date()
+            )
             state = .loaded(session)
             isPlaying = true
-        } catch let error as RingAPIError {
+        } catch let error as PartnerAPIError {
             state = .error(error.userMessage)
         } catch {
             state = .error(error.localizedDescription)
         }
+    }
+
+    /// Stop the current stream and release resources.
+    func stopStream() {
+        Task {
+            await streamSessionManager?.stopStream()
+        }
+        isPlaying = false
     }
 
     /// Toggle play/pause state.
@@ -52,13 +118,7 @@ final class PlayerViewModel: ObservableObject {
 
     /// Retry the last stream request.
     func retry() async {
-        guard let deviceId = lastDeviceId else { return }
-        await requestStream(for: deviceId)
-    }
-
-    /// Check whether the current session is still valid.
-    var isSessionValid: Bool {
-        guard let session = currentSession else { return false }
-        return videoService.validateStreamSession(session)
+        guard let deviceId = lastDeviceId, let powerSource = lastPowerSource else { return }
+        await requestStream(for: deviceId, powerSource: powerSource)
     }
 }

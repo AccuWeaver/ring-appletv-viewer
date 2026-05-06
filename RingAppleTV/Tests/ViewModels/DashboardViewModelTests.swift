@@ -8,34 +8,24 @@ final class DashboardViewModelTests: XCTestCase {
 
     private func makeSUT(
         deviceService: MockDeviceService = MockDeviceService(),
-        snapshotService: MockSnapshotService = MockSnapshotService(),
+        mediaService: MockMediaService = MockMediaService(),
         refreshInterval: TimeInterval = 60
     ) -> (DashboardViewModel, MockDeviceService) {
-        let vm = DashboardViewModel(deviceService: deviceService, snapshotService: snapshotService, refreshInterval: refreshInterval)
+        let vm = DashboardViewModel(deviceService: deviceService, mediaService: mediaService, refreshInterval: refreshInterval)
         return (vm, deviceService)
     }
 
     private func makeSampleDevices() -> [RingDevice] {
         [
             RingDevice(
-                id: 1,
-                description: "Front Door",
-                deviceType: .doorbell,
-                firmwareVersion: "1.0",
-                address: nil,
-                batteryLife: 80,
-                features: nil,
-                isOnline: true
+                id: "1", name: "Front Door", model: "doorbell",
+                deviceType: .doorbell, firmwareVersion: "1.0",
+                powerSource: .line, isOnline: true
             ),
             RingDevice(
-                id: 2,
-                description: "Backyard",
-                deviceType: .stickupCam,
-                firmwareVersion: "2.0",
-                address: nil,
-                batteryLife: 60,
-                features: nil,
-                isOnline: false
+                id: "2", name: "Backyard", model: "stickup_cam",
+                deviceType: .stickupCam, firmwareVersion: "2.0",
+                powerSource: .battery, isOnline: false
             )
         ]
     }
@@ -62,7 +52,7 @@ final class DashboardViewModelTests: XCTestCase {
 
     func testLoadDevices_failure_transitionsToError() async {
         let (sut, mock) = makeSUT()
-        mock.fetchDevicesResult = .failure(RingAPIError.networkError("offline"))
+        mock.fetchDevicesResult = .failure(PartnerAPIError.networkError("offline"))
 
         await sut.loadDevices()
 
@@ -70,7 +60,7 @@ final class DashboardViewModelTests: XCTestCase {
             XCTFail("Expected .error state, got \(sut.state)")
             return
         }
-        XCTAssertEqual(message, RingAPIError.networkError("offline").userMessage)
+        XCTAssertEqual(message, PartnerAPIError.networkError("offline").userMessage)
     }
 
     // MARK: - Load Devices Empty
@@ -108,7 +98,7 @@ final class DashboardViewModelTests: XCTestCase {
 
     func testRefresh_failure_transitionsToError() async {
         let (sut, mock) = makeSUT()
-        mock.refreshDevicesResult = .failure(RingAPIError.serverError(500))
+        mock.refreshDevicesResult = .failure(PartnerAPIError.serverError(500))
 
         await sut.refresh()
 
@@ -116,7 +106,7 @@ final class DashboardViewModelTests: XCTestCase {
             XCTFail("Expected .error state, got \(sut.state)")
             return
         }
-        XCTAssertEqual(message, RingAPIError.serverError(500).userMessage)
+        XCTAssertEqual(message, PartnerAPIError.serverError(500).userMessage)
     }
 
     // MARK: - Filter
@@ -142,7 +132,7 @@ final class DashboardViewModelTests: XCTestCase {
             return
         }
         XCTAssertEqual(filtered.count, 1)
-        XCTAssertEqual(filtered.first?.description, "Front Door")
+        XCTAssertEqual(filtered.first?.name, "Front Door")
         sut.stopBackgroundRefresh()
     }
 
@@ -172,7 +162,7 @@ final class DashboardViewModelTests: XCTestCase {
         mock.fetchDevicesResult = .success(devices)
         mock.sortDevicesHandler = { devices, sort in
             if case .nameDescending = sort {
-                return devices.sorted { $0.description > $1.description }
+                return devices.sorted { $0.name > $1.name }
             }
             return devices
         }
@@ -186,7 +176,7 @@ final class DashboardViewModelTests: XCTestCase {
             XCTFail("Expected .loaded state, got \(sut.state)")
             return
         }
-        XCTAssertEqual(sorted.first?.description, "Front Door")
+        XCTAssertEqual(sorted.first?.name, "Front Door")
         sut.stopBackgroundRefresh()
     }
 
@@ -199,51 +189,45 @@ final class DashboardViewModelTests: XCTestCase {
         await sut.loadDevices()
         sut.stopBackgroundRefresh()
 
-        // No crash or hang means the task was properly cancelled
         XCTAssertEqual(mock.fetchDevicesCalls, 1)
     }
 
-    // MARK: - 8.9 Snapshots populated after device load
+    // MARK: - Snapshots populated after device load
 
     func testLoadDevices_populatesSnapshotsAfterDeviceLoad() async {
         let devices = makeSampleDevices()
         let mockDevice = MockDeviceService()
         mockDevice.fetchDevicesResult = .success(devices)
 
-        let mockSnapshot = MockSnapshotService()
-        mockSnapshot.getSnapshotResult = .success(MockData.sampleJPEGData)
+        let mockMedia = MockMediaService()
+        mockMedia.downloadSnapshotResult = .success(MockData.sampleJPEGData)
 
-        let (sut, _) = makeSUT(deviceService: mockDevice, snapshotService: mockSnapshot)
+        let (sut, _) = makeSUT(deviceService: mockDevice, mediaService: mockMedia)
         await sut.loadDevices()
 
-        // Snapshots should be populated for both devices
         XCTAssertEqual(sut.snapshots.count, 2)
-        XCTAssertEqual(sut.snapshots[1], MockData.sampleJPEGData)
-        XCTAssertEqual(sut.snapshots[2], MockData.sampleJPEGData)
-        // getSnapshot should have been called for each device
-        XCTAssertEqual(mockSnapshot.getSnapshotCalls.count, 2)
+        XCTAssertEqual(sut.snapshots["1"], MockData.sampleJPEGData)
+        XCTAssertEqual(sut.snapshots["2"], MockData.sampleJPEGData)
+        XCTAssertEqual(mockMedia.downloadSnapshotCalls.count, 2)
         sut.stopBackgroundRefresh()
     }
 
-    // MARK: - 8.10 Individual snapshot failure doesn't block other devices
+    // MARK: - Individual snapshot failure doesn't block other devices
 
     func testLoadDevices_snapshotFailure_doesNotBlockOtherDevices() async {
         let devices = makeSampleDevices()
         let mockDevice = MockDeviceService()
         mockDevice.fetchDevicesResult = .success(devices)
 
-        // Use a snapshot service that fails for device 1 but succeeds for device 2
-        let mockSnapshot = PerDeviceSnapshotService()
-        mockSnapshot.results[1] = .failure(RingAPIError.noSnapshotAvailable)
-        mockSnapshot.results[2] = .success(MockData.sampleJPEGData)
+        let mockMedia = MockMediaService()
+        mockMedia.perDeviceSnapshotResults["1"] = .failure(PartnerAPIError.notFound)
+        mockMedia.perDeviceSnapshotResults["2"] = .success(MockData.sampleJPEGData)
 
-        let sut = DashboardViewModel(deviceService: mockDevice, snapshotService: mockSnapshot, refreshInterval: 60)
+        let sut = DashboardViewModel(deviceService: mockDevice, mediaService: mockMedia, refreshInterval: 60)
         await sut.loadDevices()
 
-        // Device 1 failed — should not be in snapshots
-        XCTAssertNil(sut.snapshots[1])
-        // Device 2 succeeded — should be present
-        XCTAssertEqual(sut.snapshots[2], MockData.sampleJPEGData)
+        XCTAssertNil(sut.snapshots["1"])
+        XCTAssertEqual(sut.snapshots["2"], MockData.sampleJPEGData)
         sut.stopBackgroundRefresh()
     }
 
@@ -262,21 +246,4 @@ final class DashboardViewModelTests: XCTestCase {
         }
         XCTAssertEqual(message, "Generic failure")
     }
-}
-
-// MARK: - Per-Device Snapshot Service Helper
-
-/// A mock snapshot service that returns different results per device ID.
-private final class PerDeviceSnapshotService: SnapshotService, @unchecked Sendable {
-    var results: [Int: Result<Data, Error>] = [:]
-
-    func getSnapshot(for deviceId: Int) async throws -> Data {
-        guard let result = results[deviceId] else {
-            throw RingAPIError.noSnapshotAvailable
-        }
-        return try result.get()
-    }
-
-    func requestNewSnapshot(for deviceId: Int) async throws {}
-    func clearCache() {}
 }

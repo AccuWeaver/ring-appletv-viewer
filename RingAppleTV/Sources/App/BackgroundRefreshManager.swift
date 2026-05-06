@@ -1,7 +1,6 @@
-import Foundation
 import os
 
-#if canImport(BackgroundTasks) && (os(iOS) || os(tvOS))
+#if canImport(BackgroundTasks)
 import BackgroundTasks
 #endif
 
@@ -28,8 +27,8 @@ final class BackgroundRefreshManager: @unchecked Sendable {
 
     // MARK: - Dependencies
 
-    nonisolated(unsafe) private let deviceService: DeviceService
-    private let snapshotService: SnapshotService
+    private nonisolated(unsafe) let deviceService: DeviceService
+    private let mediaService: MediaService
 
     // MARK: - Logging
 
@@ -37,9 +36,9 @@ final class BackgroundRefreshManager: @unchecked Sendable {
 
     // MARK: - Init
 
-    init(deviceService: DeviceService, snapshotService: SnapshotService) {
+    init(deviceService: DeviceService, mediaService: MediaService) {
         self.deviceService = deviceService
-        self.snapshotService = snapshotService
+        self.mediaService = mediaService
     }
 
     // MARK: - Registration
@@ -49,6 +48,7 @@ final class BackgroundRefreshManager: @unchecked Sendable {
     /// Register the background refresh task handler with `BGTaskScheduler`.
     /// Must be called before the end of the app launch sequence (e.g. in `App.init`).
     func registerBackgroundTask() {
+        #if os(tvOS) || os(iOS)
         BGTaskScheduler.shared.register(
             forTaskWithIdentifier: Self.taskIdentifier,
             using: nil
@@ -57,10 +57,12 @@ final class BackgroundRefreshManager: @unchecked Sendable {
             self.handleBackgroundRefresh(refreshTask)
         }
         logger.debug("Registered background refresh task: \(Self.taskIdentifier)")
+        #endif
     }
 
     /// Schedule the next background app refresh request.
     func scheduleNextRefresh() {
+        #if os(tvOS) || os(iOS)
         let request = BGAppRefreshTaskRequest(identifier: Self.taskIdentifier)
         request.earliestBeginDate = Date(timeIntervalSinceNow: Self.refreshInterval)
 
@@ -70,16 +72,18 @@ final class BackgroundRefreshManager: @unchecked Sendable {
         } catch {
             logger.error("Failed to schedule background refresh: \(error.localizedDescription)")
         }
+        #endif
     }
 
     // MARK: - Handler
 
+    #if os(tvOS) || os(iOS)
     private func handleBackgroundRefresh(_ task: BGAppRefreshTask) {
         // Schedule the next refresh before starting work
         scheduleNextRefresh()
 
         let deviceService = self.deviceService
-        let snapshotService = self.snapshotService
+        let mediaService = self.mediaService
         let logger = self.logger
         nonisolated(unsafe) let bgTask = task
 
@@ -93,14 +97,13 @@ final class BackgroundRefreshManager: @unchecked Sendable {
 
                 logger.debug("Background refresh: fetching snapshots for \(devicesToRefresh.count) devices")
 
-                // Fetch snapshots in parallel — results are stored in the snapshot cache
-                // by the SnapshotService automatically
+                // Fetch snapshots in parallel using MediaService
                 await withTaskGroup(of: Void.self) { group in
                     for device in devicesToRefresh {
                         let deviceId = device.id
                         group.addTask {
                             do {
-                                _ = try await snapshotService.getSnapshot(for: deviceId)
+                                _ = try await mediaService.downloadSnapshot(deviceId: deviceId)
                             } catch {
                                 // Silently ignore individual snapshot failures during background refresh
                             }
@@ -121,18 +124,5 @@ final class BackgroundRefreshManager: @unchecked Sendable {
             workTask.cancel()
         }
     }
-
-#else
-
-    /// macOS stub — `BGTaskScheduler` is unavailable on that platform.
-    func registerBackgroundTask() {
-        logger.debug("BackgroundRefreshManager.registerBackgroundTask: no-op on this platform")
-    }
-
-    /// macOS stub — `BGTaskScheduler` is unavailable on that platform.
-    func scheduleNextRefresh() {
-        logger.debug("BackgroundRefreshManager.scheduleNextRefresh: no-op on this platform")
-    }
-
-#endif
+    #endif
 }

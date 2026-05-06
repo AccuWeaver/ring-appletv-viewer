@@ -2,13 +2,12 @@ import Foundation
 
 /// Domain model representing a Ring camera or doorbell device.
 struct RingDevice: Codable, Identifiable, Equatable {
-    let id: Int
-    let description: String
+    let id: String
+    let name: String
+    let model: String
     let deviceType: DeviceType
     let firmwareVersion: String?
-    let address: String?
-    let batteryLife: Int?
-    let features: DeviceFeatures?
+    let powerSource: PowerSource
     var isOnline: Bool
 
     // MARK: - DeviceType
@@ -39,12 +38,5 @@ struct RingDevice: Codable, Identifiable, Equatable {
                 return "Camera"
             }
         }
-    }
-
-    // MARK: - DeviceFeatures
-
-    struct DeviceFeatures: Codable, Equatable {
-        let motionDetection: Bool
-        let nightVision: Bool
     }
 }

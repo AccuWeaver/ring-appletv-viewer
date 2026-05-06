@@ -1,24 +1,22 @@
 import XCTest
 @testable import RingAppleTV
 
-// MARK: - RingAPIError Tests
+// MARK: - PartnerAPIError Tests
 
-final class RingAPIErrorTests: XCTestCase {
+final class PartnerAPIErrorTests: XCTestCase {
 
-    /// All RingAPIError cases for exhaustive testing.
-    private let allCases: [RingAPIError] = [
-        .invalidCredentials,
-        .twoFactorRequired(method: .unknown),
-        .twoFactorInvalid,
-        .tokenExpired,
-        .tokenRefreshFailed,
-        .networkError("timeout"),
+    /// All PartnerAPIError cases for exhaustive testing.
+    private let allCases: [PartnerAPIError] = [
+        .unauthorized,
+        .forbidden,
+        .notFound,
+        .rateLimited(retryAfter: 5.0),
         .serverError(500),
+        .networkError("timeout"),
         .decodingError("missing key"),
-        .deviceOffline,
-        .streamUnavailable,
-        .rateLimited,
-        .unknown("something went wrong")
+        .authorizationPending,
+        .slowDown,
+        .expiredDeviceCode
     ]
 
     // MARK: - userMessage
@@ -47,84 +45,89 @@ final class RingAPIErrorTests: XCTestCase {
 
     func testSpecificUserMessages() {
         XCTAssertEqual(
-            RingAPIError.invalidCredentials.userMessage,
-            "Invalid email or password. Please try again."
+            PartnerAPIError.unauthorized.userMessage,
+            "Your session has expired. Please re-link your Ring account."
         )
         XCTAssertEqual(
-            RingAPIError.twoFactorRequired(method: .unknown).userMessage,
-            "Two-factor authentication code required."
+            PartnerAPIError.forbidden.userMessage,
+            "Access denied. Please check your account permissions."
         )
         XCTAssertEqual(
-            RingAPIError.deviceOffline.userMessage,
-            "This device is currently offline."
+            PartnerAPIError.notFound.userMessage,
+            "The requested resource was not found."
         )
         XCTAssertEqual(
-            RingAPIError.rateLimited.userMessage,
+            PartnerAPIError.rateLimited(retryAfter: 10).userMessage,
             "Too many requests. Please wait a moment."
+        )
+        XCTAssertEqual(
+            PartnerAPIError.authorizationPending.userMessage,
+            "Waiting for authorization. Please complete sign-in on your phone."
+        )
+        XCTAssertEqual(
+            PartnerAPIError.expiredDeviceCode.userMessage,
+            "Authorization code expired. Please start the sign-in process again."
         )
     }
 
     func testAssociatedValueCasesUserMessages() {
         // networkError with different associated values should produce the same user message
         XCTAssertEqual(
-            RingAPIError.networkError("timeout").userMessage,
-            RingAPIError.networkError("dns failure").userMessage
+            PartnerAPIError.networkError("timeout").userMessage,
+            PartnerAPIError.networkError("dns failure").userMessage
         )
         // serverError with different status codes should produce the same user message
         XCTAssertEqual(
-            RingAPIError.serverError(500).userMessage,
-            RingAPIError.serverError(503).userMessage
+            PartnerAPIError.serverError(500).userMessage,
+            PartnerAPIError.serverError(503).userMessage
         )
         // decodingError with different descriptions should produce the same user message
         XCTAssertEqual(
-            RingAPIError.decodingError("key missing").userMessage,
-            RingAPIError.decodingError("type mismatch").userMessage
+            PartnerAPIError.decodingError("key missing").userMessage,
+            PartnerAPIError.decodingError("type mismatch").userMessage
         )
-        // unknown with different descriptions should produce the same user message
+        // rateLimited with different retryAfter values should produce the same user message
         XCTAssertEqual(
-            RingAPIError.unknown("a").userMessage,
-            RingAPIError.unknown("b").userMessage
+            PartnerAPIError.rateLimited(retryAfter: 1).userMessage,
+            PartnerAPIError.rateLimited(retryAfter: 30).userMessage
         )
     }
 
     // MARK: - Equatable
 
     func testEquatableSimpleCases() {
-        XCTAssertEqual(RingAPIError.invalidCredentials, RingAPIError.invalidCredentials)
-        XCTAssertEqual(RingAPIError.twoFactorRequired(method: .sms), RingAPIError.twoFactorRequired(method: .sms))
-        XCTAssertNotEqual(RingAPIError.twoFactorRequired(method: .sms), RingAPIError.twoFactorRequired(method: .authenticator))
-        XCTAssertEqual(RingAPIError.deviceOffline, RingAPIError.deviceOffline)
-        XCTAssertEqual(RingAPIError.streamUnavailable, RingAPIError.streamUnavailable)
-        XCTAssertEqual(RingAPIError.rateLimited, RingAPIError.rateLimited)
-        XCTAssertEqual(RingAPIError.tokenExpired, RingAPIError.tokenExpired)
-        XCTAssertEqual(RingAPIError.tokenRefreshFailed, RingAPIError.tokenRefreshFailed)
-        XCTAssertEqual(RingAPIError.twoFactorInvalid, RingAPIError.twoFactorInvalid)
+        XCTAssertEqual(PartnerAPIError.unauthorized, PartnerAPIError.unauthorized)
+        XCTAssertEqual(PartnerAPIError.forbidden, PartnerAPIError.forbidden)
+        XCTAssertEqual(PartnerAPIError.notFound, PartnerAPIError.notFound)
+        XCTAssertEqual(PartnerAPIError.authorizationPending, PartnerAPIError.authorizationPending)
+        XCTAssertEqual(PartnerAPIError.slowDown, PartnerAPIError.slowDown)
+        XCTAssertEqual(PartnerAPIError.expiredDeviceCode, PartnerAPIError.expiredDeviceCode)
     }
 
     func testEquatableAssociatedValueCases() {
-        XCTAssertEqual(RingAPIError.networkError("a"), RingAPIError.networkError("a"))
-        XCTAssertNotEqual(RingAPIError.networkError("a"), RingAPIError.networkError("b"))
+        XCTAssertEqual(PartnerAPIError.networkError("a"), PartnerAPIError.networkError("a"))
+        XCTAssertNotEqual(PartnerAPIError.networkError("a"), PartnerAPIError.networkError("b"))
 
-        XCTAssertEqual(RingAPIError.serverError(500), RingAPIError.serverError(500))
-        XCTAssertNotEqual(RingAPIError.serverError(500), RingAPIError.serverError(503))
+        XCTAssertEqual(PartnerAPIError.serverError(500), PartnerAPIError.serverError(500))
+        XCTAssertNotEqual(PartnerAPIError.serverError(500), PartnerAPIError.serverError(503))
 
-        XCTAssertEqual(RingAPIError.decodingError("x"), RingAPIError.decodingError("x"))
-        XCTAssertNotEqual(RingAPIError.decodingError("x"), RingAPIError.decodingError("y"))
+        XCTAssertEqual(PartnerAPIError.decodingError("x"), PartnerAPIError.decodingError("x"))
+        XCTAssertNotEqual(PartnerAPIError.decodingError("x"), PartnerAPIError.decodingError("y"))
 
-        XCTAssertEqual(RingAPIError.unknown("z"), RingAPIError.unknown("z"))
-        XCTAssertNotEqual(RingAPIError.unknown("z"), RingAPIError.unknown("w"))
+        XCTAssertEqual(PartnerAPIError.rateLimited(retryAfter: 5), PartnerAPIError.rateLimited(retryAfter: 5))
+        XCTAssertNotEqual(PartnerAPIError.rateLimited(retryAfter: 5), PartnerAPIError.rateLimited(retryAfter: 10))
     }
 
     func testDifferentCasesAreNotEqual() {
-        XCTAssertNotEqual(RingAPIError.invalidCredentials, RingAPIError.tokenExpired)
-        XCTAssertNotEqual(RingAPIError.deviceOffline, RingAPIError.streamUnavailable)
-        XCTAssertNotEqual(RingAPIError.rateLimited, RingAPIError.unknown("rate"))
+        XCTAssertNotEqual(PartnerAPIError.unauthorized, PartnerAPIError.forbidden)
+        XCTAssertNotEqual(PartnerAPIError.notFound, PartnerAPIError.unauthorized)
+        XCTAssertNotEqual(PartnerAPIError.authorizationPending, PartnerAPIError.slowDown)
     }
 
     // MARK: - Error conformance
 
     func testConformsToError() {
-        let error: Error = RingAPIError.invalidCredentials
+        let error: Error = PartnerAPIError.unauthorized
         XCTAssertNotNil(error)
     }
 }

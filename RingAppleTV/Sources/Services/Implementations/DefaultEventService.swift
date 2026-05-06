@@ -1,13 +1,13 @@
 import Foundation
 
 /// Production implementation of `EventService` that fetches event history from
-/// the Ring API, sorts by timestamp descending, and enforces a 50-event limit.
-final class DefaultEventService: EventService {
+/// the Partner API, sorts by timestamp descending, and enforces a 50-event limit.
+final class DefaultEventService: EventService, @unchecked Sendable {
 
     // MARK: - Dependencies
 
     private let authService: AuthService
-    private let apiClient: RingAPIClient
+    private let partnerAPIClient: PartnerAPIClientProtocol
 
     // MARK: - Constants
 
@@ -15,28 +15,34 @@ final class DefaultEventService: EventService {
 
     // MARK: - Init
 
-    init(authService: AuthService, apiClient: RingAPIClient) {
+    init(authService: AuthService, partnerAPIClient: PartnerAPIClientProtocol) {
         self.authService = authService
-        self.apiClient = apiClient
+        self.partnerAPIClient = partnerAPIClient
     }
 
     // MARK: - EventService
 
-    func fetchEvents(for deviceId: Int?) async throws -> [RingEvent] {
+    func fetchEvents(for deviceId: String?) async throws -> [RingEvent] {
         let token = try await authService.getValidToken()
-        let id = deviceId ?? 0
-        let responses = try await apiClient.fetchEvents(
-            deviceId: id,
+        guard let deviceId = deviceId else {
+            return []
+        }
+        let resources = try await partnerAPIClient.fetchEvents(
+            deviceId: deviceId,
             token: token.accessToken,
             limit: Self.maxEventCount
         )
-        let events = responses.map { $0.toDomain() }
+        let events = resources.map { $0.toDomain() }
         return processEvents(events)
     }
 
     func fetchEventVideoURL(for event: RingEvent) async throws -> URL {
         let token = try await authService.getValidToken()
-        return try await apiClient.fetchEventVideoURL(eventId: event.id, token: token.accessToken)
+        return try await partnerAPIClient.downloadVideo(
+            deviceId: event.deviceId,
+            eventId: event.id,
+            token: token.accessToken
+        )
     }
 
     // MARK: - Internal (visible for testing)

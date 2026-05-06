@@ -155,7 +155,7 @@ final class KeychainServiceTests: XCTestCase {
             refreshToken: "refresh_xyz",
             expiresAt: Date(timeIntervalSince1970: 2_000_000_000),
             scope: "client",
-            tokenType: "Bearer"
+            tokenType: "Bearer", clientId: nil
         )
 
         let encoder = JSONEncoder()

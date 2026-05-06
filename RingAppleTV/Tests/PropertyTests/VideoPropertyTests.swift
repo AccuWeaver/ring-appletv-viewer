@@ -6,18 +6,14 @@ import SwiftCheck
 
 /// Generates a `StreamSession` with random `createdAt` offsets and `maxDuration`.
 private nonisolated(unsafe) let streamSessionGen: Gen<StreamSession> = Gen<StreamSession>.compose { c in
-    // createdAt can be in the past (up to 2 hours ago) or recent
     let offsetSeconds = c.generate(using: Int.arbitrary.suchThat { $0 >= 0 && $0 < 7200 })
-    let maxDuration = c.generate(using: Int.arbitrary.suchThat { $0 >= 0 && $0 < 3600 })
+    let powerSource: PowerSource = c.generate(using: Bool.arbitrary) ? .battery : .line
 
     return StreamSession(
-        deviceId: c.generate(using: Int.arbitrary.suchThat { $0 > 0 }),
-        sipServerIp: "52.12.182.65",
-        sipServerPort: 15064,
-        sipSessionId: "test-session",
-        protocol_: "sip",
-        createdAt: Date().addingTimeInterval(-Double(offsetSeconds)),
-        maxDuration: TimeInterval(maxDuration)
+        deviceId: String(c.generate(using: Int.arbitrary.suchThat { $0 > 0 })),
+        sessionURL: URL(string: "https://api.amazonvision.com/v1/sessions/\(UUID().uuidString)")!,
+        powerSource: powerSource,
+        createdAt: Date().addingTimeInterval(-Double(offsetSeconds))
     )
 }
 

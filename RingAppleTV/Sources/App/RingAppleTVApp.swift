@@ -1,5 +1,8 @@
 import SwiftUI
 import BackgroundTasks
+#if canImport(WebRTC)
+import WebRTC
+#endif
 
 /// Main entry point for the Ring Apple TV application.
 /// Initializes `AppConfiguration` and `ServiceContainer`, then passes
@@ -9,26 +12,30 @@ import BackgroundTasks
 struct RingAppleTVApp: App {
 
     @StateObject private var container: ServiceContainer
-    private let backgroundRefreshManager: BackgroundRefreshManager
 
     init() {
+        // Initialize WebRTC SSL exactly once before any peer connection work.
+        // Required by WebRTC — without this, RTCPeerConnectionFactory can assert
+        // on internal code paths (especially in the tvOS simulator).
+        #if canImport(WebRTC)
+        RTCInitializeSSL()
+        // Enable maximum logging so we can diagnose device-specific crashes.
+        RTCSetMinDebugLogLevel(.verbose)
+        #endif
+
         let config = AppConfiguration()
         let container = ServiceContainer(configuration: config)
         _container = StateObject(wrappedValue: container)
 
-        let manager = BackgroundRefreshManager(
-            deviceService: container.deviceService,
-            snapshotService: container.snapshotService
-        )
-        manager.registerBackgroundTask()
-        self.backgroundRefreshManager = manager
+        // Register background refresh task (manager is owned by ServiceContainer)
+        container.backgroundRefreshManager.registerBackgroundTask()
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView(container: container)
                 .onAppear {
-                    backgroundRefreshManager.scheduleNextRefresh()
+                    container.backgroundRefreshManager.scheduleNextRefresh()
                 }
         }
     }

@@ -2,14 +2,11 @@ import Foundation
 
 /// Domain model representing a Ring camera event (motion, doorbell press, or on-demand recording).
 struct RingEvent: Codable, Identifiable, Equatable {
-    let id: Int
-    let deviceId: Int
-    let deviceName: String
+    let id: String
+    let deviceId: String
     let eventType: EventType
     let createdAt: Date
     let duration: TimeInterval?
-    let thumbnailURL: URL?
-    let videoAvailable: Bool
 
     // MARK: - EventType
 

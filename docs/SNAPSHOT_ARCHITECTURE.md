@@ -2,41 +2,39 @@
 
 ## Overview
 
-The camera snapshots feature displays the latest camera image on dashboard device cards and as a backdrop in the player view. Snapshots are fetched from Ring's API, cached in memory with a 60-second TTL, and refreshed automatically.
+The camera snapshots feature displays the latest camera image on dashboard device cards and as a backdrop in the player view. Snapshots are fetched from the Ring Partner API, cached in memory with a 60-second TTL, and refreshed automatically.
 
 ## Component Diagram
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                         Ring API                                   │
-│  GET /clients_api/snapshots/image/{id}  → JPEG Data              │
-│  POST /clients_api/doorbots/{id}/snapshot → trigger capture      │
+│                    Ring Partner API                                 │
+│  POST /v1/devices/{id}/media/image/download  → JPEG Data         │
 └────────────────────────────┬─────────────────────────────────────┘
                              │
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                   DefaultRingAPIClient                             │
-│  fetchSnapshot(deviceId:token:) → Data                           │
-│  requestSnapshot(deviceId:token:) → Void                         │
-│  Uses performRaw() for non-JSON responses                        │
+│                     PartnerAPIClient                               │
+│  downloadSnapshot(deviceId:token:) → Data                        │
+│  Uses Bearer token authentication                                │
 └────────────────────────────┬─────────────────────────────────────┘
                              │
                              ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                   DefaultSnapshotService                           │
+│                    DefaultMediaService                              │
 │                                                                    │
 │  ┌─────────────────┐  ┌──────────────────────────────────────┐  │
-│  │   NSCache        │  │  InFlightStore (Actor)               │  │
-│  │  Key: NSNumber   │  │  requests: [Int: Task<Data, Error>]  │  │
-│  │  Val: CacheEntry │  │  getOrCreateTask(for:factory:)       │  │
-│  │  TTL: 60s        │  │  remove(_:)                          │  │
+│  │   NSCache        │  │  Request coalescing                  │  │
+│  │  Key: String     │  │  Prevents duplicate API calls        │  │
+│  │  Val: CacheEntry │  │                                      │  │
+│  │  TTL: 60s        │  │                                      │  │
 │  │  Max: 50MB       │  └──────────────────────────────────────┘  │
 │  └─────────────────┘                                              │
 │                                                                    │
-│  getSnapshot(for:) flow:                                          │
+│  downloadSnapshot(deviceId:) flow:                                │
 │  1. Check cache → if fresh, return immediately                   │
 │  2. Check in-flight → if exists, await existing task             │
-│  3. Create new fetch task → store in actor → await result        │
+│  3. Create new fetch task → store → await result                 │
 │  4. Cache result with timestamp → clean up in-flight entry       │
 └────────────────────────────┬─────────────────────────────────────┘
                              │
@@ -44,7 +42,7 @@ The camera snapshots feature displays the latest camera image on dashboard devic
 ┌──────────────────────────────────────────────────────────────────┐
 │                   DashboardViewModel                               │
 │                                                                    │
-│  @Published var snapshots: [Int: Data] = [:]                     │
+│  @Published var snapshots: [String: Data] = [:]                  │
 │                                                                    │
 │  loadDevices() → fetchDevices → loadSnapshots(for: devices)      │
 │  startBackgroundRefresh() → every 60s: refresh devices + snaps   │
@@ -83,7 +81,7 @@ The camera snapshots feature displays the latest camera image on dashboard devic
 │     a. Schedule next refresh immediately                         │
 │     b. Fetch device list                                         │
 │     c. Fetch snapshots for up to 10 devices (parallel)           │
-│     d. Results cached in SnapshotService's NSCache               │
+│     d. Results cached in MediaService's NSCache               │
 │     e. Mark task complete                                        │
 │  4. User opens app → cached snapshots display instantly          │
 └─────────────────────────────────────────────────────────────────┘
@@ -94,10 +92,10 @@ The camera snapshots feature displays the latest camera image on dashboard devic
 | HTTP Status | Error | Behavior |
 |-------------|-------|----------|
 | 200 | Success | Cache JPEG data, display on card |
-| 404 | `noSnapshotAvailable` | Show placeholder, retry next cycle |
-| 429 | `rateLimited` | Back off silently, retry next cycle |
+| 404 | `PartnerAPIError.notFound` | Show placeholder, retry next cycle |
+| 429 | `PartnerAPIError.rateLimited` | Back off silently, retry next cycle |
 | 401 | Token expired | `AuthService.getValidToken()` auto-refreshes |
-| Network error | `networkError` | Show placeholder, retry next cycle |
+| Network error | `PartnerAPIError.networkError` | Show placeholder, retry next cycle |
 
 ## Correctness Properties (Verified by Property-Based Tests)
 

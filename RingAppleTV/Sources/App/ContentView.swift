@@ -14,17 +14,17 @@ struct ContentView: View {
     }
 
     var body: some View {
-        _ = print("🔄 [ContentView] Rendering, isAuthenticated: \(authViewModel.isAuthenticated)")
-
-        return Group {
-            if authViewModel.isAuthenticated {
+        Group {
+            if container.configuration.useMocks || authViewModel.isAuthenticated {
                 MainTabView(container: container)
             } else {
                 LoginView(viewModel: authViewModel)
             }
         }
         .task {
-            await authViewModel.checkExistingAuth()
+            if !container.configuration.useMocks {
+                await authViewModel.checkExistingAuth()
+            }
         }
     }
 }

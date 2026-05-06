@@ -9,43 +9,36 @@ private func makeValidToken() -> AuthToken {
         refreshToken: "test_refresh",
         expiresAt: Date().addingTimeInterval(3600),
         scope: "client",
-        tokenType: "Bearer"
+        tokenType: "Bearer", clientId: nil
     )
 }
 
-private func makeEventResponse(
-    id: Int = 1,
-    deviceId: Int = 1,
-    kind: String = "motion",
+private func makeEventResource(
+    id: String = "1",
+    deviceId: String = "1",
+    type: String = "motion",
     createdAt: String = "2026-01-15T10:00:00Z",
-    videoAvailable: Bool = true
-) -> RingEventResponse {
-    RingEventResponse(
+    duration: Int? = 30
+) -> PartnerEventResource {
+    PartnerEventResource(
         id: id,
         deviceId: deviceId,
-        deviceName: "Front Door",
-        kind: kind,
+        type: type,
         createdAt: createdAt,
-        duration: 30,
-        thumbnailURL: nil,
-        videoAvailable: videoAvailable
+        duration: duration
     )
 }
 
 private func makeEvent(
-    id: Int = 1,
-    createdAt: Date = Date(),
-    videoAvailable: Bool = true
+    id: String = "1",
+    createdAt: Date = Date()
 ) -> RingEvent {
     RingEvent(
         id: id,
-        deviceId: 1,
-        deviceName: "Front Door",
+        deviceId: "1",
         eventType: .motion,
         createdAt: createdAt,
-        duration: 30,
-        thumbnailURL: nil,
-        videoAvailable: videoAvailable
+        duration: 30
     )
 }
 
@@ -54,15 +47,15 @@ private func makeEvent(
 final class EventServiceTests: XCTestCase {
 
     private var mockAuth: MockAuthService!
-    private var mockAPI: MockRingAPIClient!
+    private var mockAPI: MockPartnerAPIClient!
     private var sut: DefaultEventService!
 
     override func setUp() {
         super.setUp()
         mockAuth = MockAuthService()
-        mockAPI = MockRingAPIClient()
+        mockAPI = MockPartnerAPIClient()
         mockAuth.getValidTokenResult = .success(makeValidToken())
-        sut = DefaultEventService(authService: mockAuth, apiClient: mockAPI)
+        sut = DefaultEventService(authService: mockAuth, partnerAPIClient: mockAPI)
     }
 
     override func tearDown() {
@@ -75,27 +68,27 @@ final class EventServiceTests: XCTestCase {
     // MARK: - fetchEvents — Success
 
     func testFetchEventsReturnsEvents() async throws {
-        let responses = [
-            makeEventResponse(id: 1, createdAt: "2026-01-15T10:00:00Z"),
-            makeEventResponse(id: 2, createdAt: "2026-01-15T11:00:00Z")
+        let resources = [
+            makeEventResource(id: "1", createdAt: "2026-01-15T10:00:00Z"),
+            makeEventResource(id: "2", createdAt: "2026-01-15T11:00:00Z")
         ]
-        mockAPI.fetchEventsResult = .success(responses)
+        mockAPI.fetchEventsResult = .success(resources)
 
-        let events = try await sut.fetchEvents(for: 1)
+        let events = try await sut.fetchEvents(for: "1")
 
         XCTAssertEqual(events.count, 2)
         XCTAssertEqual(mockAuth.getValidTokenCalls, 1)
     }
 
     func testFetchEventsReturnsSortedDescending() async throws {
-        let responses = [
-            makeEventResponse(id: 1, createdAt: "2026-01-15T08:00:00Z"),
-            makeEventResponse(id: 2, createdAt: "2026-01-15T12:00:00Z"),
-            makeEventResponse(id: 3, createdAt: "2026-01-15T10:00:00Z")
+        let resources = [
+            makeEventResource(id: "1", createdAt: "2026-01-15T08:00:00Z"),
+            makeEventResource(id: "2", createdAt: "2026-01-15T12:00:00Z"),
+            makeEventResource(id: "3", createdAt: "2026-01-15T10:00:00Z")
         ]
-        mockAPI.fetchEventsResult = .success(responses)
+        mockAPI.fetchEventsResult = .success(resources)
 
-        let events = try await sut.fetchEvents(for: 1)
+        let events = try await sut.fetchEvents(for: "1")
 
         // Should be sorted descending by createdAt
         for i in 0..<(events.count - 1) {
@@ -106,12 +99,12 @@ final class EventServiceTests: XCTestCase {
     // MARK: - fetchEvents — Limit
 
     func testFetchEventsLimitsTo50() async throws {
-        let responses = (0..<60).map { i in
-            makeEventResponse(id: i, createdAt: "2026-01-15T\(String(format: "%02d", i % 24)):00:00Z")
+        let resources = (0..<60).map { i in
+            makeEventResource(id: String(i), createdAt: "2026-01-15T\(String(format: "%02d", i % 24)):00:00Z")
         }
-        mockAPI.fetchEventsResult = .success(responses)
+        mockAPI.fetchEventsResult = .success(resources)
 
-        let events = try await sut.fetchEvents(for: 1)
+        let events = try await sut.fetchEvents(for: "1")
 
         XCTAssertLessThanOrEqual(events.count, 50)
     }
@@ -121,7 +114,7 @@ final class EventServiceTests: XCTestCase {
     func testFetchEventsReturnsEmptyWhenNoEvents() async throws {
         mockAPI.fetchEventsResult = .success([])
 
-        let events = try await sut.fetchEvents(for: 1)
+        let events = try await sut.fetchEvents(for: "1")
 
         XCTAssertTrue(events.isEmpty)
     }
@@ -129,25 +122,25 @@ final class EventServiceTests: XCTestCase {
     // MARK: - fetchEvents — Error
 
     func testFetchEventsPropagatesAuthError() async {
-        mockAuth.getValidTokenResult = .failure(RingAPIError.tokenExpired)
+        mockAuth.getValidTokenResult = .failure(PartnerAPIError.unauthorized)
 
         do {
-            _ = try await sut.fetchEvents(for: 1)
-            XCTFail("Expected tokenExpired error")
-        } catch let error as RingAPIError {
-            XCTAssertEqual(error, .tokenExpired)
+            _ = try await sut.fetchEvents(for: "1")
+            XCTFail("Expected unauthorized error")
+        } catch let error as PartnerAPIError {
+            XCTAssertEqual(error, .unauthorized)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
     }
 
     func testFetchEventsPropagatesAPIError() async {
-        mockAPI.fetchEventsResult = .failure(RingAPIError.networkError("offline"))
+        mockAPI.fetchEventsResult = .failure(PartnerAPIError.networkError("offline"))
 
         do {
-            _ = try await sut.fetchEvents(for: 1)
+            _ = try await sut.fetchEvents(for: "1")
             XCTFail("Expected networkError")
-        } catch let error as RingAPIError {
+        } catch let error as PartnerAPIError {
             if case .networkError = error { /* expected */ }
             else { XCTFail("Expected networkError, got \(error)") }
         } catch {
@@ -158,18 +151,15 @@ final class EventServiceTests: XCTestCase {
     // MARK: - fetchEvents — Nil DeviceId
 
     func testFetchEventsWithNilDeviceId() async throws {
-        mockAPI.fetchEventsResult = .success([makeEventResponse()])
-
         let events = try await sut.fetchEvents(for: nil)
-
-        XCTAssertEqual(events.count, 1)
+        XCTAssertTrue(events.isEmpty)
     }
 
     // MARK: - fetchEventVideoURL
 
     func testFetchEventVideoURLReturnsURL() async throws {
         let expectedURL = URL(string: "https://ring.com/video/123.mp4")!
-        mockAPI.fetchEventVideoURLResult = .success(expectedURL)
+        mockAPI.downloadVideoResult = .success(expectedURL)
 
         let event = makeEvent()
         let url = try await sut.fetchEventVideoURL(for: event)
@@ -178,7 +168,7 @@ final class EventServiceTests: XCTestCase {
     }
 
     func testFetchEventVideoURLPropagatesError() async {
-        mockAPI.fetchEventVideoURLResult = .failure(RingAPIError.unknown("no video"))
+        mockAPI.downloadVideoResult = .failure(PartnerAPIError.notFound)
 
         do {
             _ = try await sut.fetchEventVideoURL(for: makeEvent())
@@ -193,22 +183,22 @@ final class EventServiceTests: XCTestCase {
     func testProcessEventsSortsDescending() {
         let now = Date()
         let events = [
-            makeEvent(id: 1, createdAt: now.addingTimeInterval(-3600)),
-            makeEvent(id: 2, createdAt: now),
-            makeEvent(id: 3, createdAt: now.addingTimeInterval(-1800))
+            makeEvent(id: "1", createdAt: now.addingTimeInterval(-3600)),
+            makeEvent(id: "2", createdAt: now),
+            makeEvent(id: "3", createdAt: now.addingTimeInterval(-1800))
         ]
 
         let result = DefaultEventService.processEvents(events)
 
-        XCTAssertEqual(result[0].id, 2)
-        XCTAssertEqual(result[1].id, 3)
-        XCTAssertEqual(result[2].id, 1)
+        XCTAssertEqual(result[0].id, "2")
+        XCTAssertEqual(result[1].id, "3")
+        XCTAssertEqual(result[2].id, "1")
     }
 
     func testProcessEventsLimitsTo50() {
         let now = Date()
         let events = (0..<100).map { i in
-            makeEvent(id: i, createdAt: now.addingTimeInterval(Double(-i * 60)))
+            makeEvent(id: String(i), createdAt: now.addingTimeInterval(Double(-i * 60)))
         }
 
         let result = DefaultEventService.processEvents(events)
@@ -219,29 +209,12 @@ final class EventServiceTests: XCTestCase {
     func testProcessEventsKeepsMostRecent() {
         let now = Date()
         let events = (0..<100).map { i in
-            makeEvent(id: i, createdAt: now.addingTimeInterval(Double(-i * 60)))
+            makeEvent(id: String(i), createdAt: now.addingTimeInterval(Double(-i * 60)))
         }
 
         let result = DefaultEventService.processEvents(events)
 
         // The most recent event (id: 0, createdAt: now) should be first
-        XCTAssertEqual(result.first?.id, 0)
-    }
-
-    // MARK: - Ring Protect (videoAvailable)
-
-    func testFetchEventsIncludesVideoAvailableFlag() async throws {
-        let responses = [
-            makeEventResponse(id: 1, videoAvailable: true),
-            makeEventResponse(id: 2, videoAvailable: false)
-        ]
-        mockAPI.fetchEventsResult = .success(responses)
-
-        let events = try await sut.fetchEvents(for: 1)
-
-        let withVideo = events.first { $0.id == 1 }
-        let withoutVideo = events.first { $0.id == 2 }
-        XCTAssertEqual(withVideo?.videoAvailable, true)
-        XCTAssertEqual(withoutVideo?.videoAvailable, false)
+        XCTAssertEqual(result.first?.id, "0")
     }
 }

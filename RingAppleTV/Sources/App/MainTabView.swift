@@ -4,9 +4,9 @@ import SwiftUI
 /// Provides "Live" (DashboardView) and "Events" (EventsView) tabs.
 struct MainTabView: View {
     @ObservedObject var container: ServiceContainer
-    @State private var selectedTab: Tab = .live
+    @State private var selectedTab: MainTab = .live
 
-    enum Tab: Hashable {
+    enum MainTab: Hashable {
         case live
         case events
     }
@@ -23,7 +23,7 @@ struct MainTabView: View {
             .tabItem {
                 Label("Live", systemImage: "video.fill")
             }
-            .tag(Tab.live)
+            .tag(MainTab.live)
 
             EventsView(
                 viewModel: container.eventsViewModel,
@@ -31,12 +31,11 @@ struct MainTabView: View {
                     let playerVM = container.makePlayerViewModel()
                     let device = RingDevice(
                         id: event.deviceId,
-                        description: event.deviceName,
+                        name: "Device \(event.deviceId)",
+                        model: "unknown",
                         deviceType: .unknown,
                         firmwareVersion: nil,
-                        address: nil,
-                        batteryLife: nil,
-                        features: nil,
+                        powerSource: .battery,
                         isOnline: true
                     )
                     return PlayerView(viewModel: playerVM, device: device, snapshotData: nil)
@@ -45,7 +44,7 @@ struct MainTabView: View {
             .tabItem {
                 Label("Events", systemImage: "clock.fill")
             }
-            .tag(Tab.events)
+            .tag(MainTab.events)
         }
     }
 }

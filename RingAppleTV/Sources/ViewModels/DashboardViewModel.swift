@@ -9,12 +9,12 @@ final class DashboardViewModel: ObservableObject {
     @Published var state: ViewState<[RingDevice]> = .idle
     @Published var currentFilter: DeviceFilter = .all
     @Published var currentSort: DeviceSort = .nameAscending
-    @Published var snapshots: [Int: Data] = [:]
+    @Published var snapshots: [String: Data] = [:]
 
     // MARK: - Dependencies
 
-    nonisolated(unsafe) private let deviceService: DeviceService
-    nonisolated(unsafe) private let snapshotService: SnapshotService
+    private nonisolated(unsafe) let deviceService: DeviceService
+    private nonisolated(unsafe) let mediaService: MediaService
 
     // MARK: - Background Refresh
 
@@ -27,9 +27,9 @@ final class DashboardViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init(deviceService: DeviceService, snapshotService: SnapshotService, refreshInterval: TimeInterval = 60) {
+    init(deviceService: DeviceService, mediaService: MediaService, refreshInterval: TimeInterval = 60) {
         self.deviceService = deviceService
-        self.snapshotService = snapshotService
+        self.mediaService = mediaService
         self.refreshInterval = refreshInterval
     }
 
@@ -49,7 +49,7 @@ final class DashboardViewModel: ObservableObject {
             applyFilterAndSort()
             await loadSnapshots(for: devices)
             startBackgroundRefresh()
-        } catch let error as RingAPIError {
+        } catch let error as PartnerAPIError {
             state = .error(error.userMessage)
         } catch {
             state = .error(error.localizedDescription)
@@ -64,7 +64,7 @@ final class DashboardViewModel: ObservableObject {
             let devices = try await deviceService.refreshDevices()
             allDevices = devices
             applyFilterAndSort()
-        } catch let error as RingAPIError {
+        } catch let error as PartnerAPIError {
             state = .error(error.userMessage)
         } catch {
             state = .error(error.localizedDescription)
@@ -124,7 +124,7 @@ final class DashboardViewModel: ObservableObject {
     /// Fetch snapshots for all devices in parallel, updating the `snapshots` dictionary.
     /// Individual failures are logged but do not affect other devices.
     private func loadSnapshots(for devices: [RingDevice]) async {
-        let results = await Self.fetchAllSnapshots(for: devices, using: snapshotService)
+        let results = await Self.fetchAllSnapshots(for: devices, using: mediaService)
         for (deviceId, data) in results {
             if let data {
                 snapshots[deviceId] = data
@@ -135,14 +135,14 @@ final class DashboardViewModel: ObservableObject {
     /// Nonisolated helper that performs parallel snapshot fetches.
     nonisolated private static func fetchAllSnapshots(
         for devices: [RingDevice],
-        using service: SnapshotService
-    ) async -> [(Int, Data?)] {
-        await withTaskGroup(of: (Int, Data?).self) { group in
+        using service: MediaService
+    ) async -> [(String, Data?)] {
+        await withTaskGroup(of: (String, Data?).self) { group in
             for device in devices {
                 let deviceId = device.id
                 group.addTask {
                     do {
-                        let data = try await service.getSnapshot(for: deviceId)
+                        let data = try await service.downloadSnapshot(deviceId: deviceId)
                         return (deviceId, data)
                     } catch {
                         print(
@@ -153,7 +153,7 @@ final class DashboardViewModel: ObservableObject {
                     }
                 }
             }
-            var collected: [(Int, Data?)] = []
+            var collected: [(String, Data?)] = []
             for await result in group {
                 collected.append(result)
             }

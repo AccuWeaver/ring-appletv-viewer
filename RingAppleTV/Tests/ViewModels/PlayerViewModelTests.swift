@@ -4,80 +4,49 @@ import XCTest
 @MainActor
 final class PlayerViewModelTests: XCTestCase {
 
-    // MARK: - Helpers
-
-    private func makeSUT(videoService: MockVideoService = MockVideoService()) -> (PlayerViewModel, MockVideoService) {
-        let vm = PlayerViewModel(videoService: videoService)
-        return (vm, videoService)
+    private func makeSUT(
+        streamSessionManager: MockStreamSessionManager = MockStreamSessionManager()
+    ) -> (PlayerViewModel, MockStreamSessionManager) {
+        let vm = PlayerViewModel(streamSessionManager: streamSessionManager)
+        return (vm, streamSessionManager)
     }
-
-    private func makeSession(valid: Bool = true) -> StreamSession {
-        StreamSession(
-            deviceId: 42,
-            sipServerIp: "52.12.182.65",
-            sipServerPort: 15064,
-            sipSessionId: "test-session",
-            protocol_: "sip",
-            createdAt: valid ? Date() : Date().addingTimeInterval(-7200),
-            maxDuration: 600
-        )
-    }
-
-    // MARK: - Request Stream Success
 
     func testRequestStream_success_transitionsToLoaded() async {
-        let session = makeSession()
         let (sut, mock) = makeSUT()
-        mock.requestLiveStreamResult = .success(session)
+        mock.autoTransitionStates = [.connecting, .connected]
 
-        await sut.requestStream(for: 42)
+        await sut.requestStream(for: "42", powerSource: .line)
 
         guard case .loaded(let loadedSession) = sut.state else {
             XCTFail("Expected .loaded state, got \(sut.state)")
             return
         }
-        XCTAssertEqual(loadedSession, session)
+        XCTAssertEqual(loadedSession.deviceId, "42")
         XCTAssertTrue(sut.isPlaying)
-        XCTAssertEqual(mock.requestLiveStreamCalls, [42])
+        XCTAssertEqual(mock.startStreamCalls.count, 1)
+        XCTAssertEqual(mock.startStreamCalls.first?.deviceId, "42")
+        XCTAssertEqual(mock.startStreamCalls.first?.powerSource, .line)
     }
-
-    // MARK: - Request Stream Failure
 
     func testRequestStream_failure_transitionsToError() async {
         let (sut, mock) = makeSUT()
-        mock.requestLiveStreamResult = .failure(RingAPIError.deviceOffline)
+        mock.startStreamError = PartnerAPIError.notFound
 
-        await sut.requestStream(for: 42)
+        await sut.requestStream(for: "42", powerSource: .line)
 
         guard case .error(let message) = sut.state else {
             XCTFail("Expected .error state, got \(sut.state)")
             return
         }
-        XCTAssertEqual(message, RingAPIError.deviceOffline.userMessage)
+        XCTAssertEqual(message, PartnerAPIError.notFound.userMessage)
         XCTAssertFalse(sut.isPlaying)
     }
 
-    func testRequestStream_streamUnavailable_transitionsToError() async {
-        let (sut, mock) = makeSUT()
-        mock.requestLiveStreamResult = .failure(RingAPIError.streamUnavailable)
-
-        await sut.requestStream(for: 99)
-
-        guard case .error(let message) = sut.state else {
-            XCTFail("Expected .error state, got \(sut.state)")
-            return
-        }
-        XCTAssertEqual(message, RingAPIError.streamUnavailable.userMessage)
-    }
-
-    // MARK: - Toggle Play/Pause
-
     func testTogglePlayPause_whenLoaded_togglesState() async {
-        let session = makeSession()
         let (sut, mock) = makeSUT()
-        mock.requestLiveStreamResult = .success(session)
+        mock.autoTransitionStates = [.connecting, .connected]
 
-        await sut.requestStream(for: 42)
+        await sut.requestStream(for: "42", powerSource: .line)
         XCTAssertTrue(sut.isPlaying)
 
         sut.togglePlayPause()
@@ -90,90 +59,63 @@ final class PlayerViewModelTests: XCTestCase {
     func testTogglePlayPause_whenNotLoaded_doesNothing() {
         let (sut, _) = makeSUT()
         XCTAssertFalse(sut.isPlaying)
-
         sut.togglePlayPause()
         XCTAssertFalse(sut.isPlaying)
     }
 
-    // MARK: - Retry
-
     func testRetry_retriesLastDeviceId() async {
-        let session = makeSession()
         let (sut, mock) = makeSUT()
-        mock.requestLiveStreamResult = .failure(RingAPIError.streamUnavailable)
+        mock.startStreamError = PartnerAPIError.notFound
 
-        await sut.requestStream(for: 42)
+        await sut.requestStream(for: "42", powerSource: .battery)
         guard case .error = sut.state else {
             XCTFail("Expected .error state")
             return
         }
 
-        mock.requestLiveStreamResult = .success(session)
+        mock.startStreamError = nil
+        mock.autoTransitionStates = [.connecting, .connected]
         await sut.retry()
 
         guard case .loaded(let loadedSession) = sut.state else {
             XCTFail("Expected .loaded state after retry, got \(sut.state)")
             return
         }
-        XCTAssertEqual(loadedSession, session)
-        XCTAssertEqual(mock.requestLiveStreamCalls, [42, 42])
+        XCTAssertEqual(loadedSession.deviceId, "42")
+        XCTAssertEqual(mock.startStreamCalls.count, 2)
     }
 
     func testRetry_withNoLastDevice_doesNothing() async {
         let (sut, mock) = makeSUT()
-
         await sut.retry()
-
         guard case .idle = sut.state else {
             XCTFail("Expected .idle state, got \(sut.state)")
             return
         }
-        XCTAssertTrue(mock.requestLiveStreamCalls.isEmpty)
+        XCTAssertTrue(mock.startStreamCalls.isEmpty)
     }
 
-    // MARK: - Session Validity
-
-    func testIsSessionValid_whenValid_returnsTrue() async {
-        let session = makeSession(valid: true)
+    func testStopStream_callsStopOnManager() async {
         let (sut, mock) = makeSUT()
-        mock.requestLiveStreamResult = .success(session)
-        mock.validateStreamSessionResult = true
-
-        await sut.requestStream(for: 42)
-
-        XCTAssertTrue(sut.isSessionValid)
-        XCTAssertEqual(mock.validateStreamSessionCalls.count, 1)
+        sut.stopStream()
+        // Give the Task a moment to execute
+        try? await Task.sleep(nanoseconds: 100_000_000)
+        XCTAssertEqual(mock.stopStreamCalls, 1)
     }
 
-    func testIsSessionValid_whenExpired_returnsFalse() async {
-        let session = makeSession(valid: false)
-        let (sut, mock) = makeSUT()
-        mock.requestLiveStreamResult = .success(session)
-        mock.validateStreamSessionResult = false
-
-        await sut.requestStream(for: 42)
-
-        XCTAssertFalse(sut.isSessionValid)
+    func testStopStream_withoutManager_doesNotCrash() {
+        let vm = PlayerViewModel(streamSessionManager: nil)
+        vm.stopStream()
     }
 
-    func testIsSessionValid_whenNoSession_returnsFalse() {
-        let (sut, _) = makeSUT()
-        XCTAssertFalse(sut.isSessionValid)
-    }
+    func testRequestStream_withoutManager_showsError() async {
+        let vm = PlayerViewModel(streamSessionManager: nil)
+        await vm.requestStream(for: "42", powerSource: .line)
 
-    // MARK: - Generic Error
-
-    func testRequestStream_genericError_usesLocalizedDescription() async {
-        let (sut, mock) = makeSUT()
-        let genericError = NSError(domain: "test", code: 1, userInfo: [NSLocalizedDescriptionKey: "Stream broke"])
-        mock.requestLiveStreamResult = .failure(genericError)
-
-        await sut.requestStream(for: 42)
-
-        guard case .error(let message) = sut.state else {
-            XCTFail("Expected .error state, got \(sut.state)")
+        guard case .error(let message) = vm.state else {
+            XCTFail("Expected .error state, got \(vm.state)")
             return
         }
-        XCTAssertEqual(message, "Stream broke")
+        XCTAssertEqual(message, "Live streaming is not available on this platform.")
     }
 }
