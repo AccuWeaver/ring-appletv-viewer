@@ -74,51 +74,13 @@ final class StreamSessionManager: NSObject, StreamSessionManagerProtocol, @unche
             let token = try await authService.getValidToken()
             NSLog("[WEBRTC-DIAG] got token, about to create encoder factory")
 
-            // 1a. Create encoder and decoder factories
-            let encoderFactory = RTCDefaultVideoEncoderFactory()
-            NSLog("[WEBRTC-DIAG] encoder factory created")
-            let decoderFactory = RTCDefaultVideoDecoderFactory()
-            NSLog("[WEBRTC-DIAG] decoder factory created")
+            let peerConn = try makePeerConnection()
+            self.peerConnection = peerConn
 
-            // 1b. Create peer connection factory with an injectable no-op audio device.
-            // WebRTC's default iOS AudioDeviceModule fails to initialize on tvOS
-            // (missing AVAudioSession APIs), causing the factory init to abort with
-            // "Check failed: adm_" in webrtc_voice_engine.cc. A no-op RTCAudioDevice
-            // bypasses that failure since we only need receive-only video (WHEP).
-            NSLog("[WEBRTC-DIAG] about to call RTCPeerConnectionFactory init with NoOpAudioDevice")
-            let audioDevice = NoOpAudioDevice()
-            let factory = RTCPeerConnectionFactory(
-                encoderFactory: encoderFactory,
-                decoderFactory: decoderFactory,
-                audioDevice: audioDevice
-            )
-            NSLog("[WEBRTC-DIAG] RTCPeerConnectionFactory created successfully")
-            self.peerConnectionFactory = factory
-
-            let config = RTCConfiguration()
-            config.iceServers = [RTCIceServer(urlStrings: Self.defaultSTUNServers)]
-            config.sdpSemantics = .unifiedPlan
-            config.continualGatheringPolicy = .gatherContinually
-
-            let constraints = RTCMediaConstraints(
-                mandatoryConstraints: [
-                    "OfferToReceiveVideo": "true",
-                    "OfferToReceiveAudio": "false"
-                ],
-                optionalConstraints: nil
-            )
-
-            guard let pc = factory.peerConnection(
-                with: config,
-                constraints: constraints,
-                delegate: self
-            ) else {
-                throw PartnerAPIError.networkError("Failed to create WebRTC peer connection")
-            }
-            self.peerConnection = pc
+            let constraints = Self.offerConstraints()
 
             // 2. Generate SDP offer
-            let offerSDP = try await createOffer(peerConnection: pc, constraints: constraints)
+            let offerSDP = try await createOffer(peerConnection: peerConn, constraints: constraints)
 
             // 3. Send offer to WHEP endpoint via PartnerAPIClient
             let whepResponse = try await partnerAPIClient.createWHEPSession(
@@ -132,23 +94,76 @@ final class StreamSessionManager: NSObject, StreamSessionManagerProtocol, @unche
             // Munge the SDP to work around common WHEP server quirks:
             //  1. Reorder m-lines to match the offer (some servers return fewer/reordered m-lines)
             //  2. Ensure `a=rtcp-mux` is on every media section (required by modern WebRTC)
-            let reorderedAnswerSDP = reorderMLinesToMatchOffer(offer: offerSDP, answer: whepResponse.sdpAnswer)
+            let reorderedAnswerSDP = reorderMLinesToMatchOffer(
+                offer: offerSDP,
+                answer: whepResponse.sdpAnswer
+            )
             let mungedAnswerSDP = ensureRtcpMux(in: reorderedAnswerSDP)
             NSLog("[WEBRTC-DIAG] munged SDP answer:\n%@", mungedAnswerSDP)
             let remoteSDP = RTCSessionDescription(type: .answer, sdp: mungedAnswerSDP)
-            try await setRemoteDescription(peerConnection: pc, sdp: remoteSDP)
+            try await setRemoteDescription(peerConnection: peerConn, sdp: remoteSDP)
 
             // 5. Start session timer based on power source
             startSessionTimer(duration: powerSource.sessionDurationLimit)
 
             // 6. Start connection timeout
             startConnectionTimeout()
-
         } catch {
             transitionState(to: .failed(error.localizedDescription))
             await cleanupResources()
             throw error
         }
+    }
+
+    /// Build the ``RTCPeerConnectionFactory`` and ``RTCPeerConnection`` required
+    /// for a WHEP session. Factored out of ``startStream`` to keep that function
+    /// under SwiftLint's body-length limit; every side-effect stays in
+    /// ``startStream`` so the control flow is still easy to audit.
+    private func makePeerConnection() throws -> RTCPeerConnection {
+        // 1a. Create encoder and decoder factories
+        let encoderFactory = RTCDefaultVideoEncoderFactory()
+        NSLog("[WEBRTC-DIAG] encoder factory created")
+        let decoderFactory = RTCDefaultVideoDecoderFactory()
+        NSLog("[WEBRTC-DIAG] decoder factory created")
+
+        // 1b. Create peer connection factory with an injectable no-op audio device.
+        // WebRTC's default iOS AudioDeviceModule fails to initialize on tvOS
+        // (missing AVAudioSession APIs), causing the factory init to abort with
+        // "Check failed: adm_" in webrtc_voice_engine.cc. A no-op RTCAudioDevice
+        // bypasses that failure since we only need receive-only video (WHEP).
+        NSLog("[WEBRTC-DIAG] about to call RTCPeerConnectionFactory init with NoOpAudioDevice")
+        let audioDevice = NoOpAudioDevice()
+        let factory = RTCPeerConnectionFactory(
+            encoderFactory: encoderFactory,
+            decoderFactory: decoderFactory,
+            audioDevice: audioDevice
+        )
+        NSLog("[WEBRTC-DIAG] RTCPeerConnectionFactory created successfully")
+        self.peerConnectionFactory = factory
+
+        let config = RTCConfiguration()
+        config.iceServers = [RTCIceServer(urlStrings: Self.defaultSTUNServers)]
+        config.sdpSemantics = .unifiedPlan
+        config.continualGatheringPolicy = .gatherContinually
+
+        guard let peerConn = factory.peerConnection(
+            with: config,
+            constraints: Self.offerConstraints(),
+            delegate: self
+        ) else {
+            throw PartnerAPIError.networkError("Failed to create WebRTC peer connection")
+        }
+        return peerConn
+    }
+
+    private static func offerConstraints() -> RTCMediaConstraints {
+        RTCMediaConstraints(
+            mandatoryConstraints: [
+                "OfferToReceiveVideo": "true",
+                "OfferToReceiveAudio": "false"
+            ],
+            optionalConstraints: nil
+        )
     }
 
     func stopStream() async {
@@ -251,7 +266,8 @@ final class StreamSessionManager: NSObject, StreamSessionManagerProtocol, @unche
         try await withCheckedThrowingContinuation { continuation in
             peerConnection.offer(for: constraints) { sdp, error in
                 if let error = error {
-                    continuation.resume(throwing: PartnerAPIError.networkError("SDP offer creation failed: \(error.localizedDescription)"))
+                    let msg = "SDP offer creation failed: \(error.localizedDescription)"
+                    continuation.resume(throwing: PartnerAPIError.networkError(msg))
                     return
                 }
                 guard let sdp = sdp else {
@@ -260,7 +276,8 @@ final class StreamSessionManager: NSObject, StreamSessionManagerProtocol, @unche
                 }
                 peerConnection.setLocalDescription(sdp) { error in
                     if let error = error {
-                        continuation.resume(throwing: PartnerAPIError.networkError("Failed to set local description: \(error.localizedDescription)"))
+                        let msg = "Failed to set local description: \(error.localizedDescription)"
+                        continuation.resume(throwing: PartnerAPIError.networkError(msg))
                     } else {
                         continuation.resume(returning: sdp.sdp)
                     }
@@ -276,7 +293,8 @@ final class StreamSessionManager: NSObject, StreamSessionManagerProtocol, @unche
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             peerConnection.setRemoteDescription(sdp) { error in
                 if let error = error {
-                    continuation.resume(throwing: PartnerAPIError.networkError("Failed to apply remote SDP: \(error.localizedDescription)"))
+                    let msg = "Failed to apply remote SDP: \(error.localizedDescription)"
+                    continuation.resume(throwing: PartnerAPIError.networkError(msg))
                 } else {
                     continuation.resume()
                 }
@@ -293,70 +311,25 @@ final class StreamSessionManager: NSObject, StreamSessionManagerProtocol, @unche
     /// (port 0) in the right position.
     private func reorderMLinesToMatchOffer(offer: String, answer: String) -> String {
         // Extract the ordered list of media types from the offer
-        var offerMTypes: [String] = []
-        for line in offer.components(separatedBy: "\r\n") {
-            if line.hasPrefix("m=") {
-                let parts = line.components(separatedBy: " ")
-                if let first = parts.first {
-                    let mtype = first.replacingOccurrences(of: "m=", with: "")
-                    offerMTypes.append(mtype)
-                }
-            }
-        }
+        let offerMTypes = Self.extractMediaTypes(from: offer)
 
         // Parse the answer into session-level lines + media sections keyed by m-line type
-        var sessionLines: [String] = []
-        var answerSections: [String: [String]] = [:]
-        var currentMType: String?
-        var currentSection: [String] = []
-
-        for line in answer.components(separatedBy: "\r\n") {
-            if line.hasPrefix("m=") {
-                if let mtype = currentMType {
-                    answerSections[mtype] = currentSection
-                }
-                let parts = line.components(separatedBy: " ")
-                if let first = parts.first {
-                    currentMType = first.replacingOccurrences(of: "m=", with: "")
-                }
-                currentSection = [line]
-            } else if currentMType == nil {
-                sessionLines.append(line)
-            } else {
-                currentSection.append(line)
-            }
-        }
-        if let mtype = currentMType {
-            answerSections[mtype] = currentSection
-        }
+        let parsed = Self.parseSdpSections(answer)
+        let answerSections = parsed.sections
+        let sessionLines = parsed.sessionLines
 
         // If the answer already has all m-types in the same order as the offer, no change
         let answerMTypes = Array(answerSections.keys)
-        if offerMTypes == answerMTypes.sorted() && offerMTypes.count == answerMTypes.count {
-            // Types match — but need to check order
-            var orderMatches = true
-            var i = 0
-            for line in answer.components(separatedBy: "\r\n") where line.hasPrefix("m=") {
-                let parts = line.components(separatedBy: " ")
-                if let first = parts.first {
-                    let mtype = first.replacingOccurrences(of: "m=", with: "")
-                    if i >= offerMTypes.count || offerMTypes[i] != mtype {
-                        orderMatches = false
-                        break
-                    }
-                    i += 1
-                }
-            }
-            if orderMatches {
-                return answer
-            }
+        if offerMTypes == answerMTypes.sorted() &&
+           offerMTypes.count == answerMTypes.count &&
+           Self.extractMediaTypes(from: answer) == offerMTypes {
+            return answer
         }
 
         // Reassemble: session lines + media sections in offer order, inserting
         // rejected stubs for any missing sections
         var result = sessionLines
-        var midCounter = 0
-        for mtype in offerMTypes {
+        for (midCounter, mtype) in offerMTypes.enumerated() {
             if let section = answerSections[mtype] {
                 result.append(contentsOf: section)
             } else {
@@ -369,10 +342,54 @@ final class StreamSessionManager: NSObject, StreamSessionManagerProtocol, @unche
                 ]
                 result.append(contentsOf: placeholder)
             }
-            midCounter += 1
         }
 
         return result.joined(separator: "\r\n")
+    }
+
+    /// Return the ordered list of media types (``video``, ``audio``, ``application``,
+    /// …) declared by ``m=…`` lines in an SDP string.
+    private static func extractMediaTypes(from sdp: String) -> [String] {
+        var mtypes: [String] = []
+        for line in sdp.components(separatedBy: "\r\n") where line.hasPrefix("m=") {
+            let parts = line.components(separatedBy: " ")
+            guard let first = parts.first else { continue }
+            mtypes.append(first.replacingOccurrences(of: "m=", with: ""))
+        }
+        return mtypes
+    }
+
+    private struct ParsedSdp {
+        let sessionLines: [String]
+        let sections: [String: [String]]
+    }
+
+    /// Split an SDP document into session-level lines and a dictionary of media
+    /// sections keyed by their media type (``video``, ``audio``, …).
+    private static func parseSdpSections(_ sdp: String) -> ParsedSdp {
+        var sessionLines: [String] = []
+        var sections: [String: [String]] = [:]
+        var currentMType: String?
+        var currentSection: [String] = []
+
+        for line in sdp.components(separatedBy: "\r\n") {
+            if line.hasPrefix("m=") {
+                if let mtype = currentMType {
+                    sections[mtype] = currentSection
+                }
+                let parts = line.components(separatedBy: " ")
+                currentMType = parts.first?.replacingOccurrences(of: "m=", with: "")
+                currentSection = [line]
+            } else if currentMType == nil {
+                sessionLines.append(line)
+            } else {
+                currentSection.append(line)
+            }
+        }
+        if let mtype = currentMType {
+            sections[mtype] = currentSection
+        }
+        return ParsedSdp(sessionLines: sessionLines, sections: sections)
     }
 
     /// Ensure every media section in an SDP has `a=rtcp-mux`.
@@ -432,7 +449,11 @@ extension StreamSessionManager: RTCPeerConnectionDelegate {
 
     func peerConnection(_ peerConnection: RTCPeerConnection, didAdd stream: RTCMediaStream) {
         // Legacy Plan-B callback. Still called in some Unified Plan paths.
-        NSLog("[WEBRTC-DIAG] didAdd stream: video tracks=\(stream.videoTracks.count), audio tracks=\(stream.audioTracks.count)")
+        NSLog(
+            "[WEBRTC-DIAG] didAdd stream: video tracks=%d, audio tracks=%d",
+            stream.videoTracks.count,
+            stream.audioTracks.count
+        )
         let video = stream.videoTracks.first
         let audio = stream.audioTracks.first
         DispatchQueue.main.async { [weak self] in

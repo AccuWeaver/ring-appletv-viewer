@@ -17,6 +17,16 @@ final class PartnerAPIClient: PartnerAPIClientProtocol, @unchecked Sendable {
     private static let maxRetries = 3
     private static let initialBackoff: TimeInterval = 1.0
 
+    /// Build a URL from a hard-coded literal; crash with a clear message if the
+    /// literal is malformed (programmer error). Avoids `force_unwrapping` lint
+    /// on constants we know statically.
+    private static func url(_ string: String) -> URL {
+        guard let url = URL(string: string) else {
+            fatalError("PartnerAPIClient: malformed URL literal \(string)")
+        }
+        return url
+    }
+
     // MARK: - Dependencies
 
     private let session: URLSession
@@ -41,7 +51,7 @@ final class PartnerAPIClient: PartnerAPIClientProtocol, @unchecked Sendable {
     // MARK: - Auth — Device Code Flow
 
     func requestDeviceCode(clientId: String) async throws -> DeviceCodeResponse {
-        let url = URL(string: "\(self.authBaseURL)/oauth/device/code")!
+        let url = Self.url("\(self.authBaseURL)/oauth/device/code")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -54,7 +64,7 @@ final class PartnerAPIClient: PartnerAPIClientProtocol, @unchecked Sendable {
     }
 
     func pollForToken(clientId: String, clientSecret: String, deviceCode: String) async throws -> AuthToken {
-        let url = URL(string: "\(self.authBaseURL)/oauth/token")!
+        let url = Self.url("\(self.authBaseURL)/oauth/token")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -73,7 +83,7 @@ final class PartnerAPIClient: PartnerAPIClientProtocol, @unchecked Sendable {
     }
 
     func refreshToken(clientId: String, clientSecret: String, refreshToken: String) async throws -> AuthToken {
-        let url = URL(string: "\(self.authBaseURL)/oauth/token")!
+        let url = Self.url("\(self.authBaseURL)/oauth/token")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -94,7 +104,7 @@ final class PartnerAPIClient: PartnerAPIClientProtocol, @unchecked Sendable {
     // MARK: - Devices
 
     func fetchDevices(token: String) async throws -> [PartnerDeviceResource] {
-        let url = URL(string: "\(self.apiBaseURL)/devices")!
+        let url = Self.url("\(self.apiBaseURL)/devices")
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         injectBearer(token, into: &request)
@@ -107,10 +117,16 @@ final class PartnerAPIClient: PartnerAPIClientProtocol, @unchecked Sendable {
     // MARK: - Events
 
     func fetchEvents(deviceId: String, token: String, limit: Int) async throws -> [PartnerEventResource] {
-        var components = URLComponents(string: "\(self.apiBaseURL)/history/devices/\(deviceId)/events")!
+        let componentsString = "\(self.apiBaseURL)/history/devices/\(deviceId)/events"
+        guard var components = URLComponents(string: componentsString) else {
+            throw PartnerAPIError.decodingError("Invalid URL components for history")
+        }
         components.queryItems = [URLQueryItem(name: "limit", value: "\(limit)")]
 
-        var request = URLRequest(url: components.url!)
+        guard let url = components.url else {
+            throw PartnerAPIError.decodingError("Invalid URL components for history")
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "GET"
         injectBearer(token, into: &request)
 
@@ -121,7 +137,7 @@ final class PartnerAPIClient: PartnerAPIClientProtocol, @unchecked Sendable {
     // MARK: - Media
 
     func downloadVideo(deviceId: String, eventId: String, token: String) async throws -> URL {
-        let url = URL(string: "\(self.apiBaseURL)/devices/\(deviceId)/media/video/download")!
+        let url = Self.url("\(self.apiBaseURL)/devices/\(deviceId)/media/video/download")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -139,7 +155,7 @@ final class PartnerAPIClient: PartnerAPIClientProtocol, @unchecked Sendable {
     }
 
     func downloadSnapshot(deviceId: String, token: String) async throws -> Data {
-        let url = URL(string: "\(self.apiBaseURL)/devices/\(deviceId)/media/image/download")!
+        let url = Self.url("\(self.apiBaseURL)/devices/\(deviceId)/media/image/download")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         injectBearer(token, into: &request)
@@ -151,7 +167,7 @@ final class PartnerAPIClient: PartnerAPIClientProtocol, @unchecked Sendable {
     // MARK: - WHEP (Live Streaming)
 
     func createWHEPSession(deviceId: String, sdpOffer: String, token: String) async throws -> WHEPSessionResponse {
-        let url = URL(string: "\(self.apiBaseURL)/devices/\(deviceId)/media/streaming/whep/sessions")!
+        let url = Self.url("\(self.apiBaseURL)/devices/\(deviceId)/media/streaming/whep/sessions")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/sdp", forHTTPHeaderField: "Content-Type")
@@ -201,46 +217,37 @@ final class PartnerAPIClient: PartnerAPIClientProtocol, @unchecked Sendable {
         switch statusCode {
         case 200...299:
             return
-        case 401:
-            // Check for device code flow error codes in the response body
-            if let data = data, let errorBody = parseDeviceCodeError(from: data) {
-                switch errorBody {
-                case "authorization_pending":
-                    throw PartnerAPIError.authorizationPending
-                case "slow_down":
-                    throw PartnerAPIError.slowDown
-                case "expired_token":
-                    throw PartnerAPIError.expiredDeviceCode
-                default:
-                    break
-                }
+        case 400, 401:
+            if let error = deviceCodeError(from: data) {
+                throw error
             }
-            throw PartnerAPIError.unauthorized
+            throw statusCode == 401
+                ? PartnerAPIError.unauthorized
+                : PartnerAPIError.serverError(statusCode)
         case 403:
             throw PartnerAPIError.forbidden
         case 404:
             throw PartnerAPIError.notFound
         case 429:
-            throw PartnerAPIError.rateLimited(retryAfter: 0) // Actual retry-after is handled in the retry loop
-        case 400:
-            // Device code flow errors may come as 400
-            if let data = data, let errorCode = parseDeviceCodeError(from: data) {
-                switch errorCode {
-                case "authorization_pending":
-                    throw PartnerAPIError.authorizationPending
-                case "slow_down":
-                    throw PartnerAPIError.slowDown
-                case "expired_token":
-                    throw PartnerAPIError.expiredDeviceCode
-                default:
-                    break
-                }
-            }
-            throw PartnerAPIError.serverError(statusCode)
-        case 500...599:
-            throw PartnerAPIError.serverError(statusCode)
+            // Actual retry-after is handled in the retry loop.
+            throw PartnerAPIError.rateLimited(retryAfter: 0)
         default:
             throw PartnerAPIError.serverError(statusCode)
+        }
+    }
+
+    /// Maps the JSON `error` field of a device-code-flow response body to the
+    /// corresponding typed `PartnerAPIError`, or `nil` if the body does not
+    /// contain a recognized code.
+    private func deviceCodeError(from data: Data?) -> PartnerAPIError? {
+        guard let data = data, let code = parseDeviceCodeError(from: data) else {
+            return nil
+        }
+        switch code {
+        case "authorization_pending": return .authorizationPending
+        case "slow_down":             return .slowDown
+        case "expired_token":         return .expiredDeviceCode
+        default:                      return nil
         }
     }
 

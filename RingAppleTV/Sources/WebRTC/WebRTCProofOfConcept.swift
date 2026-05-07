@@ -41,7 +41,7 @@ enum WebRTCProofOfConcept {
 
 /// Flag indicating whether the WebRTC framework is available at compile time.
 /// Used by `ServiceContainer` to conditionally create `StreamSessionManager`.
-let WebRTCFrameworkAvailable: Bool = true
+let webRTCFrameworkAvailable: Bool = true
 
 // MARK: - WebRTC Test View
 
@@ -202,81 +202,122 @@ final class WebRTCTestManager: ObservableObject {
             optionalConstraints: nil
         )
 
-        guard let pc = factory.peerConnection(with: config, constraints: constraints, delegate: delegate) else {
+        guard let peerConn = factory.peerConnection(
+            with: config,
+            constraints: constraints,
+            delegate: delegate
+        ) else {
             statusMessage = "✗ Failed to create PeerConnection"
             isRunning = false
             return
         }
-        self.peerConnection = pc
+        self.peerConnection = peerConn
 
         // Add receive-only transceivers
-        pc.addTransceiver(of: .video)?.setDirection(.recvOnly, error: nil)
-        pc.addTransceiver(of: .audio)?.setDirection(.recvOnly, error: nil)
+        peerConn.addTransceiver(of: .video)?.setDirection(.recvOnly, error: nil)
+        peerConn.addTransceiver(of: .audio)?.setDirection(.recvOnly, error: nil)
 
         statusMessage = "Creating SDP offer…"
 
         do {
-            // Create offer
-            let offer = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<RTCSessionDescription, Error>) in
-                pc.offer(for: constraints) { sdp, error in
-                    if let error { cont.resume(throwing: error) }
-                    else if let sdp { cont.resume(returning: sdp) }
-                    else { cont.resume(throwing: NSError(domain: "whep", code: -1)) }
-                }
-            }
-
-            // Set local description
-            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-                pc.setLocalDescription(offer) { error in
-                    if let error { cont.resume(throwing: error) } else { cont.resume() }
-                }
-            }
+            let offer = try await Self.createOffer(peerConn: peerConn, constraints: constraints)
+            try await Self.setLocalDescription(peerConn: peerConn, sdp: offer)
 
             statusMessage = "Sending offer to WHEP server…"
-
-            // Send offer to WHEP endpoint
-            guard let url = URL(string: whepURL) else {
-                statusMessage = "✗ Invalid WHEP URL"
-                return
-            }
-
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/sdp", forHTTPHeaderField: "Content-Type")
-            request.httpBody = offer.sdp.data(using: .utf8)
-
-            let (data, response) = try await URLSession.shared.data(for: request)
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                statusMessage = "✗ Invalid response from WHEP"
-                return
-            }
-
-            guard httpResponse.statusCode == 201 else {
-                let body = String(data: data, encoding: .utf8) ?? ""
-                statusMessage = "✗ WHEP returned \(httpResponse.statusCode): \(body.prefix(100))"
-                return
-            }
-
-            guard let answerSDP = String(data: data, encoding: .utf8) else {
-                statusMessage = "✗ Could not decode SDP answer"
+            guard let answer = try await sendOffer(peerConn: peerConn, offer: offer) else {
                 return
             }
 
             statusMessage = "Applying SDP answer…"
-
-            // Set remote description
-            let answer = RTCSessionDescription(type: .answer, sdp: answerSDP)
-            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-                pc.setRemoteDescription(answer) { error in
-                    if let error { cont.resume(throwing: error) } else { cont.resume() }
-                }
-            }
+            try await Self.setRemoteDescription(peerConn: peerConn, sdp: answer)
 
             statusMessage = "SDP exchange complete — waiting for ICE connection…"
-
         } catch {
             statusMessage = "✗ Error: \(error.localizedDescription)"
+        }
+    }
+
+    /// POST the SDP offer to the WHEP endpoint and decode the SDP answer.
+    /// Returns ``nil`` after setting ``statusMessage`` if any step fails.
+    private func sendOffer(
+        peerConn: RTCPeerConnection,
+        offer: RTCSessionDescription
+    ) async throws -> RTCSessionDescription? {
+        guard let url = URL(string: whepURL) else {
+            statusMessage = "✗ Invalid WHEP URL"
+            return nil
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/sdp", forHTTPHeaderField: "Content-Type")
+        request.httpBody = offer.sdp.data(using: .utf8)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            statusMessage = "✗ Invalid response from WHEP"
+            return nil
+        }
+
+        guard httpResponse.statusCode == 201 else {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            statusMessage = "✗ WHEP returned \(httpResponse.statusCode): \(body.prefix(100))"
+            return nil
+        }
+
+        guard let answerSDP = String(data: data, encoding: .utf8) else {
+            statusMessage = "✗ Could not decode SDP answer"
+            return nil
+        }
+
+        return RTCSessionDescription(type: .answer, sdp: answerSDP)
+    }
+
+    private static func createOffer(
+        peerConn: RTCPeerConnection,
+        constraints: RTCMediaConstraints
+    ) async throws -> RTCSessionDescription {
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<RTCSessionDescription, Error>) in
+            peerConn.offer(for: constraints) { sdp, error in
+                if let error {
+                    cont.resume(throwing: error)
+                } else if let sdp {
+                    cont.resume(returning: sdp)
+                } else {
+                    cont.resume(throwing: NSError(domain: "whep", code: -1))
+                }
+            }
+        }
+    }
+
+    private static func setLocalDescription(
+        peerConn: RTCPeerConnection,
+        sdp: RTCSessionDescription
+    ) async throws {
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            peerConn.setLocalDescription(sdp) { error in
+                if let error {
+                    cont.resume(throwing: error)
+                } else {
+                    cont.resume()
+                }
+            }
+        }
+    }
+
+    private static func setRemoteDescription(
+        peerConn: RTCPeerConnection,
+        sdp: RTCSessionDescription
+    ) async throws {
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            peerConn.setRemoteDescription(sdp) { error in
+                if let error {
+                    cont.resume(throwing: error)
+                } else {
+                    cont.resume()
+                }
+            }
         }
     }
 
@@ -328,7 +369,7 @@ private final class WHEPDelegate: NSObject, RTCPeerConnectionDelegate {
 import SwiftUI
 
 /// WebRTC framework is not available — stub flag for conditional compilation.
-let WebRTCFrameworkAvailable: Bool = false
+let webRTCFrameworkAvailable: Bool = false
 
 struct WebRTCTestView: View {
     var body: some View {

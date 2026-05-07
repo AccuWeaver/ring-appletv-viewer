@@ -13,8 +13,8 @@ final class DashboardViewModel: ObservableObject {
 
     // MARK: - Dependencies
 
-    private nonisolated(unsafe) let deviceService: DeviceService
-    private nonisolated(unsafe) let mediaService: MediaService
+    nonisolated(unsafe) private let deviceService: DeviceService
+    nonisolated(unsafe) private let mediaService: MediaService
 
     // MARK: - Background Refresh
 

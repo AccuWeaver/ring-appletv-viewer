@@ -175,7 +175,7 @@ final class DefaultAuthService: AuthService, @unchecked Sendable {
 
     /// Load a token from the Keychain.
     private func loadTokenFromKeychain() -> AuthToken? {
-        guard let data = (try? keychainService.load(for: Self.accessTokenKey)) ?? nil else {
+        guard let data = (try? keychainService.load(for: Self.accessTokenKey))else {
             return nil
         }
         return try? decoder.decode(AuthToken.self, from: data)

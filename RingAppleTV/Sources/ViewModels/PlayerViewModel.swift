@@ -21,6 +21,28 @@ final class PlayerViewModel: ObservableObject {
 
     let streamSessionManager: StreamSessionManagerProtocol?
 
+    // MARK: - Placeholder URLs
+
+    /// Placeholder session URL used when no real WebRTC manager is available
+    /// (mock mode or unsupported platforms). Rendered only as an identifier on
+    /// the synthesised `StreamSession` and never dereferenced as a network URL.
+    static let placeholderMockSessionURL: URL = {
+        guard let url = URL(string: "https://mock.local/session") else {
+            fatalError("PlayerViewModel: placeholderMockSessionURL literal is invalid")
+        }
+        return url
+    }()
+
+    /// Placeholder URL reported on the live `StreamSession` surfaced to the UI
+    /// so the view can key cache/dedup logic off a stable value. The real WHEP
+    /// session URL lives inside the StreamSessionManager and is not exposed.
+    static let placeholderLiveSessionURL: URL = {
+        guard let url = URL(string: "https://api.amazonvision.com/v1/session") else {
+            fatalError("PlayerViewModel: placeholderLiveSessionURL literal is invalid")
+        }
+        return url
+    }()
+
     // MARK: - Session tracking
 
     private var lastDeviceId: String?
@@ -75,7 +97,7 @@ final class PlayerViewModel: ObservableObject {
                 // fallback (e.g., HLS playback) instead of showing an error.
                 let fallbackSession = StreamSession(
                     deviceId: deviceId,
-                    sessionURL: URL(string: "https://mock.local/session")!,
+                    sessionURL: Self.placeholderMockSessionURL,
                     powerSource: powerSource,
                     createdAt: Date()
                 )
@@ -89,7 +111,7 @@ final class PlayerViewModel: ObservableObject {
             // Create a representative StreamSession for the UI
             let session = StreamSession(
                 deviceId: deviceId,
-                sessionURL: URL(string: "https://api.amazonvision.com/v1/session")!,
+                sessionURL: Self.placeholderLiveSessionURL,
                 powerSource: powerSource,
                 createdAt: Date()
             )

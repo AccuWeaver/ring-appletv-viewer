@@ -46,8 +46,12 @@ struct HLSPlayerView: UIViewRepresentable {
 /// A UIView backed by an AVPlayerLayer. Not focusable, so Menu button passes
 /// through to the parent view's onExitCommand handler.
 final class PlayerContainerView: UIView {
-    override class var layerClass: AnyClass { AVPlayerLayer.self }
-    var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+    override static var layerClass: AnyClass { AVPlayerLayer.self }
+    var playerLayer: AVPlayerLayer {
+        // Safe: `layerClass` is AVPlayerLayer.self so UIKit guarantees this cast.
+        // swiftlint:disable:next force_cast
+        layer as! AVPlayerLayer
+    }
 
     #if os(tvOS)
     // Ensure this view doesn't become the focused item — prevents it from

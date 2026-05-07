@@ -62,17 +62,29 @@ struct AppConfiguration: Codable, Equatable {
     init(from decoder: Decoder) throws {
         let defaults = AppConfiguration()
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        useMocks = try container.decodeIfPresent(Bool.self, forKey: .useMocks) ?? defaults.useMocks
-        enableDebugLogging = try container.decodeIfPresent(Bool.self, forKey: .enableDebugLogging) ?? defaults.enableDebugLogging
-        streamTimeoutSeconds = try container.decodeIfPresent(TimeInterval.self, forKey: .streamTimeoutSeconds) ?? defaults.streamTimeoutSeconds
-        deviceRefreshInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .deviceRefreshInterval) ?? defaults.deviceRefreshInterval
-        eventHistoryHours = try container.decodeIfPresent(Int.self, forKey: .eventHistoryHours) ?? defaults.eventHistoryHours
-        maxEventCount = try container.decodeIfPresent(Int.self, forKey: .maxEventCount) ?? defaults.maxEventCount
-        cacheExpirationSeconds = try container.decodeIfPresent(TimeInterval.self, forKey: .cacheExpirationSeconds) ?? defaults.cacheExpirationSeconds
-        enableCrashReporting = try container.decodeIfPresent(Bool.self, forKey: .enableCrashReporting) ?? defaults.enableCrashReporting
-        enableLocalAnalytics = try container.decodeIfPresent(Bool.self, forKey: .enableLocalAnalytics) ?? defaults.enableLocalAnalytics
-        authBackendBaseURL = try container.decodeIfPresent(String.self, forKey: .authBackendBaseURL) ?? defaults.authBackendBaseURL
-        authBackendAPIKey = try container.decodeIfPresent(String.self, forKey: .authBackendAPIKey) ?? defaults.authBackendAPIKey
-        authBackendUserId = try container.decodeIfPresent(String.self, forKey: .authBackendUserId) ?? defaults.authBackendUserId
+        useMocks = try container.decodeIfPresent(Bool.self, forKey: .useMocks)
+            ?? defaults.useMocks
+        enableDebugLogging = try container.decodeIfPresent(Bool.self, forKey: .enableDebugLogging)
+            ?? defaults.enableDebugLogging
+        streamTimeoutSeconds = try container.decodeIfPresent(TimeInterval.self, forKey: .streamTimeoutSeconds)
+            ?? defaults.streamTimeoutSeconds
+        deviceRefreshInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .deviceRefreshInterval)
+            ?? defaults.deviceRefreshInterval
+        eventHistoryHours = try container.decodeIfPresent(Int.self, forKey: .eventHistoryHours)
+            ?? defaults.eventHistoryHours
+        maxEventCount = try container.decodeIfPresent(Int.self, forKey: .maxEventCount)
+            ?? defaults.maxEventCount
+        cacheExpirationSeconds = try container.decodeIfPresent(TimeInterval.self, forKey: .cacheExpirationSeconds)
+            ?? defaults.cacheExpirationSeconds
+        enableCrashReporting = try container.decodeIfPresent(Bool.self, forKey: .enableCrashReporting)
+            ?? defaults.enableCrashReporting
+        enableLocalAnalytics = try container.decodeIfPresent(Bool.self, forKey: .enableLocalAnalytics)
+            ?? defaults.enableLocalAnalytics
+        authBackendBaseURL = try container.decodeIfPresent(String.self, forKey: .authBackendBaseURL)
+            ?? defaults.authBackendBaseURL
+        authBackendAPIKey = try container.decodeIfPresent(String.self, forKey: .authBackendAPIKey)
+            ?? defaults.authBackendAPIKey
+        authBackendUserId = try container.decodeIfPresent(String.self, forKey: .authBackendUserId)
+            ?? defaults.authBackendUserId
     }
 }

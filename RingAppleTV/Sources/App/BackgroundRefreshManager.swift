@@ -1,6 +1,7 @@
+import Foundation
 import os
 
-#if canImport(BackgroundTasks)
+#if canImport(BackgroundTasks) && (os(iOS) || os(tvOS))
 import BackgroundTasks
 #endif
 
@@ -10,9 +11,9 @@ import BackgroundTasks
 /// ready when the user opens the app.
 ///
 /// `BGTaskScheduler` is unavailable on macOS, so on that platform the
-/// implementation reduces to a no-op stub. This keeps the Swift package
-/// buildable in the CI's default macOS environment without conditional
-/// imports leaking into every caller.
+/// implementation reduces to a no-op stub. This keeps the package buildable
+/// in an SPM-on-macOS environment without conditional imports leaking into
+/// every caller.
 final class BackgroundRefreshManager: @unchecked Sendable {
 
     // MARK: - Constants
@@ -27,7 +28,7 @@ final class BackgroundRefreshManager: @unchecked Sendable {
 
     // MARK: - Dependencies
 
-    private nonisolated(unsafe) let deviceService: DeviceService
+    nonisolated(unsafe) private let deviceService: DeviceService
     private let mediaService: MediaService
 
     // MARK: - Logging
@@ -48,7 +49,6 @@ final class BackgroundRefreshManager: @unchecked Sendable {
     /// Register the background refresh task handler with `BGTaskScheduler`.
     /// Must be called before the end of the app launch sequence (e.g. in `App.init`).
     func registerBackgroundTask() {
-        #if os(tvOS) || os(iOS)
         BGTaskScheduler.shared.register(
             forTaskWithIdentifier: Self.taskIdentifier,
             using: nil
@@ -57,12 +57,10 @@ final class BackgroundRefreshManager: @unchecked Sendable {
             self.handleBackgroundRefresh(refreshTask)
         }
         logger.debug("Registered background refresh task: \(Self.taskIdentifier)")
-        #endif
     }
 
     /// Schedule the next background app refresh request.
     func scheduleNextRefresh() {
-        #if os(tvOS) || os(iOS)
         let request = BGAppRefreshTaskRequest(identifier: Self.taskIdentifier)
         request.earliestBeginDate = Date(timeIntervalSinceNow: Self.refreshInterval)
 
@@ -72,12 +70,10 @@ final class BackgroundRefreshManager: @unchecked Sendable {
         } catch {
             logger.error("Failed to schedule background refresh: \(error.localizedDescription)")
         }
-        #endif
     }
 
     // MARK: - Handler
 
-    #if os(tvOS) || os(iOS)
     private func handleBackgroundRefresh(_ task: BGAppRefreshTask) {
         // Schedule the next refresh before starting work
         scheduleNextRefresh()
@@ -124,5 +120,18 @@ final class BackgroundRefreshManager: @unchecked Sendable {
             workTask.cancel()
         }
     }
-    #endif
+
+#else
+
+    /// macOS stub — `BGTaskScheduler` is unavailable on that platform.
+    func registerBackgroundTask() {
+        logger.debug("BackgroundRefreshManager.registerBackgroundTask: no-op on this platform")
+    }
+
+    /// macOS stub — `BGTaskScheduler` is unavailable on that platform.
+    func scheduleNextRefresh() {
+        logger.debug("BackgroundRefreshManager.scheduleNextRefresh: no-op on this platform")
+    }
+
+#endif
 }
