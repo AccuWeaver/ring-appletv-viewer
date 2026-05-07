@@ -338,12 +338,17 @@ async def test_health_check_returns_200() -> None:
     Validates: Requirement 6.4
     """
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
+    async with (
+        app.router.lifespan_context(app),
+        AsyncClient(transport=transport, base_url="http://test") as client,
+    ):
         response = await client.get("/health")
 
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
+    # Requirement 11.5: /health reports the active adapter_mode.
+    assert data["adapter_mode"] == "mock"
 
 
 # ---------------------------------------------------------------------------
