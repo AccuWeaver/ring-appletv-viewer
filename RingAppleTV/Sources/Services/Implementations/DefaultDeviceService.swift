@@ -56,9 +56,13 @@ final class DefaultDeviceService: DeviceService, @unchecked Sendable {
     func sortDevices(_ devices: [RingDevice], by sort: DeviceSort) -> [RingDevice] {
         switch sort {
         case .nameAscending:
-            return devices.sorted { $0.description.localizedCaseInsensitiveCompare($1.description) == .orderedAscending }
+            return devices.sorted {
+                $0.description.localizedCaseInsensitiveCompare($1.description) == .orderedAscending
+            }
         case .nameDescending:
-            return devices.sorted { $0.description.localizedCaseInsensitiveCompare($1.description) == .orderedDescending }
+            return devices.sorted {
+                $0.description.localizedCaseInsensitiveCompare($1.description) == .orderedDescending
+            }
         case .type:
             return devices.sorted { $0.deviceType.rawValue < $1.deviceType.rawValue }
         case .status:

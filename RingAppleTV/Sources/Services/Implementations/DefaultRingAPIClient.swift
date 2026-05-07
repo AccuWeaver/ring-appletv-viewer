@@ -10,6 +10,17 @@ final class DefaultRingAPIClient: RingAPIClient {
     private static let oauthBaseURL = "https://oauth.ring.com"
     private static let apiBaseURL = "https://api.ring.com"
 
+    /// Build a URL from a hard-coded literal. Crashes with a clear message if
+    /// the literal is malformed; this is a programmer error, not a runtime
+    /// error, so a plain `URL(string:)!` would be equivalent — but this
+    /// avoids SwiftLint's `force_unwrapping` rule while preserving the crash.
+    private static func url(_ string: String) -> URL {
+        guard let url = URL(string: string) else {
+            fatalError("DefaultRingAPIClient: malformed URL literal \(string)")
+        }
+        return url
+    }
+
     // MARK: - Dependencies
 
     private let session: URLSession
@@ -24,7 +35,7 @@ final class DefaultRingAPIClient: RingAPIClient {
     // MARK: - Authentication (email + password)
 
     func authenticate(email: String, password: String) async throws -> AuthTokenResponse {
-        let url = URL(string: "\(Self.oauthBaseURL)/oauth/token")!
+        let url = Self.url("\(Self.oauthBaseURL)/oauth/token")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -45,7 +56,7 @@ final class DefaultRingAPIClient: RingAPIClient {
     // MARK: - Authentication (with 2FA)
 
     func authenticate(email: String, password: String, twoFactorCode: String) async throws -> AuthTokenResponse {
-        let url = URL(string: "\(Self.oauthBaseURL)/oauth/token")!
+        let url = Self.url("\(Self.oauthBaseURL)/oauth/token")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -68,7 +79,7 @@ final class DefaultRingAPIClient: RingAPIClient {
     // MARK: - Token Refresh
 
     func refreshToken(_ refreshToken: String) async throws -> AuthTokenResponse {
-        let url = URL(string: "\(Self.oauthBaseURL)/oauth/token")!
+        let url = Self.url("\(Self.oauthBaseURL)/oauth/token")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
@@ -87,7 +98,7 @@ final class DefaultRingAPIClient: RingAPIClient {
     // MARK: - Fetch Devices
 
     func fetchDevices(token: String) async throws -> [RingDeviceResponse] {
-        let url = URL(string: "\(Self.apiBaseURL)/clients_api/ring_devices")!
+        let url = Self.url("\(Self.apiBaseURL)/clients_api/ring_devices")
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -107,7 +118,7 @@ final class DefaultRingAPIClient: RingAPIClient {
     // MARK: - Request Live Stream
 
     func requestLiveStream(deviceId: Int, token: String) async throws -> StreamSessionResponse {
-        let url = URL(string: "\(Self.apiBaseURL)/clients_api/doorbots/\(deviceId)/live_view")!
+        let url = Self.url("\(Self.apiBaseURL)/clients_api/doorbots/\(deviceId)/live_view")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -120,10 +131,16 @@ final class DefaultRingAPIClient: RingAPIClient {
     // MARK: - Fetch Events
 
     func fetchEvents(deviceId: Int, token: String, limit: Int) async throws -> [RingEventResponse] {
-        var components = URLComponents(string: "\(Self.apiBaseURL)/clients_api/doorbots/\(deviceId)/history")!
+        let componentsString = "\(Self.apiBaseURL)/clients_api/doorbots/\(deviceId)/history"
+        guard var components = URLComponents(string: componentsString) else {
+            throw RingAPIError.invalidURL(componentsString)
+        }
         components.queryItems = [URLQueryItem(name: "limit", value: "\(limit)")]
 
-        var request = URLRequest(url: components.url!)
+        guard let url = components.url else {
+            throw RingAPIError.invalidURL(components.description)
+        }
+        var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
@@ -134,7 +151,7 @@ final class DefaultRingAPIClient: RingAPIClient {
     // MARK: - Fetch Event Video URL
 
     func fetchEventVideoURL(eventId: Int, token: String) async throws -> URL {
-        let url = URL(string: "\(Self.apiBaseURL)/clients_api/dings/\(eventId)/share/play")!
+        let url = Self.url("\(Self.apiBaseURL)/clients_api/dings/\(eventId)/share/play")
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -151,7 +168,7 @@ final class DefaultRingAPIClient: RingAPIClient {
     // MARK: - Fetch Snapshot
 
     func fetchSnapshot(deviceId: Int, token: String) async throws -> Data {
-        let url = URL(string: "\(Self.apiBaseURL)/clients_api/snapshots/image/\(deviceId)")!
+        let url = Self.url("\(Self.apiBaseURL)/clients_api/snapshots/image/\(deviceId)")
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -163,7 +180,7 @@ final class DefaultRingAPIClient: RingAPIClient {
     // MARK: - Request Snapshot
 
     func requestSnapshot(deviceId: Int, token: String) async throws {
-        let url = URL(string: "\(Self.apiBaseURL)/clients_api/doorbots/\(deviceId)/snapshot")!
+        let url = Self.url("\(Self.apiBaseURL)/clients_api/doorbots/\(deviceId)/snapshot")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -171,7 +188,6 @@ final class DefaultRingAPIClient: RingAPIClient {
         log("Requesting new snapshot for device \(deviceId)")
         _ = try await performRaw(request)
     }
-
 
     // MARK: - Private Helpers
 
@@ -194,7 +210,7 @@ final class DefaultRingAPIClient: RingAPIClient {
 
         let statusCode = httpResponse.statusCode
         log("Response status \(statusCode) for \(request.url?.path ?? "unknown")")
-        
+
         // Debug: Log response body for non-success codes
         if statusCode < 200 || statusCode >= 300 {
             if let bodyString = String(data: data, encoding: .utf8) {
@@ -329,10 +345,10 @@ struct DevicesWrapper: Decodable {
 
     var allDevices: [RingDeviceResponse] {
         var devices: [RingDeviceResponse] = []
-        if let d = doorbots { devices.append(contentsOf: d) }
-        if let d = authorizedDoorbots { devices.append(contentsOf: d) }
-        if let d = stickupCams { devices.append(contentsOf: d) }
-        if let d = allCameras { devices.append(contentsOf: d) }
+        if let list = doorbots { devices.append(contentsOf: list) }
+        if let list = authorizedDoorbots { devices.append(contentsOf: list) }
+        if let list = stickupCams { devices.append(contentsOf: list) }
+        if let list = allCameras { devices.append(contentsOf: list) }
         return devices
     }
 }

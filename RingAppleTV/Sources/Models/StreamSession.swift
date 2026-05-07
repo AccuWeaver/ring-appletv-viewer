@@ -10,7 +10,7 @@ struct StreamSession: Codable, Equatable {
     let sipServerIp: String?
     let sipServerPort: Int?
     let sipSessionId: String?
-    let protocol_: String
+    let streamProtocol: String
     let createdAt: Date
     let maxDuration: TimeInterval
 
@@ -26,6 +26,6 @@ struct StreamSession: Codable, Equatable {
 
     /// Whether this is a SIP-based session (which requires WebRTC).
     var isSipSession: Bool {
-        protocol_ == "sip"
+        streamProtocol == "sip"
     }
 }

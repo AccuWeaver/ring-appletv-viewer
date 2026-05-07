@@ -79,7 +79,6 @@ struct LoginView: View {
                     }
                 }
 
-
                 if viewModel.requiresTwoFactor {
                     TextField("Verification Code", text: $viewModel.twoFactorCode)
                         .keyboardType(.numberPad)

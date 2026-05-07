@@ -20,8 +20,8 @@ final class DefaultSnapshotService: SnapshotService, @unchecked Sendable {
 
     // MARK: - Dependencies
 
-    private nonisolated(unsafe) let authService: AuthService
-    private nonisolated(unsafe) let apiClient: RingAPIClient
+    nonisolated(unsafe) private let authService: AuthService
+    nonisolated(unsafe) private let apiClient: RingAPIClient
 
     // MARK: - Cache
 

@@ -1,10 +1,19 @@
-import BackgroundTasks
+import Foundation
 import os
+
+#if canImport(BackgroundTasks) && (os(iOS) || os(tvOS))
+import BackgroundTasks
+#endif
 
 /// Manages tvOS background app refresh for pre-fetching camera snapshots.
 /// Registers a `BGAppRefreshTask` that fetches the device list and snapshots
 /// for up to 10 devices, storing results in the snapshot cache so they're
 /// ready when the user opens the app.
+///
+/// `BGTaskScheduler` is unavailable on macOS, so on that platform the
+/// implementation reduces to a no-op stub. This keeps the Swift package
+/// buildable in the CI's default macOS environment without conditional
+/// imports leaking into every caller.
 final class BackgroundRefreshManager: @unchecked Sendable {
 
     // MARK: - Constants
@@ -19,7 +28,7 @@ final class BackgroundRefreshManager: @unchecked Sendable {
 
     // MARK: - Dependencies
 
-    private nonisolated(unsafe) let deviceService: DeviceService
+    nonisolated(unsafe) private let deviceService: DeviceService
     private let snapshotService: SnapshotService
 
     // MARK: - Logging
@@ -34,6 +43,8 @@ final class BackgroundRefreshManager: @unchecked Sendable {
     }
 
     // MARK: - Registration
+
+#if canImport(BackgroundTasks) && (os(iOS) || os(tvOS))
 
     /// Register the background refresh task handler with `BGTaskScheduler`.
     /// Must be called before the end of the app launch sequence (e.g. in `App.init`).
@@ -110,4 +121,18 @@ final class BackgroundRefreshManager: @unchecked Sendable {
             workTask.cancel()
         }
     }
+
+#else
+
+    /// macOS stub — `BGTaskScheduler` is unavailable on that platform.
+    func registerBackgroundTask() {
+        logger.debug("BackgroundRefreshManager.registerBackgroundTask: no-op on this platform")
+    }
+
+    /// macOS stub — `BGTaskScheduler` is unavailable on that platform.
+    func scheduleNextRefresh() {
+        logger.debug("BackgroundRefreshManager.scheduleNextRefresh: no-op on this platform")
+    }
+
+#endif
 }

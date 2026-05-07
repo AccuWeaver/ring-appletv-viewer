@@ -13,8 +13,8 @@ final class DashboardViewModel: ObservableObject {
 
     // MARK: - Dependencies
 
-    private nonisolated(unsafe) let deviceService: DeviceService
-    private nonisolated(unsafe) let snapshotService: SnapshotService
+    nonisolated(unsafe) private let deviceService: DeviceService
+    nonisolated(unsafe) private let snapshotService: SnapshotService
 
     // MARK: - Background Refresh
 
@@ -133,7 +133,7 @@ final class DashboardViewModel: ObservableObject {
     }
 
     /// Nonisolated helper that performs parallel snapshot fetches.
-    private nonisolated static func fetchAllSnapshots(
+    nonisolated private static func fetchAllSnapshots(
         for devices: [RingDevice],
         using service: SnapshotService
     ) async -> [(Int, Data?)] {
@@ -145,7 +145,10 @@ final class DashboardViewModel: ObservableObject {
                         let data = try await service.getSnapshot(for: deviceId)
                         return (deviceId, data)
                     } catch {
-                        print("[DashboardViewModel] Snapshot fetch failed for device \(deviceId): \(error.localizedDescription)")
+                        print(
+                            "[DashboardViewModel] Snapshot fetch failed for device \(deviceId): "
+                            + error.localizedDescription
+                        )
                         return (deviceId, nil)
                     }
                 }

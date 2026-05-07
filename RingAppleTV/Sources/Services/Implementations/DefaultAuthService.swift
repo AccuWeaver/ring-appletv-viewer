@@ -21,15 +21,15 @@ final class DefaultAuthService: AuthService {
     // MARK: - Codecs
 
     private let encoder: JSONEncoder = {
-        let e = JSONEncoder()
-        e.dateEncodingStrategy = .secondsSince1970
-        return e
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .secondsSince1970
+        return encoder
     }()
 
     private let decoder: JSONDecoder = {
-        let d = JSONDecoder()
-        d.dateDecodingStrategy = .secondsSince1970
-        return d
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .secondsSince1970
+        return decoder
     }()
 
     // MARK: - Init
@@ -113,7 +113,7 @@ final class DefaultAuthService: AuthService {
     }
 
     private func loadTokenFromKeychain() -> AuthToken? {
-        guard let data = (try? keychainService.load(for: Self.tokenKey)) ?? nil else {
+        guard let data = (try? keychainService.load(for: Self.tokenKey))else {
             return nil
         }
         return try? decoder.decode(AuthToken.self, from: data)

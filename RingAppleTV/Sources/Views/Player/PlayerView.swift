@@ -66,7 +66,10 @@ struct PlayerView: View {
                             .font(.system(size: Constants.UI.titleSize, weight: .semibold))
                             .foregroundColor(.white)
 
-                        Text("Ring uses WebRTC for live video. HLS streaming is not available from Ring's API. WebRTC support is planned for a future update.")
+                        Text(
+                            "Ring uses WebRTC for live video. HLS streaming is not available from Ring's API. "
+                            + "WebRTC support is planned for a future update."
+                        )
                             .font(.system(size: Constants.UI.captionSize))
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
