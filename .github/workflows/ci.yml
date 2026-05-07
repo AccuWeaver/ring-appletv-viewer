@@ -45,11 +45,6 @@ jobs:
         # how the app is actually developed and run, so the CI signal matches
         # real developer workflows.
         #
-        # `EXCLUDED_ARCHS=x86_64` is required because the vendored
-        # WebRTC.xcframework (added in pr/3) only ships a `tvos-arm64-simulator`
-        # slice. Without this, xcodebuild tries to build both arm64 and x86_64
-        # on Apple Silicon CI runners and fails at link time.
-        #
         # TODO: add an Xcode test target to the .xcodeproj so `xcodebuild test`
         # can run the SPM test suite on the same tvOS destination. Until then
         # the build is the sole CI gate.
@@ -62,7 +57,6 @@ jobs:
             -destination 'generic/platform=tvOS Simulator' \
             -derivedDataPath build \
             -skipPackagePluginValidation \
-            EXCLUDED_ARCHS=x86_64 \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             build 2>&1 | xcbeautify --renderer github-actions
