@@ -19,7 +19,7 @@ struct DeviceCardView: View {
                         .fill(device.isOnline ? Color.green : Color.red)
                         .frame(width: 10, height: 10)
 
-                    Text(device.description)
+                    Text(device.name)
                         .font(.system(size: Constants.UI.captionSize, weight: .semibold))
                         .foregroundColor(.white)
                         .lineLimit(1)
@@ -37,9 +37,9 @@ struct DeviceCardView: View {
 
                 Spacer()
 
-                // Bottom row: battery (if available)
+                // Bottom row: power source indicator
                 HStack {
-                    batteryIndicator
+                    powerSourceIndicator
                     Spacer()
                 }
                 .padding(.horizontal, 12)
@@ -64,6 +64,7 @@ struct DeviceCardView: View {
                 .aspectRatio(16 / 9, contentMode: .fit)
 
             // Snapshot image when available
+            #if canImport(UIKit)
             if let snapshotData, let uiImage = UIImage(data: snapshotData) {
                 Image(uiImage: uiImage)
                     .resizable()
@@ -71,11 +72,21 @@ struct DeviceCardView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
             } else {
-                // Camera icon placeholder (shown when no snapshot)
-                Image(systemName: "video.fill")
-                    .font(.system(size: 36))
-                    .foregroundColor(.gray.opacity(0.5))
+                placeholderIcon
             }
+            #elseif canImport(AppKit)
+            if let snapshotData, let nsImage = NSImage(data: snapshotData) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+            } else {
+                placeholderIcon
+            }
+            #else
+            placeholderIcon
+            #endif
 
             // Gradient overlay for text readability
             VStack(spacing: 0) {
@@ -98,6 +109,13 @@ struct DeviceCardView: View {
         }
     }
 
+    private var placeholderIcon: some View {
+        // Camera icon placeholder (shown when no snapshot)
+        Image(systemName: "video.fill")
+            .font(.system(size: 36))
+            .foregroundColor(.gray.opacity(0.5))
+    }
+
     // MARK: - Device Type Icon
 
     private var iconForDeviceType: String {
@@ -113,43 +131,26 @@ struct DeviceCardView: View {
         }
     }
 
-    // MARK: - Battery
+    // MARK: - Power Source
 
     @ViewBuilder
-    private var batteryIndicator: some View {
-        if let battery = device.batteryLife {
-            HStack(spacing: 4) {
-                Image(systemName: batteryIconName(for: battery))
-                    .foregroundColor(batteryColor(for: battery))
-                Text("\(battery)%")
-                    .font(.system(size: Constants.UI.captionSize - 4))
-                    .foregroundColor(.white.opacity(0.8))
-            }
-            .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
+    private var powerSourceIndicator: some View {
+        HStack(spacing: 4) {
+            Image(systemName: device.powerSource == .battery ? "battery.50" : "powerplug.fill")
+                .foregroundColor(device.powerSource == .battery ? .yellow : .green)
+            Text(device.powerSource == .battery ? "Battery" : "Wired")
+                .font(.system(size: Constants.UI.captionSize - 4))
+                .foregroundColor(.white.opacity(0.8))
         }
-    }
-
-    private func batteryIconName(for level: Int) -> String {
-        switch level {
-        case 0..<25: return "battery.25"
-        case 25..<50: return "battery.50"
-        case 50..<75: return "battery.75"
-        default: return "battery.100"
-        }
-    }
-
-    private func batteryColor(for level: Int) -> Color {
-        level < 20 ? .red : .green
+        .shadow(color: .black.opacity(0.8), radius: 2, x: 0, y: 1)
     }
 
     // MARK: - Accessibility
 
     private var accessibilityLabelText: String {
-        var parts = [device.description, device.deviceType.displayName]
+        var parts = [device.name, device.deviceType.displayName]
         parts.append(device.isOnline ? "Online" : "Offline")
-        if let battery = device.batteryLife {
-            parts.append("Battery \(battery) percent")
-        }
+        parts.append(device.powerSource == .battery ? "Battery powered" : "Line powered")
         return parts.joined(separator: ", ")
     }
 }

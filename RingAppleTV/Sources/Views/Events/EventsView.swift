@@ -43,16 +43,12 @@ struct EventsView: View {
                 }
 
                 ForEach(events) { event in
-                    if event.videoAvailable {
-                        NavigationLink {
-                            playerViewBuilder(event)
-                        } label: {
-                            EventRowView(event: event)
-                        }
-                        .buttonStyle(.plain)
-                    } else {
+                    NavigationLink {
+                        playerViewBuilder(event)
+                    } label: {
                         EventRowView(event: event)
                     }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(Constants.UI.gridSpacing)

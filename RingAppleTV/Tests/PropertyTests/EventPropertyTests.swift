@@ -9,18 +9,14 @@ private nonisolated(unsafe) let eventTypeGen: Gen<RingEvent.EventType> = Gen<Rin
 ])
 
 private nonisolated(unsafe) let eventGen: Gen<RingEvent> = Gen<RingEvent>.compose { c in
-    // Random date within the last 48 hours
     let offsetSeconds = c.generate(using: Int.arbitrary.suchThat { $0 >= 0 && $0 < 172_800 })
 
     return RingEvent(
-        id: c.generate(using: Int.arbitrary.suchThat { $0 > 0 }),
-        deviceId: c.generate(using: Int.arbitrary.suchThat { $0 > 0 }),
-        deviceName: c.generate(using: String.arbitrary.suchThat { !$0.isEmpty }),
+        id: String(c.generate(using: Int.arbitrary.suchThat { $0 > 0 })),
+        deviceId: String(c.generate(using: Int.arbitrary.suchThat { $0 > 0 })),
         eventType: c.generate(using: eventTypeGen),
         createdAt: Date().addingTimeInterval(-Double(offsetSeconds)),
-        duration: c.generate(using: Int?.arbitrary).map { TimeInterval($0) },
-        thumbnailURL: nil,
-        videoAvailable: c.generate(using: Bool.arbitrary)
+        duration: c.generate(using: Int?.arbitrary).map { TimeInterval($0) }
     )
 }
 

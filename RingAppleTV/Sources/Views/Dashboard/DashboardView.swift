@@ -40,7 +40,7 @@ struct DashboardView: View {
             }
             .navigationTitle("My Cameras")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .automatic) {
                     Button {
                         Task { await viewModel.refresh() }
                     } label: {
@@ -74,7 +74,7 @@ struct DashboardView: View {
                         } label: {
                             DeviceCardView(device: device, snapshotData: viewModel.snapshots[device.id])
                         }
-                        .buttonStyle(.card)
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, Constants.UI.gridSpacing)

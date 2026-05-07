@@ -2,31 +2,31 @@ import Foundation
 @testable import RingAppleTV
 
 /// Mock `AuthService` with configurable return values and call tracking.
-final class MockAuthService: AuthService {
+final class MockAuthService: AuthService, @unchecked Sendable {
 
     // MARK: - State
 
     var _isAuthenticated: Bool = false
     var isAuthenticated: Bool { _isAuthenticated }
 
-    // MARK: - login(email:password:)
+    // MARK: - startDeviceCodeFlow
 
-    var loginResult: Result<AuthToken, Error> = .failure(RingAPIError.invalidCredentials)
-    var loginCalls: [(email: String, password: String)] = []
+    var startDeviceCodeFlowResult: Result<DeviceCodeInfo, Error> = .failure(PartnerAPIError.unauthorized)
+    var startDeviceCodeFlowCalls: Int = 0
 
-    func login(email: String, password: String) async throws -> AuthToken {
-        loginCalls.append((email: email, password: password))
-        return try loginResult.get()
+    func startDeviceCodeFlow() async throws -> DeviceCodeInfo {
+        startDeviceCodeFlowCalls += 1
+        return try startDeviceCodeFlowResult.get()
     }
 
-    // MARK: - login(email:password:twoFactorCode:)
+    // MARK: - pollForAuthorization
 
-    var loginWith2FAResult: Result<AuthToken, Error> = .failure(RingAPIError.twoFactorInvalid)
-    var loginWith2FACalls: [(email: String, password: String, code: String)] = []
+    var pollForAuthorizationResult: Result<AuthToken, Error> = .failure(PartnerAPIError.authorizationPending)
+    var pollForAuthorizationCalls: [String] = []
 
-    func login(email: String, password: String, twoFactorCode: String) async throws -> AuthToken {
-        loginWith2FACalls.append((email: email, password: password, code: twoFactorCode))
-        return try loginWith2FAResult.get()
+    func pollForAuthorization(deviceCode: String) async throws -> AuthToken {
+        pollForAuthorizationCalls.append(deviceCode)
+        return try pollForAuthorizationResult.get()
     }
 
     // MARK: - logout
@@ -40,7 +40,7 @@ final class MockAuthService: AuthService {
 
     // MARK: - getValidToken
 
-    var getValidTokenResult: Result<AuthToken, Error> = .failure(RingAPIError.tokenExpired)
+    var getValidTokenResult: Result<AuthToken, Error> = .failure(PartnerAPIError.unauthorized)
     var getValidTokenCalls: Int = 0
 
     func getValidToken() async throws -> AuthToken {
@@ -48,13 +48,13 @@ final class MockAuthService: AuthService {
         return try getValidTokenResult.get()
     }
 
-    // MARK: - refreshToken
+    // MARK: - fetchTokenFromBackend
 
-    var refreshTokenResult: Result<AuthToken, Error> = .failure(RingAPIError.tokenRefreshFailed)
-    var refreshTokenCalls: Int = 0
+    var fetchTokenFromBackendResult: Result<AuthToken, Error> = .failure(PartnerAPIError.unauthorized)
+    var fetchTokenFromBackendCalls: Int = 0
 
-    func refreshToken() async throws -> AuthToken {
-        refreshTokenCalls += 1
-        return try refreshTokenResult.get()
+    func fetchTokenFromBackend() async throws -> AuthToken {
+        fetchTokenFromBackendCalls += 1
+        return try fetchTokenFromBackendResult.get()
     }
 }

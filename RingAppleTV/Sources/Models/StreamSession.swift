@@ -2,17 +2,19 @@ import Foundation
 
 /// Domain model representing a live stream session from a Ring device.
 ///
-/// Ring uses SIP/WebRTC for live streaming, not HLS. This model captures
-/// the session metadata. Actual video playback requires a WebRTC client
-/// implementation (future work).
-struct StreamSession: Codable, Equatable {
-    let deviceId: Int
-    let sipServerIp: String?
-    let sipServerPort: Int?
-    let sipSessionId: String?
-    let streamProtocol: String
+/// Uses WHEP (WebRTC-HTTP Egress Protocol) for live streaming. The session URL
+/// is the WHEP resource URL used for session termination via HTTP DELETE.
+/// Session duration is derived from the device's power source.
+struct StreamSession: Equatable {
+    let deviceId: String
+    let sessionURL: URL
+    let powerSource: PowerSource
     let createdAt: Date
-    let maxDuration: TimeInterval
+
+    /// Maximum allowed session duration, derived from the device's power source.
+    var maxDuration: TimeInterval {
+        powerSource.sessionDurationLimit
+    }
 
     /// Whether the stream session still has remaining time.
     var isValid: Bool {
@@ -22,10 +24,5 @@ struct StreamSession: Codable, Equatable {
     /// Seconds remaining before the session expires. Always >= 0.
     var remainingTime: TimeInterval {
         max(0, maxDuration - Date().timeIntervalSince(createdAt))
-    }
-
-    /// Whether this is a SIP-based session (which requires WebRTC).
-    var isSipSession: Bool {
-        streamProtocol == "sip"
     }
 }

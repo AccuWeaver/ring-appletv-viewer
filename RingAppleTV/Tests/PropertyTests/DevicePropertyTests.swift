@@ -8,13 +8,12 @@ private nonisolated(unsafe) let deviceTypeGen: Gen<RingDevice.DeviceType> = Gen<
 
 private nonisolated(unsafe) let deviceGen: Gen<RingDevice> = Gen<RingDevice>.compose { c in
     RingDevice(
-        id: c.generate(using: Int.arbitrary.suchThat { $0 > 0 }),
-        description: c.generate(using: String.arbitrary.suchThat { !$0.isEmpty }),
+        id: String(c.generate(using: Int.arbitrary.suchThat { $0 > 0 })),
+        name: c.generate(using: String.arbitrary.suchThat { !$0.isEmpty }),
+        model: c.generate(using: String.arbitrary.suchThat { !$0.isEmpty }),
         deviceType: c.generate(using: deviceTypeGen),
         firmwareVersion: c.generate(using: String?.arbitrary),
-        address: c.generate(using: String?.arbitrary),
-        batteryLife: c.generate(using: Int?.arbitrary),
-        features: nil,
+        powerSource: c.generate(using: Bool.arbitrary) ? .battery : .line,
         isOnline: c.generate(using: Bool.arbitrary)
     )
 }
@@ -68,7 +67,7 @@ final class DevicePropertyTests: XCTestCase {
     func testFilteredResultIsSubsetOfOriginal() {
         let service = DefaultDeviceService(
             authService: MockAuthService(),
-            apiClient: MockRingAPIClient(),
+            partnerAPIClient: MockPartnerAPIClient(),
             cacheService: MockCacheService()
         )
 
@@ -90,7 +89,7 @@ final class DevicePropertyTests: XCTestCase {
                     return filtered.count == devices.count
                 case .name(let query):
                     let lowered = query.lowercased()
-                    return filtered.allSatisfy { $0.description.lowercased().contains(lowered) }
+                    return filtered.allSatisfy { $0.name.lowercased().contains(lowered) }
                 case .type(let deviceType):
                     return filtered.allSatisfy { $0.deviceType == deviceType }
                 case .status(let status):
@@ -108,7 +107,7 @@ final class DevicePropertyTests: XCTestCase {
     func testSortedResultPreservesElementsAndOrder() {
         let service = DefaultDeviceService(
             authService: MockAuthService(),
-            apiClient: MockRingAPIClient(),
+            partnerAPIClient: MockPartnerAPIClient(),
             cacheService: MockCacheService()
         )
 
@@ -130,9 +129,9 @@ final class DevicePropertyTests: XCTestCase {
                     let b = sorted[i + 1]
                     switch sort {
                     case .nameAscending:
-                        guard a.description.localizedCaseInsensitiveCompare(b.description) != .orderedDescending else { return false }
+                        guard a.name.localizedCaseInsensitiveCompare(b.name) != .orderedDescending else { return false }
                     case .nameDescending:
-                        guard a.description.localizedCaseInsensitiveCompare(b.description) != .orderedAscending else { return false }
+                        guard a.name.localizedCaseInsensitiveCompare(b.name) != .orderedAscending else { return false }
                     case .type:
                         guard a.deviceType.rawValue <= b.deviceType.rawValue else { return false }
                     case .status:

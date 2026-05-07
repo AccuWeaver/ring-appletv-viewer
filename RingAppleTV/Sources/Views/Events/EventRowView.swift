@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A single row in the events list showing event type, timestamp, device name, and thumbnail.
+/// A single row in the events list showing event type, timestamp, and device info.
 struct EventRowView: View {
     let event: RingEvent
 
@@ -19,7 +19,7 @@ struct EventRowView: View {
                         .font(.system(size: Constants.UI.bodySize, weight: .medium))
                 }
 
-                Text(event.deviceName)
+                Text("Device \(event.deviceId)")
                     .font(.system(size: Constants.UI.captionSize))
                     .foregroundColor(.secondary)
 
@@ -30,20 +30,16 @@ struct EventRowView: View {
 
             Spacer()
 
-            if event.videoAvailable {
-                Image(systemName: "play.circle.fill")
-                    .font(.system(size: 30))
-                    .foregroundColor(.blue)
-                    .accessibilityHidden(true)
-            }
+            Image(systemName: "play.circle.fill")
+                .font(.system(size: 30))
+                .foregroundColor(.blue)
+                .accessibilityHidden(true)
         }
         .padding(Constants.UI.cardPadding)
         .focusableCard()
         .accessibilityCard(
             label: accessibilityLabelText,
-            hint: event.videoAvailable
-                ? "Double-click to play event recording"
-                : "No video available for this event"
+            hint: "Double-click to play event recording"
         )
     }
 
@@ -74,7 +70,7 @@ struct EventRowView: View {
     private var accessibilityLabelText: String {
         [
             event.eventType.displayName,
-            "from \(event.deviceName)",
+            "from device \(event.deviceId)",
             event.createdAt.relativeTime()
         ].joined(separator: ", ")
     }

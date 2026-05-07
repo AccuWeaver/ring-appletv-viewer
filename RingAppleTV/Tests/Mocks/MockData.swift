@@ -13,7 +13,8 @@ enum MockData {
             refreshToken: "valid-refresh-token-xyz789",
             expiresAt: Date().addingTimeInterval(3600),
             scope: "client",
-            tokenType: "Bearer"
+            tokenType: "Bearer",
+            clientId: nil
         )
     }
 
@@ -24,18 +25,46 @@ enum MockData {
             refreshToken: "expired-refresh-token-old",
             expiresAt: Date().addingTimeInterval(-3600),
             scope: "client",
-            tokenType: "Bearer"
+            tokenType: "Bearer",
+            clientId: nil
         )
     }
 
-    /// A token that needs refresh (expires in 2 minutes, within the 5-minute refresh window).
+    /// A token that needs refresh (expires in 30 seconds, within the 60-second refresh window).
     static var needsRefreshToken: AuthToken {
         AuthToken(
             accessToken: "soon-expiring-access-token",
             refreshToken: "soon-expiring-refresh-token",
-            expiresAt: Date().addingTimeInterval(120),
+            expiresAt: Date().addingTimeInterval(30),
             scope: "client",
-            tokenType: "Bearer"
+            tokenType: "Bearer",
+            clientId: nil
+        )
+    }
+
+    // MARK: - Device Code Flow
+
+    /// A sample device code response from the authorization server.
+    static var deviceCodeResponse: DeviceCodeResponse {
+        DeviceCodeResponse(
+            deviceCode: "test-device-code-abc",
+            userCode: "ABCD-1234",
+            verificationUri: "https://oauth.ring.com/activate",
+            verificationUriComplete: "https://oauth.ring.com/activate?user_code=ABCD-1234",
+            expiresIn: 1800,
+            interval: 5
+        )
+    }
+
+    /// A sample DeviceCodeInfo for display in the UI.
+    static var deviceCodeInfo: DeviceCodeInfo {
+        DeviceCodeInfo(
+            userCode: "ABCD-1234",
+            verificationUri: "https://oauth.ring.com/activate",
+            verificationUriComplete: "https://oauth.ring.com/activate?user_code=ABCD-1234",
+            expiresIn: 1800,
+            pollingInterval: 5,
+            deviceCode: "test-device-code-abc"
         )
     }
 
@@ -44,13 +73,12 @@ enum MockData {
     /// A Ring Video Doorbell.
     static var doorbell: RingDevice {
         RingDevice(
-            id: 1001,
-            description: "Front Door",
+            id: "1001",
+            name: "Front Door",
+            model: "doorbell",
             deviceType: .doorbell,
             firmwareVersion: "1.18.0",
-            address: "123 Main St",
-            batteryLife: 85,
-            features: RingDevice.DeviceFeatures(motionDetection: true, nightVision: true),
+            powerSource: .line,
             isOnline: true
         )
     }
@@ -58,13 +86,12 @@ enum MockData {
     /// A Ring Stick Up Cam.
     static var stickupCam: RingDevice {
         RingDevice(
-            id: 2002,
-            description: "Backyard Camera",
+            id: "2002",
+            name: "Backyard Camera",
+            model: "stickup_cam",
             deviceType: .stickupCam,
             firmwareVersion: "2.4.1",
-            address: nil,
-            batteryLife: 62,
-            features: RingDevice.DeviceFeatures(motionDetection: true, nightVision: true),
+            powerSource: .battery,
             isOnline: true
         )
     }
@@ -72,13 +99,12 @@ enum MockData {
     /// A Ring Indoor Cam (offline).
     static var indoorCam: RingDevice {
         RingDevice(
-            id: 3003,
-            description: "Living Room",
+            id: "3003",
+            name: "Living Room",
+            model: "indoor_cam",
             deviceType: .indoorCam,
             firmwareVersion: "1.2.0",
-            address: nil,
-            batteryLife: nil,
-            features: RingDevice.DeviceFeatures(motionDetection: true, nightVision: false),
+            powerSource: .line,
             isOnline: false
         )
     }
@@ -88,47 +114,85 @@ enum MockData {
         [doorbell, stickupCam, indoorCam]
     }
 
+    // MARK: - Partner Device Resources
+
+    /// A sample PartnerDeviceResource for a doorbell.
+    static var partnerDoorbellResource: PartnerDeviceResource {
+        PartnerDeviceResource(
+            id: "1001",
+            type: "device",
+            attributes: PartnerDeviceResource.DeviceAttributes(
+                name: "Front Door",
+                model: "doorbell",
+                firmwareVersion: "1.18.0",
+                powerSource: "line",
+                status: "online"
+            )
+        )
+    }
+
+    /// A sample PartnerDeviceResource for a stickup cam.
+    static var partnerStickupCamResource: PartnerDeviceResource {
+        PartnerDeviceResource(
+            id: "2002",
+            type: "device",
+            attributes: PartnerDeviceResource.DeviceAttributes(
+                name: "Backyard Camera",
+                model: "stickup_cam",
+                firmwareVersion: "2.4.1",
+                powerSource: "battery",
+                status: "online"
+            )
+        )
+    }
+
+    /// A sample PartnerDeviceResource with unknown model and absent status.
+    static var partnerUnknownDeviceResource: PartnerDeviceResource {
+        PartnerDeviceResource(
+            id: "9999",
+            type: "device",
+            attributes: PartnerDeviceResource.DeviceAttributes(
+                name: "Future Device",
+                model: "some_future_device",
+                firmwareVersion: nil,
+                powerSource: "battery",
+                status: nil
+            )
+        )
+    }
+
     // MARK: - Events
 
     /// A motion event from the doorbell.
     static var motionEvent: RingEvent {
         RingEvent(
-            id: 5001,
-            deviceId: 1001,
-            deviceName: "Front Door",
+            id: "5001",
+            deviceId: "1001",
             eventType: .motion,
             createdAt: Date().addingTimeInterval(-1800),
-            duration: 30,
-            thumbnailURL: URL(string: "https://ring.com/thumb/5001.jpg"),
-            videoAvailable: true
+            duration: 30
         )
     }
 
     /// A doorbell press (ding) event.
     static var dingEvent: RingEvent {
         RingEvent(
-            id: 5002,
-            deviceId: 1001,
-            deviceName: "Front Door",
+            id: "5002",
+            deviceId: "1001",
             eventType: .ding,
             createdAt: Date().addingTimeInterval(-3600),
-            duration: 15,
-            thumbnailURL: URL(string: "https://ring.com/thumb/5002.jpg"),
-            videoAvailable: true
+            duration: 15
         )
     }
 
-    /// A motion event from the stickup cam (no video).
+    /// A motion event from the stickup cam.
     static var motionEventNoVideo: RingEvent {
         RingEvent(
-            id: 5003,
-            deviceId: 2002,
-            deviceName: "Backyard Camera",
+            id: "5003",
+            deviceId: "2002",
             eventType: .motion,
             createdAt: Date().addingTimeInterval(-7200),
-            duration: 20,
-            thumbnailURL: nil,
-            videoAvailable: false
+            duration: 20
         )
     }
 
@@ -137,18 +201,59 @@ enum MockData {
         [motionEvent, dingEvent, motionEventNoVideo]
     }
 
+    // MARK: - Partner Event Resources
+
+    /// A sample PartnerEventResource for a motion event.
+    static var partnerMotionEventResource: PartnerEventResource {
+        PartnerEventResource(
+            id: "5001",
+            deviceId: "1001",
+            type: "motion",
+            createdAt: "2025-01-15T10:30:00Z",
+            duration: 30
+        )
+    }
+
+    /// A sample PartnerEventResource for a ding event.
+    static var partnerDingEventResource: PartnerEventResource {
+        PartnerEventResource(
+            id: "5002",
+            deviceId: "1001",
+            type: "ding",
+            createdAt: "2025-01-15T09:30:00Z",
+            duration: 15
+        )
+    }
+
     // MARK: - Stream Sessions
 
     /// A valid stream session created just now.
     static var validStreamSession: StreamSession {
         StreamSession(
-            deviceId: 1001,
-            sipServerIp: "52.12.182.65",
-            sipServerPort: 15064,
-            sipSessionId: "test-session",
-            protocol_: "sip",
-            createdAt: Date(),
-            maxDuration: 600
+            deviceId: "1001",
+            sessionURL: URL(string: "https://api.amazonvision.com/v1/sessions/test-session")!,
+            powerSource: .line,
+            createdAt: Date()
+        )
+    }
+
+    /// An expired stream session.
+    static var expiredStreamSession: StreamSession {
+        StreamSession(
+            deviceId: "1001",
+            sessionURL: URL(string: "https://api.amazonvision.com/v1/sessions/expired-session")!,
+            powerSource: .line,
+            createdAt: Date().addingTimeInterval(-700)
+        )
+    }
+
+    // MARK: - WHEP Session
+
+    /// A sample WHEPSessionResponse.
+    static var whepSessionResponse: WHEPSessionResponse {
+        WHEPSessionResponse(
+            sdpAnswer: "v=0\r\no=- 0 0 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\n",
+            sessionURL: URL(string: "https://api.amazonvision.com/v1/devices/1001/media/streaming/whep/sessions/abc123")!
         )
     }
 
@@ -163,16 +268,11 @@ enum MockData {
         ])
     }
 
-    /// An expired stream session.
-    static var expiredStreamSession: StreamSession {
-        StreamSession(
-            deviceId: 1001,
-            sipServerIp: "52.12.182.65",
-            sipServerPort: 15064,
-            sipSessionId: "test-session",
-            protocol_: "sip",
-            createdAt: Date().addingTimeInterval(-700),
-            maxDuration: 600
-        )
-    }
+    // MARK: - Power Source
+
+    /// Battery power source.
+    static var batteryPowerSource: PowerSource { .battery }
+
+    /// Line power source.
+    static var linePowerSource: PowerSource { .line }
 }

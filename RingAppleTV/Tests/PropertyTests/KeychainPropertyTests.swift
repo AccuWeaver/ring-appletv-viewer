@@ -14,7 +14,7 @@ extension AuthToken: Arbitrary {
                     Int.arbitrary.suchThat { $0 > 0 && $0 < 4_000_000_000 }
                 ))),
                 scope: composer.generate(using: String?.arbitrary),
-                tokenType: "Bearer"
+                tokenType: "Bearer", clientId: nil
             )
         }
     }

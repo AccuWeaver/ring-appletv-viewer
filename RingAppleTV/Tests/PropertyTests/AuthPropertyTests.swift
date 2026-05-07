@@ -12,7 +12,7 @@ private nonisolated(unsafe) let expiredTokenGen: Gen<AuthToken> = Gen<AuthToken>
         refreshToken: composer.generate(using: String.arbitrary.suchThat { !$0.isEmpty }),
         expiresAt: Date().addingTimeInterval(-Double(pastOffset)),
         scope: composer.generate(using: String?.arbitrary),
-        tokenType: "Bearer"
+        tokenType: "Bearer", clientId: nil
     )
 }
 
@@ -35,24 +35,25 @@ final class AuthPropertyTests: XCTestCase {
         property("Feature: AppleTVRing, Property 2: Token refresh always yields non-expired token")
             <- forAll(expiredTokenGen) { (expiredToken: AuthToken) in
                 // Set up fresh mocks for each iteration
-                let mockAPI = MockRingAPIClient()
+                let mockAPI = MockPartnerAPIClient()
                 let mockKeychain = MockKeychainService()
 
                 // Configure the mock API to return a fresh token (1 hour expiry)
-                let freshResponse = AuthTokenResponse(
+                let freshToken = AuthToken(
                     accessToken: "refreshed_\(UUID().uuidString)",
                     refreshToken: "new_refresh_\(UUID().uuidString)",
-                    expiresIn: 3600,
+                    expiresAt: Date().addingTimeInterval(3600),
                     scope: "client",
-                    tokenType: "Bearer"
+                    tokenType: "Bearer",
+                    clientId: nil
                 )
-                mockAPI.refreshTokenResult = .success(freshResponse)
+                mockAPI.refreshTokenResult = .success(freshToken)
 
                 // Store the expired token in the keychain
                 guard let data = try? encoder.encode(expiredToken) else { return false }
                 guard (try? mockKeychain.save(data, for: "auth_token")) != nil else { return false }
 
-                let service = DefaultAuthService(apiClient: mockAPI, keychainService: mockKeychain)
+                let service = DefaultAuthService(partnerAPIClient: mockAPI, keychainService: mockKeychain)
 
                 // Call getValidToken — should auto-refresh
                 let semaphore = DispatchSemaphore(value: 0)

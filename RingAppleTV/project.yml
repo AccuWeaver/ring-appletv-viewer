@@ -11,6 +11,9 @@ targets:
     platform: tvOS
     sources:
       - path: Sources
+    resources:
+      - path: app-credentials.csv
+        optional: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ringappletv

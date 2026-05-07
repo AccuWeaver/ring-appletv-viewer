@@ -22,7 +22,7 @@ final class EventsViewModel: ObservableObject {
     // MARK: - Actions
 
     /// Load events, optionally filtered to a specific device.
-    func loadEvents(for deviceId: Int? = nil) async {
+    func loadEvents(for deviceId: String? = nil) async {
         state = .loading
 
         do {
@@ -37,7 +37,7 @@ final class EventsViewModel: ObservableObject {
             } else {
                 state = .loaded(events)
             }
-        } catch let error as RingAPIError {
+        } catch let error as PartnerAPIError {
             state = .error(error.userMessage)
         } catch {
             state = .error(error.localizedDescription)
@@ -45,7 +45,7 @@ final class EventsViewModel: ObservableObject {
     }
 
     /// Force refresh events.
-    func refresh(for deviceId: Int? = nil) async {
+    func refresh(for deviceId: String? = nil) async {
         await loadEvents(for: deviceId)
     }
 }

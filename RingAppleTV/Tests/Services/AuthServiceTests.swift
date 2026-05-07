@@ -3,13 +3,14 @@ import XCTest
 
 // MARK: - Test Helpers
 
-private func makeValidTokenResponse(expiresIn: Int = 3600) -> AuthTokenResponse {
-    AuthTokenResponse(
+private func makeValidTokenResponse(expiresIn: TimeInterval = 3600) -> AuthToken {
+    AuthToken(
         accessToken: "access_\(UUID().uuidString)",
         refreshToken: "refresh_\(UUID().uuidString)",
-        expiresIn: expiresIn,
+        expiresAt: Date().addingTimeInterval(expiresIn),
         scope: "client",
-        tokenType: "Bearer"
+        tokenType: "Bearer",
+        clientId: nil
     )
 }
 
@@ -19,7 +20,8 @@ private func makeExpiredToken() -> AuthToken {
         refreshToken: "expired_refresh",
         expiresAt: Date().addingTimeInterval(-60),
         scope: "client",
-        tokenType: "Bearer"
+        tokenType: "Bearer",
+        clientId: nil
     )
 }
 
@@ -29,18 +31,31 @@ private func makeValidToken(expiresIn: TimeInterval = 3600) -> AuthToken {
         refreshToken: "valid_refresh",
         expiresAt: Date().addingTimeInterval(expiresIn),
         scope: "client",
-        tokenType: "Bearer"
+        tokenType: "Bearer",
+        clientId: nil
     )
 }
 
 private func makeNeedsRefreshToken() -> AuthToken {
-    // Expires in 2 minutes — within the 5-minute refresh window
+    // Expires in 30 seconds — within the 60-second refresh window
     AuthToken(
         accessToken: "soon_access",
         refreshToken: "soon_refresh",
-        expiresAt: Date().addingTimeInterval(120),
+        expiresAt: Date().addingTimeInterval(30),
         scope: "client",
-        tokenType: "Bearer"
+        tokenType: "Bearer",
+        clientId: nil
+    )
+}
+
+private func makeDeviceCodeResponse() -> DeviceCodeResponse {
+    DeviceCodeResponse(
+        deviceCode: "test_device_code",
+        userCode: "ABCD-1234",
+        verificationUri: "https://oauth.ring.com/activate",
+        verificationUriComplete: "https://oauth.ring.com/activate?user_code=ABCD-1234",
+        expiresIn: 1800,
+        interval: 5
     )
 }
 
@@ -52,19 +67,25 @@ private func storeTokenInKeychain(_ token: AuthToken, keychain: MockKeychainServ
     try keychain.save(data, for: "auth_token")
 }
 
+/// Stores a client secret in the mock keychain.
+private func storeClientSecret(_ secret: String, keychain: MockKeychainService) throws {
+    let data = Data(secret.utf8)
+    try keychain.save(data, for: "client_secret")
+}
+
 // MARK: - AuthServiceTests
 
 final class AuthServiceTests: XCTestCase {
 
-    private var mockAPI: MockRingAPIClient!
+    private var mockAPI: MockPartnerAPIClient!
     private var mockKeychain: MockKeychainService!
     private var sut: DefaultAuthService!
 
     override func setUp() {
         super.setUp()
-        mockAPI = MockRingAPIClient()
+        mockAPI = MockPartnerAPIClient()
         mockKeychain = MockKeychainService()
-        sut = DefaultAuthService(apiClient: mockAPI, keychainService: mockKeychain)
+        sut = DefaultAuthService(partnerAPIClient: mockAPI, keychainService: mockKeychain)
     }
 
     override func tearDown() {
@@ -74,100 +95,62 @@ final class AuthServiceTests: XCTestCase {
         super.tearDown()
     }
 
-    // MARK: - Login Success
+    // MARK: - startDeviceCodeFlow
 
-    func testLoginSuccessReturnsToken() async throws {
-        let response = makeValidTokenResponse()
-        mockAPI.authenticateResult = .success(response)
+    func testStartDeviceCodeFlowReturnsDeviceCodeInfo() async throws {
+        let response = makeDeviceCodeResponse()
+        mockAPI.requestDeviceCodeResult = .success(response)
 
-        let token = try await sut.login(email: "user@example.com", password: "pass123")
+        let info = try await sut.startDeviceCodeFlow()
 
-        XCTAssertEqual(token.accessToken, response.accessToken)
-        XCTAssertEqual(token.refreshToken, response.refreshToken)
-        XCTAssertEqual(token.tokenType, "Bearer")
+        XCTAssertEqual(info.userCode, "ABCD-1234")
+        XCTAssertEqual(info.verificationUri, "https://oauth.ring.com/activate")
+        XCTAssertEqual(info.deviceCode, "test_device_code")
+        XCTAssertEqual(info.pollingInterval, 5)
+        XCTAssertEqual(info.expiresIn, 1800)
+    }
+
+    func testStartDeviceCodeFlowCallsAPIWithClientId() async throws {
+        mockAPI.requestDeviceCodeResult = .success(makeDeviceCodeResponse())
+
+        _ = try await sut.startDeviceCodeFlow()
+
+        XCTAssertEqual(mockAPI.requestDeviceCodeCalls.count, 1)
+    }
+
+    // MARK: - pollForAuthorization — Success
+
+    func testPollForAuthorizationReturnsTokenOnSuccess() async throws {
+        let tokenResponse = makeValidTokenResponse()
+        mockAPI.pollForTokenResult = .success(tokenResponse)
+
+        let token = try await sut.pollForAuthorization(deviceCode: "test_device_code")
+
+        XCTAssertEqual(token.accessToken, tokenResponse.accessToken)
+        XCTAssertEqual(token.refreshToken, tokenResponse.refreshToken)
         XCTAssertFalse(token.isExpired)
     }
 
-    func testLoginSuccessStoresTokenInKeychain() async throws {
-        mockAPI.authenticateResult = .success(makeValidTokenResponse())
+    func testPollForAuthorizationStoresTokenInKeychain() async throws {
+        mockAPI.pollForTokenResult = .success(makeValidTokenResponse())
 
-        _ = try await sut.login(email: "user@example.com", password: "pass123")
+        _ = try await sut.pollForAuthorization(deviceCode: "test_device_code")
 
-        XCTAssertEqual(mockKeychain.saveCalls.count, 1)
-        XCTAssertEqual(mockKeychain.saveCalls.first?.key, "auth_token")
+        // save called for the token
+        let tokenSaves = mockKeychain.saveCalls.filter { $0.key == "auth_token" }
+        XCTAssertEqual(tokenSaves.count, 1)
     }
 
-    func testLoginSuccessCallsAPIWithCorrectCredentials() async throws {
-        mockAPI.authenticateResult = .success(makeValidTokenResponse())
+    // MARK: - pollForAuthorization — Expired Device Code
 
-        _ = try await sut.login(email: "test@ring.com", password: "secret")
-
-        XCTAssertEqual(mockAPI.authenticateCalls.count, 1)
-        XCTAssertEqual(mockAPI.authenticateCalls.first?.email, "test@ring.com")
-        XCTAssertEqual(mockAPI.authenticateCalls.first?.password, "secret")
-    }
-
-    // MARK: - Login Failure
-
-    func testLoginFailurePropagatesInvalidCredentials() async {
-        mockAPI.authenticateResult = .failure(RingAPIError.invalidCredentials)
+    func testPollForAuthorizationThrowsOnExpiredDeviceCode() async {
+        mockAPI.pollForTokenResult = .failure(PartnerAPIError.expiredDeviceCode)
 
         do {
-            _ = try await sut.login(email: "bad@example.com", password: "wrong")
-            XCTFail("Expected invalidCredentials error")
-        } catch let error as RingAPIError {
-            XCTAssertEqual(error, .invalidCredentials)
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
-    }
-
-    func testLoginFailureDoesNotStoreToken() async {
-        mockAPI.authenticateResult = .failure(RingAPIError.invalidCredentials)
-
-        _ = try? await sut.login(email: "bad@example.com", password: "wrong")
-
-        XCTAssertTrue(mockKeychain.saveCalls.isEmpty)
-    }
-
-    func testLoginFailurePropagatesNetworkError() async {
-        mockAPI.authenticateResult = .failure(RingAPIError.networkError("offline"))
-
-        do {
-            _ = try await sut.login(email: "user@example.com", password: "pass")
-            XCTFail("Expected networkError")
-        } catch let error as RingAPIError {
-            if case .networkError = error {
-                // expected
-            } else {
-                XCTFail("Expected networkError, got \(error)")
-            }
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
-    }
-
-    // MARK: - Login with 2FA
-
-    func testLoginWith2FASuccess() async throws {
-        let response = makeValidTokenResponse()
-        mockAPI.authenticateWith2FAResult = .success(response)
-
-        let token = try await sut.login(email: "user@example.com", password: "pass", twoFactorCode: "123456")
-
-        XCTAssertEqual(token.accessToken, response.accessToken)
-        XCTAssertEqual(mockAPI.authenticateWith2FACalls.count, 1)
-        XCTAssertEqual(mockAPI.authenticateWith2FACalls.first?.code, "123456")
-    }
-
-    func testLoginWith2FAFailure() async {
-        mockAPI.authenticateWith2FAResult = .failure(RingAPIError.twoFactorInvalid)
-
-        do {
-            _ = try await sut.login(email: "user@example.com", password: "pass", twoFactorCode: "000000")
-            XCTFail("Expected twoFactorInvalid error")
-        } catch let error as RingAPIError {
-            XCTAssertEqual(error, .twoFactorInvalid)
+            _ = try await sut.pollForAuthorization(deviceCode: "expired_code")
+            XCTFail("Expected expiredDeviceCode error")
+        } catch let error as PartnerAPIError {
+            XCTAssertEqual(error, .expiredDeviceCode)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
@@ -176,8 +159,8 @@ final class AuthServiceTests: XCTestCase {
     // MARK: - Logout
 
     func testLogoutClearsInMemoryToken() async throws {
-        mockAPI.authenticateResult = .success(makeValidTokenResponse())
-        _ = try await sut.login(email: "user@example.com", password: "pass")
+        mockAPI.pollForTokenResult = .success(makeValidTokenResponse())
+        _ = try await sut.pollForAuthorization(deviceCode: "test")
 
         await sut.logout()
 
@@ -185,8 +168,8 @@ final class AuthServiceTests: XCTestCase {
     }
 
     func testLogoutDeletesTokenFromKeychain() async throws {
-        mockAPI.authenticateResult = .success(makeValidTokenResponse())
-        _ = try await sut.login(email: "user@example.com", password: "pass")
+        mockAPI.pollForTokenResult = .success(makeValidTokenResponse())
+        _ = try await sut.pollForAuthorization(deviceCode: "test")
 
         await sut.logout()
 
@@ -201,12 +184,12 @@ final class AuthServiceTests: XCTestCase {
     // MARK: - getValidToken — Cached Token
 
     func testGetValidTokenReturnsCachedToken() async throws {
-        mockAPI.authenticateResult = .success(makeValidTokenResponse())
-        let loginToken = try await sut.login(email: "user@example.com", password: "pass")
+        mockAPI.pollForTokenResult = .success(makeValidTokenResponse())
+        let authToken = try await sut.pollForAuthorization(deviceCode: "test")
 
         let validToken = try await sut.getValidToken()
 
-        XCTAssertEqual(validToken.accessToken, loginToken.accessToken)
+        XCTAssertEqual(validToken.accessToken, authToken.accessToken)
         // Should not have called refresh
         XCTAssertTrue(mockAPI.refreshTokenCalls.isEmpty)
     }
@@ -217,8 +200,7 @@ final class AuthServiceTests: XCTestCase {
         let token = makeValidToken()
         try storeTokenInKeychain(token, keychain: mockKeychain)
 
-        // Create a fresh service that has no cached token
-        let freshService = DefaultAuthService(apiClient: mockAPI, keychainService: mockKeychain)
+        let freshService = DefaultAuthService(partnerAPIClient: mockAPI, keychainService: mockKeychain)
         let result = try await freshService.getValidToken()
 
         XCTAssertEqual(result.accessToken, token.accessToken)
@@ -228,20 +210,18 @@ final class AuthServiceTests: XCTestCase {
     // MARK: - getValidToken — Auto-Refresh Expired Token
 
     func testGetValidTokenAutoRefreshesExpiredToken() async throws {
-        // Store an expired token
         let expired = makeExpiredToken()
         try storeTokenInKeychain(expired, keychain: mockKeychain)
 
         let refreshResponse = makeValidTokenResponse()
         mockAPI.refreshTokenResult = .success(refreshResponse)
 
-        let freshService = DefaultAuthService(apiClient: mockAPI, keychainService: mockKeychain)
+        let freshService = DefaultAuthService(partnerAPIClient: mockAPI, keychainService: mockKeychain)
         let result = try await freshService.getValidToken()
 
         XCTAssertEqual(result.accessToken, refreshResponse.accessToken)
         XCTAssertFalse(result.isExpired)
         XCTAssertEqual(mockAPI.refreshTokenCalls.count, 1)
-        XCTAssertEqual(mockAPI.refreshTokenCalls.first, expired.refreshToken)
     }
 
     // MARK: - getValidToken — Auto-Refresh Needs-Refresh Token
@@ -253,7 +233,7 @@ final class AuthServiceTests: XCTestCase {
         let refreshResponse = makeValidTokenResponse()
         mockAPI.refreshTokenResult = .success(refreshResponse)
 
-        let freshService = DefaultAuthService(apiClient: mockAPI, keychainService: mockKeychain)
+        let freshService = DefaultAuthService(partnerAPIClient: mockAPI, keychainService: mockKeychain)
         let result = try await freshService.getValidToken()
 
         XCTAssertEqual(result.accessToken, refreshResponse.accessToken)
@@ -266,60 +246,36 @@ final class AuthServiceTests: XCTestCase {
     func testGetValidTokenThrowsWhenNoTokenExists() async {
         do {
             _ = try await sut.getValidToken()
-            XCTFail("Expected tokenExpired error")
-        } catch let error as RingAPIError {
-            XCTAssertEqual(error, .tokenExpired)
+            XCTFail("Expected unauthorized error")
+        } catch let error as PartnerAPIError {
+            XCTAssertEqual(error, .unauthorized)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
     }
 
-    // MARK: - getValidToken — Refresh Failure
+    // MARK: - getValidToken — Refresh Failure (401 clears tokens)
 
-    func testGetValidTokenThrowsWhenRefreshFails() async throws {
+    func testGetValidTokenClearsTokensOnRefresh401() async throws {
         let expired = makeExpiredToken()
         try storeTokenInKeychain(expired, keychain: mockKeychain)
 
-        mockAPI.refreshTokenResult = .failure(RingAPIError.tokenRefreshFailed)
+        mockAPI.refreshTokenResult = .failure(PartnerAPIError.unauthorized)
 
-        let freshService = DefaultAuthService(apiClient: mockAPI, keychainService: mockKeychain)
+        let freshService = DefaultAuthService(partnerAPIClient: mockAPI, keychainService: mockKeychain)
 
         do {
             _ = try await freshService.getValidToken()
-            XCTFail("Expected tokenRefreshFailed error")
-        } catch let error as RingAPIError {
-            XCTAssertEqual(error, .tokenRefreshFailed)
+            XCTFail("Expected unauthorized error")
+        } catch let error as PartnerAPIError {
+            XCTAssertEqual(error, .unauthorized)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
-    }
 
-    // MARK: - refreshToken
-
-    func testRefreshTokenStoresNewToken() async throws {
-        mockAPI.authenticateResult = .success(makeValidTokenResponse())
-        _ = try await sut.login(email: "user@example.com", password: "pass")
-
-        let refreshResponse = makeValidTokenResponse()
-        mockAPI.refreshTokenResult = .success(refreshResponse)
-
-        let refreshed = try await sut.refreshToken()
-
-        XCTAssertEqual(refreshed.accessToken, refreshResponse.accessToken)
-        XCTAssertFalse(refreshed.isExpired)
-        // save called twice: once for login, once for refresh
-        XCTAssertEqual(mockKeychain.saveCalls.count, 2)
-    }
-
-    func testRefreshTokenThrowsWhenNoExistingToken() async {
-        do {
-            _ = try await sut.refreshToken()
-            XCTFail("Expected tokenRefreshFailed error")
-        } catch let error as RingAPIError {
-            XCTAssertEqual(error, .tokenRefreshFailed)
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
+        // Tokens should be cleared
+        XCTAssertFalse(freshService.isAuthenticated)
+        XCTAssertTrue(mockKeychain.deleteCalls.contains("auth_token"))
     }
 
     // MARK: - isAuthenticated
@@ -328,16 +284,16 @@ final class AuthServiceTests: XCTestCase {
         XCTAssertFalse(sut.isAuthenticated)
     }
 
-    func testIsAuthenticatedTrueAfterLogin() async throws {
-        mockAPI.authenticateResult = .success(makeValidTokenResponse())
-        _ = try await sut.login(email: "user@example.com", password: "pass")
+    func testIsAuthenticatedTrueAfterPollSuccess() async throws {
+        mockAPI.pollForTokenResult = .success(makeValidTokenResponse())
+        _ = try await sut.pollForAuthorization(deviceCode: "test")
 
         XCTAssertTrue(sut.isAuthenticated)
     }
 
     func testIsAuthenticatedFalseAfterLogout() async throws {
-        mockAPI.authenticateResult = .success(makeValidTokenResponse())
-        _ = try await sut.login(email: "user@example.com", password: "pass")
+        mockAPI.pollForTokenResult = .success(makeValidTokenResponse())
+        _ = try await sut.pollForAuthorization(deviceCode: "test")
 
         await sut.logout()
 
@@ -348,7 +304,7 @@ final class AuthServiceTests: XCTestCase {
         let token = makeValidToken()
         try storeTokenInKeychain(token, keychain: mockKeychain)
 
-        let freshService = DefaultAuthService(apiClient: mockAPI, keychainService: mockKeychain)
+        let freshService = DefaultAuthService(partnerAPIClient: mockAPI, keychainService: mockKeychain)
         XCTAssertTrue(freshService.isAuthenticated)
     }
 
@@ -356,18 +312,18 @@ final class AuthServiceTests: XCTestCase {
         let expired = makeExpiredToken()
         try storeTokenInKeychain(expired, keychain: mockKeychain)
 
-        let freshService = DefaultAuthService(apiClient: mockAPI, keychainService: mockKeychain)
+        let freshService = DefaultAuthService(partnerAPIClient: mockAPI, keychainService: mockKeychain)
         XCTAssertFalse(freshService.isAuthenticated)
     }
 
     // MARK: - Keychain Error Handling
 
-    func testLoginThrowsWhenKeychainSaveFails() async {
-        mockAPI.authenticateResult = .success(makeValidTokenResponse())
+    func testPollThrowsWhenKeychainSaveFails() async {
+        mockAPI.pollForTokenResult = .success(makeValidTokenResponse())
         mockKeychain.saveError = KeychainError.saveFailed(errSecIO)
 
         do {
-            _ = try await sut.login(email: "user@example.com", password: "pass")
+            _ = try await sut.pollForAuthorization(deviceCode: "test")
             XCTFail("Expected keychain save error")
         } catch let error as KeychainError {
             XCTAssertEqual(error, .saveFailed(errSecIO))

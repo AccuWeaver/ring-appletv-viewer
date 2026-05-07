@@ -11,9 +11,9 @@ import BackgroundTasks
 /// ready when the user opens the app.
 ///
 /// `BGTaskScheduler` is unavailable on macOS, so on that platform the
-/// implementation reduces to a no-op stub. This keeps the Swift package
-/// buildable in the CI's default macOS environment without conditional
-/// imports leaking into every caller.
+/// implementation reduces to a no-op stub. This keeps the package buildable
+/// in an SPM-on-macOS environment without conditional imports leaking into
+/// every caller.
 final class BackgroundRefreshManager: @unchecked Sendable {
 
     // MARK: - Constants
@@ -29,7 +29,7 @@ final class BackgroundRefreshManager: @unchecked Sendable {
     // MARK: - Dependencies
 
     nonisolated(unsafe) private let deviceService: DeviceService
-    private let snapshotService: SnapshotService
+    private let mediaService: MediaService
 
     // MARK: - Logging
 
@@ -37,9 +37,9 @@ final class BackgroundRefreshManager: @unchecked Sendable {
 
     // MARK: - Init
 
-    init(deviceService: DeviceService, snapshotService: SnapshotService) {
+    init(deviceService: DeviceService, mediaService: MediaService) {
         self.deviceService = deviceService
-        self.snapshotService = snapshotService
+        self.mediaService = mediaService
     }
 
     // MARK: - Registration
@@ -79,7 +79,7 @@ final class BackgroundRefreshManager: @unchecked Sendable {
         scheduleNextRefresh()
 
         let deviceService = self.deviceService
-        let snapshotService = self.snapshotService
+        let mediaService = self.mediaService
         let logger = self.logger
         nonisolated(unsafe) let bgTask = task
 
@@ -93,14 +93,13 @@ final class BackgroundRefreshManager: @unchecked Sendable {
 
                 logger.debug("Background refresh: fetching snapshots for \(devicesToRefresh.count) devices")
 
-                // Fetch snapshots in parallel — results are stored in the snapshot cache
-                // by the SnapshotService automatically
+                // Fetch snapshots in parallel using MediaService
                 await withTaskGroup(of: Void.self) { group in
                     for device in devicesToRefresh {
                         let deviceId = device.id
                         group.addTask {
                             do {
-                                _ = try await snapshotService.getSnapshot(for: deviceId)
+                                _ = try await mediaService.downloadSnapshot(deviceId: deviceId)
                             } catch {
                                 // Silently ignore individual snapshot failures during background refresh
                             }

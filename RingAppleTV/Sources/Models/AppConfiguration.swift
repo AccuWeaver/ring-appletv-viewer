@@ -10,8 +10,6 @@ struct AppConfiguration: Codable, Equatable {
     var enableDebugLogging: Bool
     /// Timeout in seconds before a live-stream request is considered failed.
     var streamTimeoutSeconds: TimeInterval
-    /// Maximum allowed duration for a single live-stream session.
-    var maxStreamDuration: TimeInterval
     /// Interval in seconds between automatic device-list refreshes.
     var deviceRefreshInterval: TimeInterval
     /// Number of hours of event history to fetch.
@@ -24,29 +22,39 @@ struct AppConfiguration: Codable, Equatable {
     var enableCrashReporting: Bool
     /// Whether to collect anonymous local analytics.
     var enableLocalAnalytics: Bool
+    /// Base URL of the partner auth backend service.
+    var authBackendBaseURL: String
+    /// API key for authenticating with the auth backend.
+    var authBackendAPIKey: String
+    /// User identifier for token retrieval from the auth backend.
+    var authBackendUserId: String
 
     init(
-        useMocks: Bool = false,
+        useMocks: Bool = true,
         enableDebugLogging: Bool = false,
         streamTimeoutSeconds: TimeInterval = 600,
-        maxStreamDuration: TimeInterval = 600,
         deviceRefreshInterval: TimeInterval = 60,
         eventHistoryHours: Int = 48,
         maxEventCount: Int = 50,
         cacheExpirationSeconds: TimeInterval = 300,
         enableCrashReporting: Bool = true,
-        enableLocalAnalytics: Bool = false
+        enableLocalAnalytics: Bool = false,
+        authBackendBaseURL: String = "http://localhost:8000",
+        authBackendAPIKey: String = "local-dev-api-key",
+        authBackendUserId: String = "default"
     ) {
         self.useMocks = useMocks
         self.enableDebugLogging = enableDebugLogging
         self.streamTimeoutSeconds = streamTimeoutSeconds
-        self.maxStreamDuration = maxStreamDuration
         self.deviceRefreshInterval = deviceRefreshInterval
         self.eventHistoryHours = eventHistoryHours
         self.maxEventCount = maxEventCount
         self.cacheExpirationSeconds = cacheExpirationSeconds
         self.enableCrashReporting = enableCrashReporting
         self.enableLocalAnalytics = enableLocalAnalytics
+        self.authBackendBaseURL = authBackendBaseURL
+        self.authBackendAPIKey = authBackendAPIKey
+        self.authBackendUserId = authBackendUserId
     }
 
     // MARK: - Codable (defaults for missing keys)
@@ -60,8 +68,6 @@ struct AppConfiguration: Codable, Equatable {
             ?? defaults.enableDebugLogging
         streamTimeoutSeconds = try container.decodeIfPresent(TimeInterval.self, forKey: .streamTimeoutSeconds)
             ?? defaults.streamTimeoutSeconds
-        maxStreamDuration = try container.decodeIfPresent(TimeInterval.self, forKey: .maxStreamDuration)
-            ?? defaults.maxStreamDuration
         deviceRefreshInterval = try container.decodeIfPresent(TimeInterval.self, forKey: .deviceRefreshInterval)
             ?? defaults.deviceRefreshInterval
         eventHistoryHours = try container.decodeIfPresent(Int.self, forKey: .eventHistoryHours)
@@ -74,5 +80,11 @@ struct AppConfiguration: Codable, Equatable {
             ?? defaults.enableCrashReporting
         enableLocalAnalytics = try container.decodeIfPresent(Bool.self, forKey: .enableLocalAnalytics)
             ?? defaults.enableLocalAnalytics
+        authBackendBaseURL = try container.decodeIfPresent(String.self, forKey: .authBackendBaseURL)
+            ?? defaults.authBackendBaseURL
+        authBackendAPIKey = try container.decodeIfPresent(String.self, forKey: .authBackendAPIKey)
+            ?? defaults.authBackendAPIKey
+        authBackendUserId = try container.decodeIfPresent(String.self, forKey: .authBackendUserId)
+            ?? defaults.authBackendUserId
     }
 }

@@ -10,17 +10,8 @@ enum Constants {
         /// Ring OAuth base URL for authentication.
         static let oauthBaseURL = "https://oauth.ring.com"
 
-        /// Ring REST API base URL for device/event operations.
-        static let apiBaseURL = "https://api.ring.com"
-
-        /// OAuth token endpoint.
-        static let tokenEndpoint = "\(oauthBaseURL)/oauth/token"
-
-        /// Devices endpoint.
-        static let devicesEndpoint = "\(apiBaseURL)/clients_api/ring_devices"
-
-        /// Event history endpoint template (replace `%d` with device ID).
-        static let eventHistoryEndpoint = "\(apiBaseURL)/clients_api/doorbots/%d/history"
+        /// Ring Partner API base URL for device/event operations.
+        static let partnerAPIBaseURL = "https://api.amazonvision.com/v1"
     }
 
     // MARK: - Config Defaults
@@ -28,9 +19,6 @@ enum Constants {
     enum Config {
         /// Default stream timeout in seconds (10 minutes).
         static let streamTimeoutSeconds: TimeInterval = 600
-
-        /// Maximum live stream duration in seconds.
-        static let maxStreamDuration: TimeInterval = 600
 
         /// Interval between automatic device list refreshes (seconds).
         static let deviceRefreshInterval: TimeInterval = 60

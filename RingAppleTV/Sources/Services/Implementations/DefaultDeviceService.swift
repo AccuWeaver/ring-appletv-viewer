@@ -1,13 +1,16 @@
 import Foundation
 
 /// Production implementation of `DeviceService` that fetches Ring devices from
-/// the API with cache-first strategy, and provides filtering/sorting.
+/// the Partner API with cache-first strategy, and provides filtering/sorting.
+///
+/// Uses `PartnerAPIClientProtocol` for JSON:API device resource fetching and
+/// maps `PartnerDeviceResource` → `RingDevice` via `toDomain()`.
 final class DefaultDeviceService: DeviceService, @unchecked Sendable {
 
     // MARK: - Dependencies
 
     private let authService: AuthService
-    private let apiClient: RingAPIClient
+    private let partnerAPIClient: PartnerAPIClientProtocol
     private let cacheService: CacheService
 
     // MARK: - Constants
@@ -17,9 +20,9 @@ final class DefaultDeviceService: DeviceService, @unchecked Sendable {
 
     // MARK: - Init
 
-    init(authService: AuthService, apiClient: RingAPIClient, cacheService: CacheService) {
+    init(authService: AuthService, partnerAPIClient: PartnerAPIClientProtocol, cacheService: CacheService) {
         self.authService = authService
-        self.apiClient = apiClient
+        self.partnerAPIClient = partnerAPIClient
         self.cacheService = cacheService
     }
 
@@ -40,7 +43,7 @@ final class DefaultDeviceService: DeviceService, @unchecked Sendable {
             return devices
         case .name(let query):
             let lowered = query.lowercased()
-            return devices.filter { $0.description.lowercased().contains(lowered) }
+            return devices.filter { $0.name.lowercased().contains(lowered) }
         case .type(let deviceType):
             return devices.filter { $0.deviceType == deviceType }
         case .status(let status):
@@ -56,13 +59,9 @@ final class DefaultDeviceService: DeviceService, @unchecked Sendable {
     func sortDevices(_ devices: [RingDevice], by sort: DeviceSort) -> [RingDevice] {
         switch sort {
         case .nameAscending:
-            return devices.sorted {
-                $0.description.localizedCaseInsensitiveCompare($1.description) == .orderedAscending
-            }
+            return devices.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         case .nameDescending:
-            return devices.sorted {
-                $0.description.localizedCaseInsensitiveCompare($1.description) == .orderedDescending
-            }
+            return devices.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedDescending }
         case .type:
             return devices.sorted { $0.deviceType.rawValue < $1.deviceType.rawValue }
         case .status:
@@ -79,8 +78,8 @@ final class DefaultDeviceService: DeviceService, @unchecked Sendable {
 
     private func fetchFromAPI() async throws -> [RingDevice] {
         let token = try await authService.getValidToken()
-        let responses = try await apiClient.fetchDevices(token: token.accessToken)
-        let devices = responses.map { $0.toDomain() }
+        let resources = try await partnerAPIClient.fetchDevices(token: token.accessToken)
+        let devices = resources.map { $0.toDomain() }
         try? cacheService.save(devices, for: Self.cacheKey, ttl: Self.cacheTTL)
         return devices
     }

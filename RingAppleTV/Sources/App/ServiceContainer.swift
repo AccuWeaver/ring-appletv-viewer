@@ -1,7 +1,6 @@
 import Foundation
 
 /// Central dependency container that creates and wires all services and ViewModels.
-/// Supports mock vs real API based on `AppConfiguration.useMocks`.
 @MainActor
 final class ServiceContainer: ObservableObject {
 
@@ -11,7 +10,7 @@ final class ServiceContainer: ObservableObject {
 
     // MARK: - Infrastructure Services
 
-    let apiClient: RingAPIClient
+    let apiClient: PartnerAPIClientProtocol
     let keychainService: KeychainService
     let cacheService: CacheService
 
@@ -19,9 +18,13 @@ final class ServiceContainer: ObservableObject {
 
     let authService: AuthService
     let deviceService: DeviceService
-    let videoService: VideoService
     let eventService: EventService
-    let snapshotService: SnapshotService
+    let mediaService: MediaService
+    let streamSessionManager: StreamSessionManagerProtocol?
+
+    // MARK: - Background
+
+    let backgroundRefreshManager: BackgroundRefreshManager
 
     // MARK: - ViewModels
 
@@ -35,57 +38,127 @@ final class ServiceContainer: ObservableObject {
         self.configuration = configuration
 
         // 1. Infrastructure
-        let apiClient: RingAPIClient = DefaultRingAPIClient()
-        let keychainService: KeychainService = DefaultKeychainService()
-        let cacheService: CacheService = DefaultCacheService()
-
-        self.apiClient = apiClient
-        self.keychainService = keychainService
-        self.cacheService = cacheService
+        let infra = Self.makeInfrastructure(configuration: configuration)
+        self.apiClient = infra.apiClient
+        self.keychainService = infra.keychainService
+        self.cacheService = infra.cacheService
 
         // 2. Domain services (wired with infrastructure dependencies)
-        let authService: AuthService = DefaultAuthService(
-            apiClient: apiClient,
-            keychainService: keychainService
+        let domain = Self.makeDomainServices(
+            configuration: configuration,
+            apiClient: infra.apiClient,
+            keychainService: infra.keychainService,
+            cacheService: infra.cacheService
         )
-        let deviceService: DeviceService = DefaultDeviceService(
-            authService: authService,
-            apiClient: apiClient,
-            cacheService: cacheService
+        self.authService = domain.authService
+        self.deviceService = domain.deviceService
+        self.eventService = domain.eventService
+        self.mediaService = domain.mediaService
+
+        // Create StreamSessionManager when the WebRTC framework is available.
+        // On the tvOS SIMULATOR, video frames don't render through RTCMTLVideoView
+        // even though WebRTC connects and receives the track (likely a Metal/decoder
+        // issue). On real Apple TV devices WebRTC works correctly.
+        // For simulator testing, we fall back to HLS playback via AVPlayer so the UI
+        // flow can be validated end-to-end.
+        #if canImport(WebRTC) && !targetEnvironment(simulator)
+        self.streamSessionManager = StreamSessionManager(
+            partnerAPIClient: infra.apiClient,
+            authService: domain.authService
         )
-        let videoService: VideoService = DefaultVideoService(
-            authService: authService,
-            apiClient: apiClient
-        )
-        let eventService: EventService = DefaultEventService(
-            authService: authService,
-            apiClient: apiClient
-        )
-        let snapshotService: SnapshotService = DefaultSnapshotService(
-            authService: authService,
-            apiClient: apiClient
+        #else
+        self.streamSessionManager = nil
+        #endif
+
+        // 3. Background refresh
+        self.backgroundRefreshManager = BackgroundRefreshManager(
+            deviceService: domain.deviceService,
+            mediaService: domain.mediaService
         )
 
-        self.authService = authService
-        self.deviceService = deviceService
-        self.videoService = videoService
-        self.eventService = eventService
-        self.snapshotService = snapshotService
-
-        // 3. ViewModels
-        self.authViewModel = AuthViewModel(authService: authService)
+        // 4. ViewModels
+        self.authViewModel = AuthViewModel(authService: domain.authService)
         self.dashboardViewModel = DashboardViewModel(
-            deviceService: deviceService,
-            snapshotService: snapshotService,
+            deviceService: domain.deviceService,
+            mediaService: domain.mediaService,
             refreshInterval: configuration.deviceRefreshInterval
         )
-        self.eventsViewModel = EventsViewModel(eventService: eventService)
+        self.eventsViewModel = EventsViewModel(eventService: domain.eventService)
     }
 
     // MARK: - Factory Methods
 
     /// Creates a `PlayerViewModel` for a specific streaming session.
     func makePlayerViewModel() -> PlayerViewModel {
-        PlayerViewModel(videoService: videoService)
+        PlayerViewModel(streamSessionManager: streamSessionManager)
+    }
+
+    // MARK: - Private Construction Helpers
+
+    private struct Infrastructure {
+        let apiClient: PartnerAPIClient
+        let keychainService: KeychainService
+        let cacheService: CacheService
+    }
+
+    private struct DomainServices {
+        let authService: AuthService
+        let deviceService: DeviceService
+        let eventService: EventService
+        let mediaService: MediaService
+    }
+
+    private static func makeInfrastructure(configuration: AppConfiguration) -> Infrastructure {
+        let partnerAPIClient: PartnerAPIClient
+        if configuration.useMocks {
+            // In mock mode, point all API calls to the local backend's mock endpoints.
+            partnerAPIClient = PartnerAPIClient(
+                authBaseURL: configuration.authBackendBaseURL,
+                apiBaseURL: "\(configuration.authBackendBaseURL)/mock"
+            )
+        } else {
+            partnerAPIClient = PartnerAPIClient()
+        }
+        return Infrastructure(
+            apiClient: partnerAPIClient,
+            keychainService: DefaultKeychainService(),
+            cacheService: DefaultCacheService()
+        )
+    }
+
+    private static func makeDomainServices(
+        configuration: AppConfiguration,
+        apiClient: PartnerAPIClient,
+        keychainService: KeychainService,
+        cacheService: CacheService
+    ) -> DomainServices {
+        let authService: AuthService
+        if configuration.useMocks {
+            // In mock mode, use a simple auth service that always returns a dummy token.
+            authService = MockAuthService()
+        } else {
+            authService = BackendAuthService(
+                backendBaseURL: configuration.authBackendBaseURL,
+                apiKey: configuration.authBackendAPIKey,
+                userId: configuration.authBackendUserId,
+                keychainService: keychainService
+            )
+        }
+        return DomainServices(
+            authService: authService,
+            deviceService: DefaultDeviceService(
+                authService: authService,
+                partnerAPIClient: apiClient,
+                cacheService: cacheService
+            ),
+            eventService: DefaultEventService(
+                authService: authService,
+                partnerAPIClient: apiClient
+            ),
+            mediaService: DefaultMediaService(
+                authService: authService,
+                partnerAPIClient: apiClient
+            )
+        )
     }
 }

@@ -17,21 +17,19 @@ final class AuthViewModelTests: XCTestCase {
             refreshToken: "refresh-456",
             expiresAt: expired ? Date().addingTimeInterval(-60) : Date().addingTimeInterval(3600),
             scope: "client",
-            tokenType: "Bearer"
+            tokenType: "Bearer",
+            clientId: nil
         )
     }
 
-    // MARK: - Login Success
+    // MARK: - checkBackendForToken Success
 
-    func testLoginSuccess_transitionsToLoaded() async {
+    func testCheckBackendForTokenSuccess_transitionsToLoaded() async {
         let (sut, mock) = makeSUT()
         let token = makeToken()
-        mock.loginResult = .success(token)
+        mock.fetchTokenFromBackendResult = .success(token)
 
-        sut.email = "user@example.com"
-        sut.password = "password123"
-
-        await sut.login()
+        await sut.checkBackendForToken()
 
         guard case .loaded(let loadedToken) = sut.state else {
             XCTFail("Expected .loaded state, got \(sut.state)")
@@ -39,107 +37,70 @@ final class AuthViewModelTests: XCTestCase {
         }
         XCTAssertEqual(loadedToken, token)
         XCTAssertTrue(sut.isAuthenticated)
-        XCTAssertEqual(mock.loginCalls.count, 1)
-        XCTAssertEqual(mock.loginCalls.first?.email, "user@example.com")
+        XCTAssertEqual(mock.fetchTokenFromBackendCalls, 1)
     }
 
-    // MARK: - Login Failure
-
-    func testLoginFailure_transitionsToError() async {
+    func testCheckBackendForTokenSuccess_hidesSetupInstructions() async {
         let (sut, mock) = makeSUT()
-        mock.loginResult = .failure(RingAPIError.invalidCredentials)
+        mock.fetchTokenFromBackendResult = .success(makeToken())
+        sut.showSetupInstructions()
+        XCTAssertTrue(sut.setupInstructionsVisible)
 
-        sut.email = "bad@example.com"
-        sut.password = "wrong"
+        await sut.checkBackendForToken()
 
-        await sut.login()
+        XCTAssertFalse(sut.setupInstructionsVisible)
+    }
+
+    // MARK: - checkBackendForToken Failure
+
+    func testCheckBackendForTokenFailure_transitionsToError() async {
+        let (sut, mock) = makeSUT()
+        mock.fetchTokenFromBackendResult = .failure(PartnerAPIError.unauthorized)
+
+        await sut.checkBackendForToken()
 
         guard case .error(let message) = sut.state else {
             XCTFail("Expected .error state, got \(sut.state)")
             return
         }
-        XCTAssertEqual(message, RingAPIError.invalidCredentials.userMessage)
+        XCTAssertEqual(message, PartnerAPIError.unauthorized.userMessage)
         XCTAssertFalse(sut.isAuthenticated)
     }
 
-    func testLoginNetworkError_transitionsToError() async {
+    func testCheckBackendForTokenNetworkError_transitionsToError() async {
         let (sut, mock) = makeSUT()
-        mock.loginResult = .failure(RingAPIError.networkError("timeout"))
+        mock.fetchTokenFromBackendResult = .failure(PartnerAPIError.networkError("timeout"))
 
-        await sut.login()
+        await sut.checkBackendForToken()
 
         guard case .error(let message) = sut.state else {
             XCTFail("Expected .error state, got \(sut.state)")
             return
         }
-        XCTAssertEqual(message, RingAPIError.networkError("timeout").userMessage)
+        XCTAssertEqual(message, PartnerAPIError.networkError("timeout").userMessage)
     }
 
-    // MARK: - Two-Factor Authentication
-
-    func testTwoFactorRequired_setsRequiresTwoFactor() async {
+    func testCheckBackendForTokenWithGenericError_usesLocalizedDescription() async {
         let (sut, mock) = makeSUT()
-        mock.loginResult = .failure(RingAPIError.twoFactorRequired(method: .authenticator))
+        let genericError = NSError(domain: "test", code: 42, userInfo: [NSLocalizedDescriptionKey: "Something broke"])
+        mock.fetchTokenFromBackendResult = .failure(genericError)
 
-        await sut.login()
-
-        XCTAssertTrue(sut.requiresTwoFactor)
-        // State should go back to idle so the user can enter the code
-        guard case .idle = sut.state else {
-            XCTFail("Expected .idle state after 2FA required, got \(sut.state)")
-            return
-        }
-    }
-
-    func testTwoFactorLogin_usesCodeAndSucceeds() async {
-        let (sut, mock) = makeSUT()
-        let token = makeToken()
-        mock.loginWith2FAResult = .success(token)
-
-        sut.email = "user@example.com"
-        sut.password = "password123"
-        sut.requiresTwoFactor = true
-        sut.twoFactorCode = "123456"
-
-        await sut.login()
-
-        guard case .loaded(let loadedToken) = sut.state else {
-            XCTFail("Expected .loaded state, got \(sut.state)")
-            return
-        }
-        XCTAssertEqual(loadedToken, token)
-        XCTAssertFalse(sut.requiresTwoFactor)
-        XCTAssertEqual(sut.twoFactorCode, "")
-        XCTAssertEqual(mock.loginWith2FACalls.count, 1)
-        XCTAssertEqual(mock.loginWith2FACalls.first?.code, "123456")
-    }
-
-    func testTwoFactorInvalid_transitionsToError() async {
-        let (sut, mock) = makeSUT()
-        mock.loginWith2FAResult = .failure(RingAPIError.twoFactorInvalid)
-
-        sut.requiresTwoFactor = true
-        sut.twoFactorCode = "000000"
-
-        await sut.login()
+        await sut.checkBackendForToken()
 
         guard case .error(let message) = sut.state else {
             XCTFail("Expected .error state, got \(sut.state)")
             return
         }
-        XCTAssertEqual(message, RingAPIError.twoFactorInvalid.userMessage)
+        XCTAssertEqual(message, "Something broke")
     }
 
     // MARK: - Logout
 
     func testLogout_resetsAllState() async {
         let (sut, mock) = makeSUT()
-        let token = makeToken()
-        mock.loginResult = .success(token)
+        mock.fetchTokenFromBackendResult = .success(makeToken())
 
-        sut.email = "user@example.com"
-        sut.password = "password123"
-        await sut.login()
+        await sut.checkBackendForToken()
         XCTAssertTrue(sut.isAuthenticated)
 
         await sut.logout()
@@ -149,10 +110,7 @@ final class AuthViewModelTests: XCTestCase {
             return
         }
         XCTAssertFalse(sut.isAuthenticated)
-        XCTAssertEqual(sut.email, "")
-        XCTAssertEqual(sut.password, "")
-        XCTAssertEqual(sut.twoFactorCode, "")
-        XCTAssertFalse(sut.requiresTwoFactor)
+        XCTAssertFalse(sut.setupInstructionsVisible)
         XCTAssertEqual(mock.logoutCalls, 1)
     }
 
@@ -192,7 +150,7 @@ final class AuthViewModelTests: XCTestCase {
     func testCheckExistingAuth_whenTokenFails_transitionsToIdle() async {
         let mock = MockAuthService()
         mock._isAuthenticated = true
-        mock.getValidTokenResult = .failure(RingAPIError.tokenExpired)
+        mock.getValidTokenResult = .failure(PartnerAPIError.unauthorized)
 
         let (sut, _) = makeSUT(authService: mock)
 
@@ -213,24 +171,19 @@ final class AuthViewModelTests: XCTestCase {
 
     func testIsAuthenticated_falseWhenError() async {
         let (sut, mock) = makeSUT()
-        mock.loginResult = .failure(RingAPIError.invalidCredentials)
-        await sut.login()
+        mock.fetchTokenFromBackendResult = .failure(PartnerAPIError.unauthorized)
+        await sut.checkBackendForToken()
         XCTAssertFalse(sut.isAuthenticated)
     }
 
-    // MARK: - Non-RingAPIError
+    // MARK: - showSetupInstructions
 
-    func testLoginWithGenericError_usesLocalizedDescription() async {
-        let (sut, mock) = makeSUT()
-        let genericError = NSError(domain: "test", code: 42, userInfo: [NSLocalizedDescriptionKey: "Something broke"])
-        mock.loginResult = .failure(genericError)
+    func testShowSetupInstructions_setsVisibleFlag() {
+        let (sut, _) = makeSUT()
+        XCTAssertFalse(sut.setupInstructionsVisible)
 
-        await sut.login()
+        sut.showSetupInstructions()
 
-        guard case .error(let message) = sut.state else {
-            XCTFail("Expected .error state, got \(sut.state)")
-            return
-        }
-        XCTAssertEqual(message, "Something broke")
+        XCTAssertTrue(sut.setupInstructionsVisible)
     }
 }

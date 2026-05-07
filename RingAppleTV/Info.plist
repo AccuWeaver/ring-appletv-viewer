@@ -34,7 +34,26 @@
     <dict>
         <key>NSAllowsArbitraryLoads</key>
         <false/>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>192.168.4.34</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+                <key>NSIncludesSubdomains</key>
+                <true/>
+            </dict>
+            <key>localhost</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+            </dict>
+        </dict>
     </dict>
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>Ring Camera Viewer needs access to your local network to connect to the partner auth backend for development and testing.</string>
     <key>BGTaskSchedulerPermittedIdentifiers</key>
     <array>
         <string>com.ringappletv.snapshot-refresh</string>
