@@ -1,16 +1,15 @@
 # Known Issues & Limitations
 
-## Unofficial API
+## Partner API
 
-- This app uses Ring's private (reverse-engineered) API. Endpoints may change or break without notice.
-- Authentication flow is based on community-documented OAuth endpoints; Ring may alter the flow at any time.
-- 2FA support covers SMS, email, and TOTP (authenticator app) codes. Hardware security keys are not supported.
+- This app uses the Ring Partner API (Amazon Vision API at `api.amazonvision.com/v1`).
+- Authentication uses OAuth 2.0 Device Authorization Grant (RFC 8628) for account linking.
+- Rate limit is 100 TPS per partner. The app handles 429 responses with retry and exponential backoff.
 
 ## Live Streaming
 
-- Ring uses SIP/WebRTC for live video streaming, not HLS. The app currently shows an informational message when attempting to view a live stream.
-- WebRTC implementation for tvOS is planned (see `.kiro/specs/live-streaming/`).
-- Stream sessions have an API-imposed time limit (~10 minutes via `expires_in`).
+- Ring uses WHEP (WebRTC-HTTP Egress Protocol) for live video streaming via the Partner API.
+- Stream sessions are limited by device power source: 30 seconds for battery-powered devices, 60 seconds for line-powered devices.
 - Simultaneous streams to the same device from multiple clients may cause conflicts.
 
 ## Snapshots
@@ -46,19 +45,17 @@
 
 | Issue | Workaround |
 |-------|-----------|
-| Live stream not available | WebRTC implementation pending — use Ring app for live viewing |
+| Live stream not available | Check device online status and network connectivity |
 | Device shows offline incorrectly | Pull to refresh or wait for the 60-second background refresh |
 | Snapshot shows placeholder | Camera may not have a recent image; wait for next refresh cycle |
-| Login fails after API change | Check community Ring API documentation for endpoint updates |
+| Login fails | Check network connectivity and verify OAuth server is reachable |
 | Cache shows stale data | Force refresh bypasses the 5-minute cache TTL |
 | Xcode shows "Recovered References" | Run `cd RingAppleTV && xcodegen generate` to regenerate project |
 | Xcode hangs on open | Disable Xcode AI, clear derived data: `rm -rf ~/Library/Developer/Xcode/DerivedData/RingAppleTV-*` |
 
 ## Future Enhancements
 
-- WebRTC live streaming (next major feature — planned)
 - Multi-camera split-screen view
 - Motion zone configuration
-- Push notification support (if tvOS adds background capabilities)
+- Push notification support via webhook backend service
 - Settings view for runtime configuration
-- Snapshot capture-on-demand (trigger new snapshot from the app)

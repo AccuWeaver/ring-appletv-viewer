@@ -2,40 +2,40 @@
 
 ## Overview
 
-Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_api`) to the official Ring Partner API (`api.amazonvision.com/v1`). This involves replacing authentication (email/password → Device Code Flow with slow_down/expired handling), device discovery (grouped JSON → JSON:API with `.unknown` fallback and `isOnline` default-to-true), live streaming (SIP → WHEP with best-effort DELETE), events (with `limit=50` and descending sort), media download (consolidated video + snapshot), error handling (429 with Retry-After + exponential backoff), background refresh migration, and cleaning up all legacy code including `AppConfiguration.maxStreamDuration`. Domain model IDs change from `Int` to `String` throughout. WHEP methods live on `PartnerAPIClient` directly (no separate WHEPClient).
+Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_api`) to the official Ring Partner API (`api.amazonvision.com/v1`). This involves replacing authentication (email/password OAuth → Device Authorization Grant with slow_down/expired handling), device discovery (grouped JSON → JSON:API with `.unknown` fallback and `isOnline` default-to-true), live streaming (SIP → WHEP with best-effort DELETE), events (with `limit=50` and descending sort), media download (consolidated video + snapshot), error handling (429 with Retry-After + exponential backoff), background refresh migration, and cleaning up all legacy code including `AppConfiguration.maxStreamDuration`. Domain model IDs change from `Int` to `String` throughout. WHEP methods live on `PartnerAPIClient` directly (no separate WHEPClient). No client-side rate limiter — just handle 429 with retry.
 
 ## Tasks
 
-- [ ] 1. Create new Partner API data models and error types
-  - [ ] 1.1 Create `PartnerAPIError` enum and `PartnerAPIErrorBody` in `RingAppleTV/Sources/Models/PartnerAPIError.swift`
+- [x] 1. Create new Partner API data models and error types
+  - [x] 1.1 Create `PartnerAPIError` enum and `PartnerAPIErrorBody` in `RingAppleTV/Sources/Models/PartnerAPIError.swift`
     - Define cases: `unauthorized`, `forbidden`, `notFound`, `rateLimited(retryAfter: TimeInterval)`, `serverError(Int)`, `networkError(String)`, `decodingError(String)`, `authorizationPending`, `slowDown`, `expiredDeviceCode`
     - Add `userMessage` computed property returning user-friendly strings (no HTTP codes or jargon)
     - Add `PartnerAPIErrorBody` Codable struct with optional `code` and `message`
     - Conform to `Error` and `Equatable`
     - _Requirements: 7.1, 7.5_
 
-  - [ ] 1.2 Create `DeviceCodeResponse` and `DeviceCodeInfo` in `RingAppleTV/Sources/Models/DeviceCodeResponse.swift`
+  - [x] 1.2 Create `DeviceCodeResponse` and `DeviceCodeInfo` in `RingAppleTV/Sources/Models/DeviceCodeResponse.swift`
     - `DeviceCodeResponse`: Codable DTO with `device_code`, `user_code`, `verification_uri`, `verification_uri_complete`, `expires_in`, `interval` (snake_case CodingKeys)
     - `DeviceCodeInfo`: domain struct with `userCode`, `verificationUri`, `verificationUriComplete`, `expiresIn`, `pollingInterval`, `deviceCode`
-    - _Requirements: 1.1_
+    - _Requirements: 1.1, 1.2_
 
-  - [ ] 1.3 Create `PartnerDeviceResource` and `PartnerDeviceListResponse` in `RingAppleTV/Sources/Models/PartnerDeviceResource.swift`
+  - [x] 1.3 Create `PartnerDeviceResource` and `PartnerDeviceListResponse` in `RingAppleTV/Sources/Models/PartnerDeviceResource.swift`
     - JSON:API resource with `id` (String), `type`, nested `DeviceAttributes` (name, model, firmwareVersion, powerSource, optional status — with snake_case CodingKeys)
     - `toDomain()` method mapping to `RingDevice`: use `DeviceType(rawValue:) ?? .unknown` for model, default `isOnline` to `true` when `status` is absent
     - `PartnerDeviceListResponse` wrapping `data: [PartnerDeviceResource]`
     - _Requirements: 2.2, 2.3, 2.6, 2.7, 2.8, 9.1, 9.2_
 
-  - [ ] 1.4 Create `PartnerEventResource` in `RingAppleTV/Sources/Models/PartnerEventResource.swift`
+  - [x] 1.4 Create `PartnerEventResource` in `RingAppleTV/Sources/Models/PartnerEventResource.swift`
     - Codable DTO with `id` (String), `deviceId`, `type`, `createdAt` (ISO 8601), optional `duration` (snake_case CodingKeys)
     - `toDomain()` method mapping to `RingEvent` using `ISO8601DateFormatter`
     - _Requirements: 5.2, 5.3, 9.3_
 
-  - [ ] 1.5 Create `WHEPSessionResponse` in `RingAppleTV/Sources/Models/WHEPSessionResponse.swift`
+  - [x] 1.5 Create `WHEPSessionResponse` in `RingAppleTV/Sources/Models/WHEPSessionResponse.swift`
     - Struct with `sdpAnswer: String` and `sessionURL: URL`
     - Not Codable — parsed manually from HTTP 201 response body + `Location` header
     - _Requirements: 3.2, 3.3_
 
-  - [ ] 1.6 Create `PowerSource` enum in `RingAppleTV/Sources/Models/PowerSource.swift`
+  - [x] 1.6 Create `PowerSource` enum in `RingAppleTV/Sources/Models/PowerSource.swift`
     - Cases: `battery`, `line` (raw String, Codable)
     - `sessionDurationLimit` computed property: 30s for battery, 60s for line
     - _Requirements: 2.6, 3.4_
@@ -50,8 +50,8 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - For any HTTP status code 400–599, the mapping function produces the correct `PartnerAPIError` case (401→unauthorized, 403→forbidden, 404→notFound, 429→rateLimited, 5xx→serverError)
     - **Validates: Requirements 2.5, 3.7, 4.3, 4.6, 5.4, 7.1**
 
-- [ ] 2. Update domain models (`Int` → `String` IDs, new fields)
-  - [ ] 2.1 Update `RingDevice` in `RingAppleTV/Sources/Models/RingDevice.swift`
+- [x] 2. Update domain models (`Int` → `String` IDs, new fields)
+  - [x] 2.1 Update `RingDevice` in `RingAppleTV/Sources/Models/RingDevice.swift`
     - Change `id` from `Int` to `String`
     - Rename `description` to `name`
     - Add `model: String` property
@@ -62,14 +62,14 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Keep `deviceType`, `firmwareVersion`
     - _Requirements: 9.1, 9.2, 9.6, 2.3, 2.7, 2.8_
 
-  - [ ] 2.2 Update `RingEvent` in `RingAppleTV/Sources/Models/RingEvent.swift`
+  - [x] 2.2 Update `RingEvent` in `RingAppleTV/Sources/Models/RingEvent.swift`
     - Change `id` from `Int` to `String`
     - Change `deviceId` from `Int` to `String`
     - Remove `deviceName`, `thumbnailURL`, `videoAvailable` (not in Partner API)
     - Keep `eventType`, `createdAt`, `duration`
     - _Requirements: 9.3, 5.2, 5.3_
 
-  - [ ] 2.3 Update `StreamSession` in `RingAppleTV/Sources/Models/StreamSession.swift`
+  - [x] 2.3 Update `StreamSession` in `RingAppleTV/Sources/Models/StreamSession.swift`
     - Change `deviceId` from `Int` to `String`
     - Remove `sipServerIp`, `sipServerPort`, `sipSessionId`, `protocol_`, `isSipSession`
     - Add `sessionURL: URL` (WHEP session resource URL)
@@ -78,18 +78,18 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Keep `createdAt`, `isValid`, `remainingTime`
     - _Requirements: 9.4, 3.3, 3.4_
 
-  - [ ] 2.4 Update `AuthToken` in `RingAppleTV/Sources/Models/AuthToken.swift`
+  - [x] 2.4 Update `AuthToken` in `RingAppleTV/Sources/Models/AuthToken.swift`
     - Add optional `clientId: String?` property
     - Change `needsRefresh` threshold from 300s (5 min) to 60s
     - Keep `accessToken`, `refreshToken`, `expiresAt`, `scope`, `tokenType`, `isExpired`
     - _Requirements: 9.5, 1.5, 1.6_
 
-  - [ ] 2.5 Update `AppConfiguration` in `RingAppleTV/Sources/Models/AppConfiguration.swift`
+  - [x] 2.5 Update `AppConfiguration` in `RingAppleTV/Sources/Models/AppConfiguration.swift`
     - Remove `maxStreamDuration` property (stream duration now derived from `PowerSource`)
     - Remove from `init`, `CodingKeys`, and `init(from decoder:)`
     - _Requirements: 8.12_
 
-  - [ ] 2.6 Update `Constants.API` in `RingAppleTV/Sources/Utilities/Constants.swift`
+  - [x] 2.6 Update `Constants.API` in `RingAppleTV/Sources/Utilities/Constants.swift`
     - Set `oauthBaseURL = "https://oauth.ring.com"`
     - Set `partnerAPIBaseURL = "https://api.amazonvision.com/v1"`
     - Remove all `clients_api`, `doorbots`, and private API endpoint constants
@@ -110,17 +110,17 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - For any valid `PartnerEventResource`, encode to JSON and decode back → equivalent resource. `toDomain()` produces a `RingEvent` with matching `id`, `deviceId`, `eventType`, `duration`
     - **Validates: Requirements 5.2, 5.3, 9.3**
 
-- [ ] 3. Checkpoint — Verify models compile and property tests pass
+- [x] 3. Checkpoint — Verify models compile and property tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Create `PartnerAPIClient` with WHEP methods and retry logic
-  - [ ] 4.1 Create `PartnerAPIClientProtocol` in `RingAppleTV/Sources/Services/Protocols/PartnerAPIClientProtocol.swift`
+- [x] 4. Create `PartnerAPIClient` with WHEP methods and retry logic
+  - [x] 4.1 Create `PartnerAPIClientProtocol` in `RingAppleTV/Sources/Services/Protocols/PartnerAPIClientProtocol.swift`
     - Define methods: `requestDeviceCode`, `pollForToken`, `refreshToken`, `fetchDevices`, `fetchEvents`, `downloadVideo`, `downloadSnapshot`, `createWHEPSession`, `deleteWHEPSession`
     - WHEP methods are on this protocol directly (no separate WHEPClient)
     - All methods are `async throws`, protocol is `Sendable`
     - _Requirements: 1.1, 1.3, 2.1, 3.1, 4.1, 4.4, 5.1, 7.1_
 
-  - [ ] 4.2 Create `PartnerAPIClient` implementation in `RingAppleTV/Sources/Services/Implementations/PartnerAPIClient.swift`
+  - [x] 4.2 Create `PartnerAPIClient` implementation in `RingAppleTV/Sources/Services/Implementations/PartnerAPIClient.swift`
     - Base URLs: auth at `https://oauth.ring.com`, API at `https://api.amazonvision.com/v1`
     - Accept `URLSession` in init for testability
     - Implement `mapStatusCode` function mapping HTTP 4xx/5xx to `PartnerAPIError` cases
@@ -142,8 +142,16 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - For any device ID and SDP offer string, the WHEP request has method POST, correct URL, `Content-Type: application/sdp`, and body equal to the SDP offer. For any valid SDP answer and session URL in an HTTP 201 response, the parser extracts the exact SDP answer and session URL.
     - **Validates: Requirements 3.1, 3.2, 3.3, 9.4**
 
-- [ ] 5. Create `AuthService` (Device Code Flow with polling edge cases)
-  - [ ] 5.1 Update `AuthServiceProtocol` in `RingAppleTV/Sources/Services/Protocols/AuthServiceProtocol.swift`
+  - [ ]* 4.5 Write unit tests for PartnerAPIClient retry logic
+    - Test 429 with `Retry-After` header → waits specified duration, retries
+    - Test 429 without `Retry-After` → exponential backoff (1s → 2s → 4s)
+    - Test maximum 3 retries on repeated 429 → fails after 3rd attempt
+    - Test 401 on non-auth endpoint → one token refresh attempted → request retried
+    - Test 401 on refresh endpoint → no recursive refresh, error propagated
+    - _Requirements: 7.2, 7.3, 7.6_
+
+- [x] 5. Create `AuthService` (Device Code Flow with polling edge cases)
+  - [x] 5.1 Update `AuthServiceProtocol` in `RingAppleTV/Sources/Services/Protocols/AuthServiceProtocol.swift`
     - Remove `login(email:password:)` and `login(email:password:twoFactorCode:)` methods
     - Add `startDeviceCodeFlow() async throws -> DeviceCodeInfo`
     - Add `pollForAuthorization(deviceCode: String) async throws -> AuthToken`
@@ -151,7 +159,7 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Add `Sendable` conformance
     - _Requirements: 1.1, 1.3, 1.5, 1.9_
 
-  - [ ] 5.2 Rewrite `DefaultAuthService` in `RingAppleTV/Sources/Services/Implementations/DefaultAuthService.swift`
+  - [x] 5.2 Rewrite `DefaultAuthService` in `RingAppleTV/Sources/Services/Implementations/DefaultAuthService.swift`
     - Inject `PartnerAPIClient` and `KeychainService` (replace `RingAPIClient` dependency)
     - `startDeviceCodeFlow()`: call `partnerAPIClient.requestDeviceCode(clientId:)`, return `DeviceCodeInfo`
     - `pollForAuthorization()`: call `partnerAPIClient.pollForToken(...)`, store tokens in Keychain, return `AuthToken`
@@ -161,6 +169,7 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Handle `.slowDown` (increase polling interval by 5 seconds before next attempt)
     - Handle `.expiredDeviceCode` (propagate error, prompt user to restart)
     - On refresh 401: clear all tokens, transition to unauthenticated
+    - Store `client_secret` securely in Keychain, never in plaintext source
     - _Requirements: 1.1, 1.3, 1.4, 1.5, 1.6, 1.7, 1.9, 1.11, 1.12_
 
   - [ ]* 5.3 Write property test for token Keychain round-trip
@@ -185,16 +194,16 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Test `.expiredDeviceCode` → error propagated, user prompted to restart
     - _Requirements: 1.7, 1.11, 1.12_
 
-- [ ] 6. Checkpoint — Verify auth flow compiles and tests pass
+- [x] 6. Checkpoint — Verify auth flow compiles and tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Update `DeviceService` for JSON:API parsing with fallbacks
-  - [ ] 7.1 Update `DeviceServiceProtocol` in `RingAppleTV/Sources/Services/Protocols/DeviceServiceProtocol.swift`
+- [x] 7. Update `DeviceService` for JSON:API parsing with fallbacks
+  - [x] 7.1 Update `DeviceServiceProtocol` in `RingAppleTV/Sources/Services/Protocols/DeviceServiceProtocol.swift`
     - No signature changes needed (already returns `[RingDevice]`)
     - Ensure `Sendable` conformance
     - _Requirements: 2.1_
 
-  - [ ] 7.2 Rewrite `DefaultDeviceService` in `RingAppleTV/Sources/Services/Implementations/DefaultDeviceService.swift`
+  - [x] 7.2 Rewrite `DefaultDeviceService` in `RingAppleTV/Sources/Services/Implementations/DefaultDeviceService.swift`
     - Inject `PartnerAPIClient` instead of `RingAPIClient`
     - Inject `AuthService` for token retrieval
     - `fetchDevices()`: call `partnerAPIClient.fetchDevices(token:)`, map `PartnerDeviceResource` → `RingDevice` via `toDomain()`
@@ -212,14 +221,14 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Test HTTP error propagation
     - _Requirements: 2.4, 2.5, 2.7, 2.8_
 
-- [ ] 8. Update `EventService` for Partner API events with pagination
-  - [ ] 8.1 Update `EventServiceProtocol` in `RingAppleTV/Sources/Services/Protocols/EventServiceProtocol.swift`
+- [x] 8. Update `EventService` for Partner API events with pagination
+  - [x] 8.1 Update `EventServiceProtocol` in `RingAppleTV/Sources/Services/Protocols/EventServiceProtocol.swift`
     - Change `fetchEvents(for deviceId: Int?)` to `fetchEvents(for deviceId: String?)`
     - Keep `fetchEventVideoURL(for event: RingEvent)`
     - Add `Sendable` conformance
     - _Requirements: 5.1_
 
-  - [ ] 8.2 Rewrite `DefaultEventService` in `RingAppleTV/Sources/Services/Implementations/DefaultEventService.swift`
+  - [x] 8.2 Rewrite `DefaultEventService` in `RingAppleTV/Sources/Services/Implementations/DefaultEventService.swift`
     - Inject `PartnerAPIClient` instead of `RingAPIClient`
     - `fetchEvents()`: call `partnerAPIClient.fetchEvents(deviceId:token:limit:)` with `limit=50`
     - Sort events descending by `createdAt`
@@ -242,14 +251,14 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Test HTTP error propagation
     - _Requirements: 5.2, 5.5, 5.6_
 
-- [ ] 9. Create `MediaService` (consolidate video + snapshot)
-  - [ ] 9.1 Create `MediaServiceProtocol` in `RingAppleTV/Sources/Services/Protocols/MediaServiceProtocol.swift`
+- [x] 9. Create `MediaService` (consolidate video + snapshot)
+  - [x] 9.1 Create `MediaServiceProtocol` in `RingAppleTV/Sources/Services/Protocols/MediaServiceProtocol.swift`
     - `downloadVideo(deviceId: String, eventId: String) async throws -> URL`
     - `downloadSnapshot(deviceId: String) async throws -> Data`
     - Conform to `Sendable`
     - _Requirements: 4.1, 4.4_
 
-  - [ ] 9.2 Create `DefaultMediaService` in `RingAppleTV/Sources/Services/Implementations/DefaultMediaService.swift`
+  - [x] 9.2 Create `DefaultMediaService` in `RingAppleTV/Sources/Services/Implementations/DefaultMediaService.swift`
     - Inject `PartnerAPIClient` and `AuthService`
     - `downloadVideo()`: POST to `/devices/{deviceId}/media/video/download` via `partnerAPIClient.downloadVideo(deviceId:eventId:token:)`
     - `downloadSnapshot()`: POST to `/devices/{deviceId}/media/image/download` via `partnerAPIClient.downloadSnapshot(deviceId:token:)`
@@ -263,16 +272,17 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Test 404 error for events without video maps to `.notFound`
     - _Requirements: 4.2, 4.3, 4.5_
 
-- [ ] 10. Create `StreamSessionManager` (WHEP + WebRTC lifecycle)
-  - [ ] 10.1 Create `StreamSessionManagerProtocol` in `RingAppleTV/Sources/Services/Protocols/StreamSessionManagerProtocol.swift`
+- [x] 10. Create `StreamSessionManager` (WHEP + WebRTC lifecycle)
+  - [x] 10.1 Create `StreamSessionManagerProtocol` in `RingAppleTV/Sources/Services/Protocols/StreamSessionManagerProtocol.swift`
     - `startStream(deviceId: String, powerSource: PowerSource) async throws`
     - `stopStream() async`
     - `connectionState: WebRTCConnectionState` (published)
     - `connectionStatePublisher: Published<WebRTCConnectionState>.Publisher`
+    - Move `WebRTCConnectionState` enum here (currently in `WebRTCStreamServiceProtocol.swift`)
     - Conform to `AnyObject, Sendable`
-    - _Requirements: 3.1, 3.5, 3.6_
+    - _Requirements: 3.1, 3.5, 3.6, 8.10_
 
-  - [ ] 10.2 Create `StreamSessionManager` implementation in `RingAppleTV/Sources/Services/Implementations/StreamSessionManager.swift`
+  - [x] 10.2 Create `StreamSessionManager` implementation in `RingAppleTV/Sources/Services/Implementations/StreamSessionManager.swift`
     - Inject `PartnerAPIClient` and `AuthService` (WHEP calls go through PartnerAPIClient directly)
     - `startStream()`: create `RTCPeerConnection` (receive-only, no local tracks), generate SDP offer, call `partnerAPIClient.createWHEPSession(...)`, apply SDP answer as remote description, wait for ICE connected, start session timer based on `powerSource.sessionDurationLimit`
     - `stopStream()`: send DELETE via `partnerAPIClient.deleteWHEPSession(...)`, close `RTCPeerConnection`, cancel timer
@@ -289,11 +299,11 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Test DELETE failure still closes local `RTCPeerConnection`
     - _Requirements: 3.4, 3.6, 3.8, 3.9_
 
-- [ ] 11. Checkpoint — Verify all services compile and tests pass
+- [x] 11. Checkpoint — Verify all services compile and tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Update ViewModels for new service interfaces
-  - [ ] 12.1 Rewrite `AuthViewModel` in `RingAppleTV/Sources/ViewModels/AuthViewModel.swift`
+- [x] 12. Update ViewModels for new service interfaces
+  - [x] 12.1 Rewrite `AuthViewModel` in `RingAppleTV/Sources/ViewModels/AuthViewModel.swift`
     - Remove `email`, `password`, `twoFactorCode`, `requiresTwoFactor`, `twoFactorMethod` properties
     - Add `deviceCodeInfo: DeviceCodeInfo?` published property for displaying user code and verification URL
     - Add `isPolling: Bool` published property
@@ -303,7 +313,7 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Keep `logout()`, `checkExistingAuth()`
     - _Requirements: 1.1, 1.2, 1.9, 1.12_
 
-  - [ ] 12.2 Rewrite `PlayerViewModel` in `RingAppleTV/Sources/ViewModels/PlayerViewModel.swift`
+  - [x] 12.2 Rewrite `PlayerViewModel` in `RingAppleTV/Sources/ViewModels/PlayerViewModel.swift`
     - Replace `VideoService` + `WebRTCStreamService?` dependencies with `StreamSessionManager`
     - Change `lastDeviceId` from `Int?` to `String?`
     - Replace `requestStream(for deviceId: Int)` with `requestStream(for deviceId: String, powerSource: PowerSource)`
@@ -312,22 +322,22 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Subscribe to `streamSessionManager.connectionStatePublisher`
     - `stopStream()`: call `streamSessionManager.stopStream()`
     - Update error handling from `RingAPIError` to `PartnerAPIError`
-    - _Requirements: 3.1, 3.6, 3.4_
+    - _Requirements: 3.1, 3.4, 3.6_
 
-  - [ ] 12.3 Update `DashboardViewModel` in `RingAppleTV/Sources/ViewModels/DashboardViewModel.swift`
+  - [x] 12.3 Update `DashboardViewModel` in `RingAppleTV/Sources/ViewModels/DashboardViewModel.swift`
     - Change `snapshots` dictionary key from `Int` to `String` (`[String: Data]`)
     - Update `loadSnapshots` and `fetchAllSnapshots` to use `String` device IDs
     - Replace `SnapshotService` dependency with `MediaService` for snapshot fetching
     - Update error handling from `RingAPIError` to `PartnerAPIError`
     - _Requirements: 4.4, 9.1_
 
-  - [ ] 12.4 Update `EventsViewModel` in `RingAppleTV/Sources/ViewModels/EventsViewModel.swift`
+  - [x] 12.4 Update `EventsViewModel` in `RingAppleTV/Sources/ViewModels/EventsViewModel.swift`
     - Update `fetchEvents` calls to pass `String?` device ID
     - Update error handling from `RingAPIError` to `PartnerAPIError`
     - _Requirements: 5.1, 9.3_
 
-- [ ] 13. Update `ServiceContainer` and `BackgroundRefreshManager` wiring
-  - [ ] 13.1 Update `ServiceContainer` in `RingAppleTV/Sources/App/ServiceContainer.swift`
+- [x] 13. Update `ServiceContainer` and `BackgroundRefreshManager` wiring
+  - [x] 13.1 Update `ServiceContainer` in `RingAppleTV/Sources/App/ServiceContainer.swift`
     - Remove `RingAPIClient` / `DefaultRingAPIClient` references
     - Create `PartnerAPIClient` as the infrastructure client
     - Wire `DefaultAuthService` with `PartnerAPIClient` + `KeychainService`
@@ -342,7 +352,7 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Update `DashboardViewModel` init to use `MediaService` instead of `SnapshotService`
     - _Requirements: 1.1, 2.1, 3.1, 4.1, 4.4, 5.1, 10.1, 10.2_
 
-  - [ ] 13.2 Update `BackgroundRefreshManager` in `RingAppleTV/Sources/App/BackgroundRefreshManager.swift`
+  - [x] 13.2 Update `BackgroundRefreshManager` in `RingAppleTV/Sources/App/BackgroundRefreshManager.swift`
     - Replace `snapshotService: SnapshotService` dependency with `mediaService: MediaService`
     - Update `handleBackgroundRefresh` to call `mediaService.downloadSnapshot(deviceId:)` with `String` device IDs
     - Preserve 10-device cap (`maxDevicesPerRefresh = 10`)
@@ -361,39 +371,107 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Test individual snapshot failure doesn't abort remaining devices
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
-- [ ] 14. Update Views for new auth flow and String IDs
-  - [ ] 14.1 Update authentication views in `RingAppleTV/Sources/Views/Authentication/`
-    - Replace email/password login form with Device Code Flow UI
+- [x] 14. Update Views for new auth flow and String IDs
+  - [x] 14.1 Rewrite authentication views in `RingAppleTV/Sources/Views/Authentication/`
+    - Replace `LoginView.swift` email/password login form with Device Code Flow UI
     - Display `userCode` and `verificationUri` (or QR code encoding `verificationUriComplete`)
     - Show polling state ("Waiting for authorization...")
     - Handle `expiredDeviceCode` by prompting restart
-    - _Requirements: 1.1, 1.2, 1.12_
+    - Handle QR code fallback if Device Authorization Grant is unsupported (Requirement 1.10)
+    - _Requirements: 1.1, 1.2, 1.10, 1.12_
 
-  - [ ] 14.2 Update dashboard and player views for `String` device IDs
+  - [x] 14.2 Update dashboard and player views for `String` device IDs
     - Update any view code that passes `Int` device IDs to use `String`
     - Update player view to pass `powerSource` alongside `deviceId` when starting a stream
     - Update snapshot image keying from `Int` to `String`
     - _Requirements: 9.1, 3.4_
 
-  - [ ] 14.3 Update event views for `String` event/device IDs
+  - [x] 14.3 Update event views for `String` event/device IDs
     - Update any view code that passes `Int` event or device IDs to use `String`
     - _Requirements: 9.3_
 
-- [ ] 15. Checkpoint — Verify full app compiles and all tests pass
+- [x] 15. Checkpoint — Verify full app compiles and all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 16. Delete legacy code and private API artifacts
-  - [ ] 16.1 Delete SIP signaling code
+- [x] 16. Update test infrastructure (mocks, helpers, existing tests)
+  - [x] 16.1 Create `MockPartnerAPIClient` in `RingAppleTV/Tests/Mocks/MockPartnerAPIClient.swift`
+    - Implement `PartnerAPIClientProtocol` with configurable responses for all methods
+    - Support injecting errors, delays, and specific response data
+    - Replace `MockRingAPIClient` usage throughout tests
+    - _Requirements: 1.1, 2.1, 3.1, 4.1, 5.1, 7.1_
+
+  - [x] 16.2 Create `MockMediaService` in `RingAppleTV/Tests/Mocks/MockMediaService.swift`
+    - Implement `MediaServiceProtocol` with configurable responses
+    - Replace `MockVideoService` and `MockSnapshotService` usage
+    - _Requirements: 4.1, 4.4_
+
+  - [x] 16.3 Create `MockStreamSessionManager` in `RingAppleTV/Tests/Mocks/MockStreamSessionManager.swift`
+    - Implement `StreamSessionManagerProtocol` with configurable connection state
+    - Replace `MockWebRTCStreamService` usage
+    - _Requirements: 3.1, 3.6_
+
+  - [x] 16.4 Update `MockAuthService` in `RingAppleTV/Tests/Mocks/MockAuthService.swift`
+    - Add `startDeviceCodeFlow()` and `pollForAuthorization(deviceCode:)` mock methods
+    - Remove `login(email:password:)` and `login(email:password:twoFactorCode:)` mock methods
+    - _Requirements: 1.1, 1.3_
+
+  - [x] 16.5 Update `MockDeviceService` in `RingAppleTV/Tests/Mocks/MockDeviceService.swift`
+    - Ensure mock returns `[RingDevice]` with `String` IDs and `PowerSource`
+    - _Requirements: 2.1, 9.1_
+
+  - [x] 16.6 Update `MockData` in `RingAppleTV/Tests/Mocks/MockData.swift`
+    - Replace all `Int` device/event IDs with `String` IDs
+    - Add mock `DeviceCodeInfo`, `PartnerDeviceResource`, `PartnerEventResource`, `WHEPSessionResponse` data
+    - Add mock `PowerSource` values
+    - Remove mock data for `RingDeviceResponse`, `RingEventResponse`, `StreamSessionResponse`, `RingAPIError`
+    - _Requirements: 9.1, 9.3, 9.4_
+
+  - [x] 16.7 Update existing unit tests for domain model changes
+    - Update `RingAppleTV/Tests/Models/RingDeviceTests.swift` for `String` IDs, `name`, `model`, `powerSource`, `isOnline`, `.unknown` DeviceType
+    - Update `RingAppleTV/Tests/Models/RingEventTests.swift` for `String` IDs
+    - Update `RingAppleTV/Tests/Models/StreamSessionTests.swift` for `String` IDs, `sessionURL`, `powerSource`, removed SIP fields
+    - Update `RingAppleTV/Tests/Models/AuthTokenTests.swift` for `clientId`, 60s refresh threshold
+    - Update `RingAppleTV/Tests/Models/AppConfigurationTests.swift` to remove `maxStreamDuration` references
+    - Update `RingAppleTV/Tests/Models/ErrorModelTests.swift` to test `PartnerAPIError` instead of `RingAPIError`
+    - _Requirements: 8.8, 8.12, 9.1, 9.3, 9.4, 9.5_
+
+  - [x] 16.8 Update existing service tests for new dependencies
+    - Update `RingAppleTV/Tests/Services/AuthServiceTests.swift` for Device Code Flow
+    - Update `RingAppleTV/Tests/Services/DeviceServiceTests.swift` for `PartnerAPIClient` dependency
+    - Update `RingAppleTV/Tests/Services/EventServiceTests.swift` for `PartnerAPIClient` dependency and `String` IDs
+    - Remove `RingAppleTV/Tests/Services/RingAPIClientTests.swift` (replaced by PartnerAPIClient tests)
+    - Remove `RingAppleTV/Tests/Services/VideoServiceTests.swift` (replaced by MediaService tests)
+    - Remove `RingAppleTV/Tests/Services/DefaultSnapshotServiceTests.swift` (replaced by MediaService tests)
+    - _Requirements: 1.1, 2.1, 5.1, 8.1_
+
+  - [x] 16.9 Update existing ViewModel tests for new interfaces
+    - Update `RingAppleTV/Tests/ViewModels/AuthViewModelTests.swift` for Device Code Flow
+    - Update `RingAppleTV/Tests/ViewModels/DashboardViewModelTests.swift` for `String` IDs and `MediaService`
+    - Update `RingAppleTV/Tests/ViewModels/EventsViewModelTests.swift` for `String` IDs
+    - Update `RingAppleTV/Tests/ViewModels/PlayerViewModelTests.swift` for `StreamSessionManager`
+    - Update `RingAppleTV/Tests/ViewModels/PlayerViewModelWebRTCTests.swift` for `StreamSessionManager`
+    - _Requirements: 1.1, 3.1, 4.4, 5.1, 9.1_
+
+  - [x] 16.10 Update `TestDataGenerators` in `RingAppleTV/Tests/Helpers/TestDataGenerators.swift`
+    - Update generators to produce `String` IDs, `PowerSource`, and Partner API DTOs
+    - Add generators for `DeviceCodeInfo`, `PartnerDeviceResource`, `PartnerEventResource`
+    - Remove generators for legacy DTOs
+    - _Requirements: 9.1, 9.3_
+
+- [x] 17. Checkpoint — Verify all tests compile and pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 18. Delete legacy code and private API artifacts
+  - [x] 18.1 Delete SIP signaling code
     - Delete `RingAppleTV/Sources/Services/Implementations/SIPSignalingClient.swift`
-    - Delete `SIPError` enum (defined in SIPSignalingClient.swift)
     - _Requirements: 8.3_
 
-  - [ ] 16.2 Delete legacy API client and protocol
+  - [x] 18.2 Delete legacy API client and protocol
     - Delete `RingAppleTV/Sources/Services/Implementations/DefaultRingAPIClient.swift` (including `DevicesWrapper` and `VideoURLWrapper`)
     - Delete `RingAppleTV/Sources/Services/Protocols/RingAPIClientProtocol.swift`
     - _Requirements: 8.1, 8.2, 8.4_
 
-  - [ ] 16.3 Delete legacy DTOs and response models
+  - [x] 18.3 Delete legacy DTOs and response models
     - Delete `RingAppleTV/Sources/Models/RingDeviceResponse.swift`
     - Delete `RingAppleTV/Sources/Models/RingEventResponse.swift`
     - Delete `RingAppleTV/Sources/Models/StreamSessionResponse.swift`
@@ -401,7 +479,7 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Delete `RingAppleTV/Sources/Models/RingAPIError.swift` (including `TwoFactorMethod` enum)
     - _Requirements: 8.4, 8.5, 8.6, 8.7, 8.8_
 
-  - [ ] 16.4 Delete legacy service implementations and protocols
+  - [x] 18.4 Delete legacy service implementations and protocols
     - Delete `RingAppleTV/Sources/Services/Implementations/DefaultVideoService.swift`
     - Delete `RingAppleTV/Sources/Services/Implementations/DefaultSnapshotService.swift`
     - Delete `RingAppleTV/Sources/Services/Implementations/DefaultWebRTCStreamService.swift`
@@ -410,20 +488,36 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
     - Delete `RingAppleTV/Sources/Services/Protocols/WebRTCStreamServiceProtocol.swift` (replaced by `StreamSessionManagerProtocol`)
     - _Requirements: 8.3, 8.9, 8.10_
 
-  - [ ] 16.5 Remove all remaining references to private API constants
+  - [x] 18.5 Delete legacy test files and mocks
+    - Delete `RingAppleTV/Tests/Mocks/MockRingAPIClient.swift`
+    - Delete `RingAppleTV/Tests/Mocks/MockSnapshotService.swift`
+    - Delete `RingAppleTV/Tests/Mocks/MockVideoService.swift`
+    - Delete `RingAppleTV/Tests/Mocks/MockWebRTCStreamService.swift`
+    - Delete `RingAppleTV/Tests/Services/RingAPIClientTests.swift`
+    - Delete `RingAppleTV/Tests/Services/VideoServiceTests.swift`
+    - Delete `RingAppleTV/Tests/Services/DefaultSnapshotServiceTests.swift`
+    - _Requirements: 8.1, 8.9, 8.10_
+
+  - [x] 18.6 Delete legacy utility code
+    - Delete `RingAppleTV/Sources/Utilities/RateLimitManager.swift` (no client-side rate limiter — 429 handled by retry in PartnerAPIClient)
+    - Review `RingAppleTV/Sources/Utilities/RetryStrategy.swift` — update or delete if retry logic is now fully in `PartnerAPIClient`
+    - _Requirements: 7.2, 7.6_
+
+  - [x] 18.7 Remove all remaining references to private API constants and types
     - Search for and remove any references to `api.ring.com`, `clients_api`, `ring_official_ios`, `doorbots`, `stickup_cams`
     - Verify `Constants.API` only contains Partner API URLs
+    - Remove any remaining `import` statements or type references to deleted files
     - _Requirements: 8.1, 8.2, 8.11_
 
-- [ ] 17. Fix compilation errors from deletions
+- [x] 19. Fix compilation errors from deletions
   - Resolve any remaining compile errors caused by deleted types, changed IDs, or removed protocols
   - Ensure all `import` statements and type references are updated throughout the codebase
-  - Verify `WebRTCConnectionState` is moved to or retained in `StreamSessionManagerProtocol.swift` (or a shared file) since `WebRTCStreamServiceProtocol.swift` is deleted
-  - _Requirements: 8.3, 8.9_
+  - Verify `WebRTCConnectionState` is defined in `StreamSessionManagerProtocol.swift` (since `WebRTCStreamServiceProtocol.swift` is deleted)
+  - _Requirements: 8.3, 8.9, 8.10_
 
-- [ ] 18. Final checkpoint — Full build and test verification
+- [x] 20. Final checkpoint — Full build and test verification
   - Ensure all tests pass, ask the user if questions arise.
-  - Verify no references to `api.ring.com`, `clients_api`, `ring_official_ios`, `SIPSignalingClient`, `SIPError`, `DevicesWrapper`, `RingDeviceResponse`, `RingEventResponse`, `StreamSessionResponse`, `RingAPIError`, `TwoFactorMethod`, or `maxStreamDuration` remain in the codebase
+  - Verify no references to `api.ring.com`, `clients_api`, `ring_official_ios`, `SIPSignalingClient`, `SIPError`, `DevicesWrapper`, `RingDeviceResponse`, `RingEventResponse`, `StreamSessionResponse`, `RingAPIError`, `TwoFactorMethod`, `maxStreamDuration`, `RateLimitManager`, `DefaultVideoService`, `DefaultSnapshotService`, `DefaultWebRTCStreamService`, or `MockRingAPIClient` remain in the codebase
 
 ## Notes
 
@@ -433,9 +527,11 @@ Migrate the RingAppleTV tvOS app from Ring's private API (`api.ring.com/clients_
 - Property tests validate the 12 universal correctness properties from the design document
 - Unit tests validate specific examples and edge cases
 - Requirement 6 (Webhooks) is deferred — tvOS cannot host an HTTP server. The design uses polling-based event refresh instead. No webhook tasks are included.
+- Requirement 7.4 (client-side rate limiter at 100 TPS) is intentionally not implemented per Design Decision 3 — a single-user tvOS app will never approach 100 TPS. The `RateLimitManager.swift` utility is deleted.
 - The WebRTC.xcframework is provided by a separate spec (WebRTC tvOS fork) and is assumed available via `#if canImport(WebRTC)`
-- `WebRTCConnectionState` enum (currently in `WebRTCStreamServiceProtocol.swift`) must be preserved when that file is deleted — move it to `StreamSessionManagerProtocol.swift` or a shared types file
+- `WebRTCConnectionState` enum (currently in `WebRTCStreamServiceProtocol.swift`) must be preserved when that file is deleted — moved to `StreamSessionManagerProtocol.swift`
 - WHEP methods live on `PartnerAPIClient` directly — there is no separate `WHEPClient` component
 - No client-side rate limiter — 429 responses are handled with `Retry-After` header extraction and exponential backoff (1s → 2s → 4s)
 - `AppConfiguration.maxStreamDuration` is removed; stream duration is derived from `PowerSource` (30s battery / 60s line-powered)
 - `BackgroundRefreshManager` is updated in-place (not replaced) to use `DeviceService` (String IDs) and `MediaService` (replaces `SnapshotService`)
+- Task 16 (test infrastructure) is a new addition ensuring all existing tests, mocks, and helpers are updated for the migration — preventing test rot from accumulating across earlier tasks
