@@ -77,7 +77,9 @@ class SpyAdapter(RingAdapter):
 
 # Constrained so the value is safe in URL path components and as a bare
 # text body; avoids '/', '?', '#', and control bytes that the input
-# sanitizer middleware would reject.
+# sanitizer middleware would rejects, and '.'/'..' which ASGI/Starlette
+# path normalization would collapse, producing a different URL than the
+# test intended (and a 404 before the handler runs).
 _device_ids = st.text(
     alphabet=st.characters(
         min_codepoint=0x21,
@@ -86,7 +88,7 @@ _device_ids = st.text(
     ),
     min_size=1,
     max_size=30,
-)
+).filter(lambda s: s not in {".", ".."})
 _sdps = st.text(
     alphabet=st.characters(
         min_codepoint=0x20,
