@@ -1,7 +1,7 @@
 import Foundation
 
 /// Fetches, filters, and sorts Ring devices from the API with optional caching.
-protocol DeviceService {
+protocol DeviceService: Sendable {
     /// Fetch devices, returning cached results when available.
     func fetchDevices() async throws -> [RingDevice]
     /// Return the subset of `devices` matching `filter`.

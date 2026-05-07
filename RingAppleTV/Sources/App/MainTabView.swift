@@ -15,9 +15,9 @@ struct MainTabView: View {
         TabView(selection: $selectedTab) {
             DashboardView(
                 viewModel: container.dashboardViewModel,
-                playerViewBuilder: { device in
+                playerViewBuilder: { device, snapshotData in
                     let playerVM = container.makePlayerViewModel()
-                    return PlayerView(viewModel: playerVM, device: device)
+                    return PlayerView(viewModel: playerVM, device: device, snapshotData: snapshotData)
                 }
             )
             .tabItem {
@@ -37,10 +37,9 @@ struct MainTabView: View {
                         address: nil,
                         batteryLife: nil,
                         features: nil,
-                        isOnline: true,
-                        snapshotURL: nil
+                        isOnline: true
                     )
-                    return PlayerView(viewModel: playerVM, device: device)
+                    return PlayerView(viewModel: playerVM, device: device, snapshotData: nil)
                 }
             )
             .tabItem {

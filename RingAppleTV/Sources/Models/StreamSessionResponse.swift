@@ -17,7 +17,7 @@ struct StreamSessionResponse: Codable {
     let sipEndpoints: [String]?
     let doorbotId: Int
     let expiresIn: Int?
-    let protocol_: String?
+    let streamProtocol: String?
     let state: String?
 
     enum CodingKeys: String, CodingKey {
@@ -31,7 +31,7 @@ struct StreamSessionResponse: Codable {
         case sipEndpoints = "sip_endpoints"
         case doorbotId = "doorbot_id"
         case expiresIn = "expires_in"
-        case protocol_ = "protocol"
+        case streamProtocol = "protocol"
         case state
     }
 
@@ -44,7 +44,7 @@ struct StreamSessionResponse: Codable {
             sipServerIp: sipServerIp,
             sipServerPort: sipServerPort,
             sipSessionId: sipSessionId,
-            protocol_: protocol_ ?? "sip",
+            streamProtocol: streamProtocol ?? "sip",
             createdAt: Date(),
             maxDuration: TimeInterval(expiresIn ?? 600)
         )

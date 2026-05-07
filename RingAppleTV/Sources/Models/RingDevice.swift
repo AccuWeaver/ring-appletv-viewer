@@ -10,7 +10,6 @@ struct RingDevice: Codable, Identifiable, Equatable {
     let batteryLife: Int?
     let features: DeviceFeatures?
     var isOnline: Bool
-    var snapshotURL: URL?
 
     // MARK: - DeviceType
 

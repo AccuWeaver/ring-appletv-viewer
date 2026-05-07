@@ -5,7 +5,7 @@ import SwiftCheck
 // MARK: - Generators
 
 /// Generates a `StreamSession` with random `createdAt` offsets and `maxDuration`.
-private let streamSessionGen: Gen<StreamSession> = Gen<StreamSession>.compose { c in
+private nonisolated(unsafe) let streamSessionGen: Gen<StreamSession> = Gen<StreamSession>.compose { c in
     // createdAt can be in the past (up to 2 hours ago) or recent
     let offsetSeconds = c.generate(using: Int.arbitrary.suchThat { $0 >= 0 && $0 < 7200 })
     let maxDuration = c.generate(using: Int.arbitrary.suchThat { $0 >= 0 && $0 < 3600 })
@@ -21,6 +21,12 @@ private let streamSessionGen: Gen<StreamSession> = Gen<StreamSession>.compose { 
     )
 }
 
+extension StreamSession: Arbitrary {
+    public static var arbitrary: Gen<StreamSession> {
+        streamSessionGen
+    }
+}
+
 // MARK: - Property Tests
 
 /// Property-based tests for stream session validity.
@@ -32,7 +38,7 @@ final class VideoPropertyTests: XCTestCase {
     /// Feature: AppleTVRing, Property 6: Stream session validity consistent with elapsed time
     func testStreamSessionValidityConsistentWithElapsedTime() {
         property("Feature: AppleTVRing, Property 6: Stream session validity consistent with elapsed time")
-            <- forAll(streamSessionGen) { (session: StreamSession) in
+            <- forAll(streamSessionGen) { session -> Bool in
                 let remaining = session.remainingTime
                 let valid = session.isValid
 

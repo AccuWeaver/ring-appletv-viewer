@@ -7,10 +7,10 @@ import XCTest
 final class MockURLProtocol: URLProtocol {
 
     /// Handler called for each request. Return (response, data) or throw an error.
-    static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
+    nonisolated(unsafe) static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
 
     /// Records all requests for verification.
-    static var capturedRequests: [URLRequest] = []
+    nonisolated(unsafe) static var capturedRequests: [URLRequest] = []
 
     static func reset() {
         requestHandler = nil

@@ -11,7 +11,7 @@ final class PlayerViewModel: ObservableObject {
 
     // MARK: - Dependencies
 
-    private let videoService: VideoService
+    nonisolated(unsafe) private let videoService: VideoService
 
     // MARK: - Session tracking
 

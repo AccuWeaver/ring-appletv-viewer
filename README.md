@@ -2,11 +2,12 @@
 
 A native tvOS application for viewing Ring camera live streams and recorded events on your Apple TV.
 
-**Status**: v1.1 — Authentication, device management, and event history working against Ring's live API. Live streaming pending WebRTC implementation. Dashboard redesigned to match Ring app style.
+**Status**: v1.2 — Authentication, device management, event history, and camera snapshot thumbnails working against Ring's live API. Live streaming pending WebRTC implementation. Dashboard displays real camera snapshots with 60-second refresh.
 
 ## Screenshots
 
-![Dashboard](docs/screenshots/dashboard.png)
+![Dashboard with Snapshots](docs/screenshots/dashboard-snapshots.png)
+![Player View with Snapshot Backdrop](docs/screenshots/player-snapshot.png)
 
 ## Prerequisites
 
@@ -107,24 +108,25 @@ RingAppleTV/
 ├── project.yml          # XcodeGen spec
 ├── Info.plist
 ├── Sources/
-│   ├── App/             # Entry point, ContentView, MainTabView, ServiceContainer
+│   ├── App/             # Entry point, ContentView, MainTabView, ServiceContainer,
+│   │                    # BackgroundRefreshManager
 │   ├── Models/          # AuthToken, RingDevice, RingEvent, StreamSession, errors
 │   ├── Services/
-│   │   ├── Protocols/         # Service interfaces
+│   │   ├── Protocols/         # Service interfaces (Auth, Device, Video, Snapshot, etc.)
 │   │   └── Implementations/   # Production implementations
 │   ├── ViewModels/      # Auth, Dashboard, Player, Events ViewModels
 │   ├── Views/
 │   │   ├── Authentication/    # Login + 2FA (with TOTP/SMS detection)
-│   │   ├── Dashboard/         # Camera grid + Ring-style device cards
+│   │   ├── Dashboard/         # Camera grid + snapshot-backed device cards
 │   │   ├── Events/            # Event history list
-│   │   ├── Player/            # Video player (WebRTC pending)
+│   │   ├── Player/            # Video player (snapshot backdrop + WebRTC pending)
 │   │   └── Shared/            # Loading, Error, EmptyState, RevealableSecureField
 │   └── Utilities/       # Extensions, constants, rate limiting, retry
 └── Tests/
     ├── Models/          # Model unit tests
-    ├── Services/        # Service unit tests
+    ├── Services/        # Service unit tests (incl. DefaultSnapshotServiceTests)
     ├── ViewModels/      # ViewModel unit tests
-    ├── PropertyTests/   # SwiftCheck property-based tests
+    ├── Properties/      # SwiftCheck property-based tests (incl. SnapshotPropertyTests)
     ├── Mocks/           # Mock service implementations
     └── Helpers/         # Test utilities
 ```
@@ -136,7 +138,73 @@ MVVM with protocol-based dependency injection:
 - **Views** — SwiftUI, focus management, no business logic
 - **ViewModels** — `@MainActor`, `ObservableObject`, `ViewState<T>` state machine
 - **Services** — Protocol-defined, injected via init, business logic layer
-- **Infrastructure** — Ring API client, Keychain, file cache
+- **Infrastructure** — Ring API client, Keychain, file cache, snapshot cache
+
+### Application Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        RingAppleTVApp                                │
+│  ┌──────────────────┐    ┌──────────────────────────────────────┐   │
+│  │ ServiceContainer │───▶│ BackgroundRefreshManager              │   │
+│  │  (DI root)       │    │  (pre-fetches snapshots every 15min) │   │
+│  └────────┬─────────┘    └──────────────────────────────────────┘   │
+│           │                                                          │
+│  ┌────────▼─────────┐                                               │
+│  │   MainTabView    │                                               │
+│  │  ┌─────┐ ┌─────┐│                                               │
+│  │  │Live │ │Event││                                               │
+│  │  │ Tab │ │ Tab ││                                               │
+│  │  └──┬──┘ └─────┘│                                               │
+│  └─────┼────────────┘                                               │
+│        │                                                             │
+│  ┌─────▼──────────────────────────────────────────────────────────┐ │
+│  │              DashboardView                                      │ │
+│  │  ┌──────────────────────────────────────────────────────────┐  │ │
+│  │  │  DashboardViewModel                                      │  │ │
+│  │  │  • loadDevices() → fetchDevices → loadSnapshots(parallel)│  │ │
+│  │  │  • snapshots: [Int: Data] (updated every 60s)            │  │ │
+│  │  └──────────────────────────────────────────────────────────┘  │ │
+│  │                                                                 │ │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐              │ │
+│  │  │DeviceCard   │ │DeviceCard   │ │DeviceCard   │  ← snapshots │ │
+│  │  │(snapshot bg)│ │(snapshot bg)│ │(placeholder)│    as card bg │ │
+│  │  └──────┬──────┘ └─────────────┘ └─────────────┘              │ │
+│  └─────────┼───────────────────────────────────────────────────────┘ │
+│            │ tap                                                      │
+│  ┌─────────▼───────────────────────────────────────────────────────┐ │
+│  │              PlayerView                                          │ │
+│  │  ┌────────────────────────────────────────────────────────────┐ │ │
+│  │  │  Snapshot backdrop (aspect-fill + 60% dark overlay)        │ │ │
+│  │  │  ┌──────────────────────────────────────────────────────┐  │ │ │
+│  │  │  │  "Live streaming not yet supported" overlay          │  │ │ │
+│  │  │  │  (WebRTC pending)                                    │  │ │ │
+│  │  │  └──────────────────────────────────────────────────────┘  │ │ │
+│  │  └────────────────────────────────────────────────────────────┘ │ │
+│  └──────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Snapshot Data Flow
+
+```
+Ring API (/clients_api/snapshots/image/{id})
+    │
+    ▼
+DefaultRingAPIClient.fetchSnapshot() → raw JPEG Data
+    │
+    ▼
+DefaultSnapshotService
+    ├── NSCache (60s TTL, 50MB limit)
+    ├── Actor-based request coalescing (prevents duplicate fetches)
+    └── Auth token management (via AuthService)
+    │
+    ▼
+DashboardViewModel.snapshots: [Int: Data]
+    │
+    ├──▶ DeviceCardView (card background image)
+    └──▶ PlayerView (full-screen backdrop behind overlay)
+```
 
 ## Authentication
 
@@ -158,6 +226,7 @@ The 2FA method is parsed from Ring's 412 response body (`tsv_state` field).
 | "No such module" errors | Clean build folder (`Cmd + Shift + K`), then rebuild |
 | Xcode shows "Recovered References" | Regenerate project: `cd RingAppleTV && xcodegen generate` |
 | Live stream shows "not yet supported" | Ring uses WebRTC/SIP — HLS not available. WebRTC implementation planned. |
+| Snapshots not loading | Check network; Ring may rate-limit (429). Snapshots refresh every 60s automatically. |
 | App Transport Security errors | The app enforces HTTPS-only; Ring API endpoints use HTTPS |
 | Xcode hangs on open | Disable Xcode AI/Predictive Code Completion, clear derived data |
 

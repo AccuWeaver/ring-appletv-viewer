@@ -8,7 +8,7 @@ enum TestDataGenerators {
     // MARK: - Auth Token Generators
 
     /// Generates a random valid (non-expired) `AuthToken`.
-    static let validToken: Gen<AuthToken> = Gen<AuthToken>.compose { c in
+    nonisolated(unsafe) static let validToken: Gen<AuthToken> = Gen<AuthToken>.compose { c in
         let futureOffset = c.generate(using: Int.arbitrary.suchThat { $0 > 300 && $0 < 100_000 })
         return AuthToken(
             accessToken: c.generate(using: String.arbitrary.suchThat { !$0.isEmpty }),
@@ -20,7 +20,7 @@ enum TestDataGenerators {
     }
 
     /// Generates a random expired `AuthToken`.
-    static let expiredToken: Gen<AuthToken> = Gen<AuthToken>.compose { c in
+    nonisolated(unsafe) static let expiredToken: Gen<AuthToken> = Gen<AuthToken>.compose { c in
         let pastOffset = c.generate(using: Int.arbitrary.suchThat { $0 > 60 && $0 < 1_000_000 })
         return AuthToken(
             accessToken: c.generate(using: String.arbitrary.suchThat { !$0.isEmpty }),
@@ -32,7 +32,7 @@ enum TestDataGenerators {
     }
 
     /// Generates any random `AuthToken` (may be valid or expired).
-    static let anyToken: Gen<AuthToken> = Gen<AuthToken>.compose { c in
+    nonisolated(unsafe) static let anyToken: Gen<AuthToken> = Gen<AuthToken>.compose { c in
         let offset = c.generate(using: Int.arbitrary.suchThat { abs($0) > 0 && abs($0) < 1_000_000 })
         return AuthToken(
             accessToken: c.generate(using: String.arbitrary.suchThat { !$0.isEmpty }),
@@ -46,12 +46,12 @@ enum TestDataGenerators {
     // MARK: - Device Generators
 
     /// Generates a random `RingDevice.DeviceType`.
-    static let deviceType: Gen<RingDevice.DeviceType> = Gen<RingDevice.DeviceType>.fromElements(of:
+    nonisolated(unsafe) static let deviceType: Gen<RingDevice.DeviceType> = Gen<RingDevice.DeviceType>.fromElements(of:
         RingDevice.DeviceType.allCases
     )
 
     /// Generates a random `RingDevice`.
-    static let device: Gen<RingDevice> = Gen<RingDevice>.compose { c in
+    nonisolated(unsafe) static let device: Gen<RingDevice> = Gen<RingDevice>.compose { c in
         RingDevice(
             id: c.generate(using: Int.arbitrary.suchThat { $0 > 0 }),
             description: c.generate(using: String.arbitrary.suchThat { !$0.isEmpty }),
@@ -60,25 +60,24 @@ enum TestDataGenerators {
             address: c.generate(using: String?.arbitrary),
             batteryLife: c.generate(using: Int?.arbitrary),
             features: nil,
-            isOnline: c.generate(using: Bool.arbitrary),
-            snapshotURL: nil
+            isOnline: c.generate(using: Bool.arbitrary)
         )
     }
 
     /// Generates a random non-empty array of `RingDevice` (1–20 items).
-    static let deviceList: Gen<[RingDevice]> = device
+    nonisolated(unsafe) static let deviceList: Gen<[RingDevice]> = device
         .proliferate(withSize: 20)
         .suchThat { !$0.isEmpty }
 
     // MARK: - Event Generators
 
     /// Generates a random `RingEvent.EventType`.
-    static let eventType: Gen<RingEvent.EventType> = Gen<RingEvent.EventType>.fromElements(of: [
+    nonisolated(unsafe) static let eventType: Gen<RingEvent.EventType> = Gen<RingEvent.EventType>.fromElements(of: [
         .motion, .ding, .onDemand
     ])
 
     /// Generates a random `RingEvent`.
-    static let event: Gen<RingEvent> = Gen<RingEvent>.compose { c in
+    nonisolated(unsafe) static let event: Gen<RingEvent> = Gen<RingEvent>.compose { c in
         let hoursAgo = c.generate(using: Int.arbitrary.suchThat { $0 > 0 && $0 < 10_000 })
         return RingEvent(
             id: c.generate(using: Int.arbitrary.suchThat { $0 > 0 }),
@@ -93,12 +92,12 @@ enum TestDataGenerators {
     }
 
     /// Generates a random array of `RingEvent` (0–100 items).
-    static let eventList: Gen<[RingEvent]> = event.proliferate(withSize: 100)
+    nonisolated(unsafe) static let eventList: Gen<[RingEvent]> = event.proliferate(withSize: 100)
 
     // MARK: - Stream Session Generators
 
     /// Generates a random `StreamSession` with varying creation times and durations.
-    static let streamSession: Gen<StreamSession> = Gen<StreamSession>.compose { c in
+    nonisolated(unsafe) static let streamSession: Gen<StreamSession> = Gen<StreamSession>.compose { c in
         let secondsAgo = c.generate(using: Int.arbitrary.suchThat { $0 >= 0 && $0 < 1200 })
         let maxDuration = c.generate(using: Int.arbitrary.suchThat { $0 > 0 && $0 <= 1200 })
         return StreamSession(
@@ -115,7 +114,7 @@ enum TestDataGenerators {
     // MARK: - Filter / Sort Generators
 
     /// Generates a random `DeviceFilter`.
-    static let deviceFilter: Gen<DeviceFilter> = Gen<Int>.fromElements(in: 0...3).flatMap { choice in
+    nonisolated(unsafe) static let deviceFilter: Gen<DeviceFilter> = Gen<Int>.fromElements(in: 0...3).flatMap { choice in
         switch choice {
         case 0:
             return Gen.pure(.all)
@@ -124,12 +123,12 @@ enum TestDataGenerators {
         case 2:
             return deviceType.map { DeviceFilter.type($0) }
         default:
-            return Gen<Bool>.arbitrary.map { $0 ? DeviceFilter.status(.online) : DeviceFilter.status(.offline) }
+            return Bool.arbitrary.map { $0 ? DeviceFilter.status(.online) : DeviceFilter.status(.offline) }
         }
     }
 
     /// Generates a random `DeviceSort`.
-    static let deviceSort: Gen<DeviceSort> = Gen<DeviceSort>.fromElements(of: [
+    nonisolated(unsafe) static let deviceSort: Gen<DeviceSort> = Gen<DeviceSort>.fromElements(of: [
         .nameAscending, .nameDescending, .type, .status
     ])
 }

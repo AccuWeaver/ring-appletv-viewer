@@ -21,6 +21,8 @@ enum RingAPIError: Error, Equatable {
     case deviceOffline
     case streamUnavailable
     case rateLimited
+    case noSnapshotAvailable
+    case invalidURL(String)
     case unknown(String)
 
     /// A user-friendly message suitable for display in the UI.
@@ -57,6 +59,10 @@ enum RingAPIError: Error, Equatable {
             return "Live stream is not available for this device."
         case .rateLimited:
             return "Too many requests. Please wait a moment."
+        case .noSnapshotAvailable:
+            return "No snapshot is available for this device."
+        case .invalidURL:
+            return "An unexpected error occurred. Please try again."
         case .unknown:
             return "An unexpected error occurred. Please try again."
         }

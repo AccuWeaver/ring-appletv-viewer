@@ -1,5 +1,48 @@
 # Release Notes
 
+## v1.2 — Camera Snapshot Thumbnails
+
+### Camera Snapshots
+
+- Dashboard device cards now display the camera's latest snapshot as the card background (16:9 aspect-fill)
+- Snapshots refresh automatically every 60 seconds while the dashboard is visible
+- Player view shows the device's latest snapshot as a full-screen backdrop behind the "not yet supported" overlay (with 60% dark tint for text readability)
+- Graceful fallback to placeholder icon when no snapshot is available
+
+### Snapshot Service Architecture
+
+- New `SnapshotService` protocol with `DefaultSnapshotService` implementation
+- In-memory `NSCache` with 60-second TTL and 50MB size limit
+- Actor-based request coalescing prevents duplicate API calls for the same device
+- Rate limit handling (HTTP 429) — backs off silently until next refresh cycle
+- Failure isolation — one device's snapshot failure doesn't block others
+
+### Background App Refresh
+
+- tvOS background app refresh pre-fetches snapshots for up to 10 devices every 15 minutes
+- Snapshots are cached and ready when the user opens the app
+
+### API Endpoints
+
+- `GET /clients_api/snapshots/image/{device_id}` — Fetch latest cached JPEG snapshot
+- `POST /clients_api/doorbots/{device_id}/snapshot` — Request Ring to capture a new snapshot
+
+### Codebase Cleanup
+
+- Removed unused `snapshotURL: URL?` property from `RingDevice` model
+- Updated doc comments referencing "HLS" to accurately describe "SIP/WebRTC" or "live stream sessions"
+
+### Testing
+
+- 5 unit tests for `DefaultSnapshotService` (cache hit/miss, stale cache, coalescing, rate limiting)
+- 2 unit tests for `DashboardViewModel` snapshot integration
+- 3 property-based tests (SwiftCheck) validating correctness properties:
+  - CP-1: Cache freshness — stale entries always trigger fresh fetch
+  - CP-2: Request coalescing — N concurrent requests produce exactly 1 API call
+  - CP-3: Failure isolation — failing devices don't block others
+
+---
+
 ## v1.1 — Ring API Compatibility & Dashboard Redesign
 
 ### Authentication Fixes

@@ -5,7 +5,7 @@ import SwiftCheck
 // MARK: - Generators
 
 /// Generates an expired `AuthToken` (expiresAt in the past).
-private let expiredTokenGen: Gen<AuthToken> = Gen<AuthToken>.compose { composer in
+private nonisolated(unsafe) let expiredTokenGen: Gen<AuthToken> = Gen<AuthToken>.compose { composer in
     let pastOffset = composer.generate(using: Int.arbitrary.suchThat { $0 > 60 && $0 < 1_000_000 })
     return AuthToken(
         accessToken: composer.generate(using: String.arbitrary.suchThat { !$0.isEmpty }),
@@ -56,9 +56,10 @@ final class AuthPropertyTests: XCTestCase {
 
                 // Call getValidToken — should auto-refresh
                 let semaphore = DispatchSemaphore(value: 0)
-                var result: AuthToken?
+                nonisolated(unsafe) var result: AuthToken?
+                nonisolated(unsafe) let svc = service
                 Task {
-                    result = try? await service.getValidToken()
+                    result = try? await svc.getValidToken()
                     semaphore.signal()
                 }
                 semaphore.wait()

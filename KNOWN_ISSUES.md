@@ -15,8 +15,10 @@
 
 ## Snapshots
 
-- Camera snapshot thumbnails are not yet displayed on dashboard cards (placeholder shown).
-- Snapshot API integration is planned as Phase 1 of the live-streaming feature spec.
+- Snapshot images depend on Ring's server-side cache — if a camera hasn't captured a recent image, the API returns 404 and a placeholder is shown.
+- Ring rate-limits snapshot requests (HTTP 429). The app backs off silently and retries on the next 60-second refresh cycle.
+- Snapshots are cached in-memory only (`NSCache`). They don't persist across app launches — the background refresh task pre-fetches them every 15 minutes to mitigate cold starts.
+- Under memory pressure, tvOS may evict cached snapshots. They'll be re-fetched on the next refresh cycle.
 
 ## Event History
 
@@ -25,7 +27,7 @@
 
 ## tvOS Limitations
 
-- No background execution — the app cannot receive push notifications or run background tasks when not in the foreground.
+- Background app refresh is supported for snapshot pre-fetching (every 15 minutes), but the system controls when it actually runs.
 - No picture-in-picture support for live streams on tvOS.
 - Keychain items are not shared across devices (no iCloud Keychain sync on tvOS).
 - Password field uses a custom `RevealableSecureField` since tvOS `SecureField` doesn't support inline reveal toggles.
@@ -46,6 +48,7 @@
 |-------|-----------|
 | Live stream not available | WebRTC implementation pending — use Ring app for live viewing |
 | Device shows offline incorrectly | Pull to refresh or wait for the 60-second background refresh |
+| Snapshot shows placeholder | Camera may not have a recent image; wait for next refresh cycle |
 | Login fails after API change | Check community Ring API documentation for endpoint updates |
 | Cache shows stale data | Force refresh bypasses the 5-minute cache TTL |
 | Xcode shows "Recovered References" | Run `cd RingAppleTV && xcodegen generate` to regenerate project |
@@ -53,9 +56,9 @@
 
 ## Future Enhancements
 
-- Camera snapshot thumbnails on dashboard cards (Phase 1 — in progress)
-- WebRTC live streaming (Phase 2 — planned)
+- WebRTC live streaming (next major feature — planned)
 - Multi-camera split-screen view
 - Motion zone configuration
 - Push notification support (if tvOS adds background capabilities)
 - Settings view for runtime configuration
+- Snapshot capture-on-demand (trigger new snapshot from the app)

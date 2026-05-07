@@ -2,7 +2,7 @@ import Foundation
 @testable import RingAppleTV
 
 /// Mock `DeviceService` with configurable return values and call tracking.
-final class MockDeviceService: DeviceService {
+final class MockDeviceService: DeviceService, @unchecked Sendable {
 
     // MARK: - fetchDevices
 

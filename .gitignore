@@ -62,6 +62,11 @@ fastlane/test_output
 # Code Injection
 iOSInjectionProject/
 
+# Credentials (never commit secrets)
+*credentials*
+*.secrets
+*.env
+
 # OS files
 .DS_Store
 .DS_Store?
@@ -78,6 +83,22 @@ Desktop.ini
 *.swp
 *.swo
 *~
+
+# Python (partner-auth-backend)
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
+*.egg-info/
+.venv/
+venv/
+
+# Backend runtime state (never commit)
+partner-auth-backend/.env
+partner-auth-backend/tokens.db
+partner-auth-backend/*.db
 
 # Kiro (keep specs)
 # .kiro/

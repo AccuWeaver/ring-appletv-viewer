@@ -4,6 +4,7 @@ import SwiftUI
 /// Styled to match the native Ring app: snapshot-dominant with overlaid info.
 struct DeviceCardView: View {
     let device: RingDevice
+    let snapshotData: Data?
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -62,6 +63,20 @@ struct DeviceCardView: View {
                 .fill(Color(white: 0.15))
                 .aspectRatio(16 / 9, contentMode: .fit)
 
+            // Snapshot image when available
+            if let snapshotData, let uiImage = UIImage(data: snapshotData) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+            } else {
+                // Camera icon placeholder (shown when no snapshot)
+                Image(systemName: "video.fill")
+                    .font(.system(size: 36))
+                    .foregroundColor(.gray.opacity(0.5))
+            }
+
             // Gradient overlay for text readability
             VStack(spacing: 0) {
                 LinearGradient(
@@ -79,13 +94,6 @@ struct DeviceCardView: View {
                     endPoint: .bottom
                 )
                 .frame(height: 40)
-            }
-
-            // Camera icon placeholder (shown when no snapshot)
-            if device.snapshotURL == nil {
-                Image(systemName: "video.fill")
-                    .font(.system(size: 36))
-                    .foregroundColor(.gray.opacity(0.5))
             }
         }
     }

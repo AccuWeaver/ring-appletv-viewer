@@ -4,9 +4,9 @@ import SwiftCheck
 
 // MARK: - Generators
 
-private let deviceTypeGen: Gen<RingDevice.DeviceType> = Gen<RingDevice.DeviceType>.fromElements(of: RingDevice.DeviceType.allCases)
+private nonisolated(unsafe) let deviceTypeGen: Gen<RingDevice.DeviceType> = Gen<RingDevice.DeviceType>.fromElements(of: RingDevice.DeviceType.allCases)
 
-private let deviceGen: Gen<RingDevice> = Gen<RingDevice>.compose { c in
+private nonisolated(unsafe) let deviceGen: Gen<RingDevice> = Gen<RingDevice>.compose { c in
     RingDevice(
         id: c.generate(using: Int.arbitrary.suchThat { $0 > 0 }),
         description: c.generate(using: String.arbitrary.suchThat { !$0.isEmpty }),
@@ -15,14 +15,31 @@ private let deviceGen: Gen<RingDevice> = Gen<RingDevice>.compose { c in
         address: c.generate(using: String?.arbitrary),
         batteryLife: c.generate(using: Int?.arbitrary),
         features: nil,
-        isOnline: c.generate(using: Bool.arbitrary),
-        snapshotURL: nil
+        isOnline: c.generate(using: Bool.arbitrary)
     )
 }
 
-private let deviceListGen: Gen<[RingDevice]> = deviceGen.proliferate
+extension RingDevice: Arbitrary {
+    public static var arbitrary: Gen<RingDevice> {
+        deviceGen
+    }
+}
 
-private let deviceFilterGen: Gen<DeviceFilter> = Gen<Int>.fromElements(in: 0...3).flatMap { tag in
+extension DeviceFilter: Arbitrary {
+    public static var arbitrary: Gen<DeviceFilter> {
+        deviceFilterGen
+    }
+}
+
+extension DeviceSort: Arbitrary {
+    public static var arbitrary: Gen<DeviceSort> {
+        deviceSortGen
+    }
+}
+
+private nonisolated(unsafe) let deviceListGen: Gen<[RingDevice]> = deviceGen.proliferate
+
+private nonisolated(unsafe) let deviceFilterGen: Gen<DeviceFilter> = Gen<Int>.fromElements(in: 0...3).flatMap { tag in
     switch tag {
     case 0:
         return Gen.pure(.all)
@@ -35,7 +52,7 @@ private let deviceFilterGen: Gen<DeviceFilter> = Gen<Int>.fromElements(in: 0...3
     }
 }
 
-private let deviceSortGen: Gen<DeviceSort> = Gen<DeviceSort>.fromElements(of: [
+private nonisolated(unsafe) let deviceSortGen: Gen<DeviceSort> = Gen<DeviceSort>.fromElements(of: [
     .nameAscending, .nameDescending, .type, .status
 ])
 

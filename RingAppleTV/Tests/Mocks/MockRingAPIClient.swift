@@ -65,4 +65,24 @@ final class MockRingAPIClient: RingAPIClient {
     func fetchEventVideoURL(eventId: Int, token: String) async throws -> URL {
         try fetchEventVideoURLResult.get()
     }
+
+    // MARK: - fetchSnapshot
+
+    var fetchSnapshotResult: Result<Data, Error> = .failure(RingAPIError.noSnapshotAvailable)
+    var fetchSnapshotCalls: [(deviceId: Int, token: String)] = []
+
+    func fetchSnapshot(deviceId: Int, token: String) async throws -> Data {
+        fetchSnapshotCalls.append((deviceId: deviceId, token: token))
+        return try fetchSnapshotResult.get()
+    }
+
+    // MARK: - requestSnapshot
+
+    var requestSnapshotResult: Result<Void, Error> = .success(())
+    var requestSnapshotCalls: [(deviceId: Int, token: String)] = []
+
+    func requestSnapshot(deviceId: Int, token: String) async throws {
+        requestSnapshotCalls.append((deviceId: deviceId, token: token))
+        try requestSnapshotResult.get()
+    }
 }

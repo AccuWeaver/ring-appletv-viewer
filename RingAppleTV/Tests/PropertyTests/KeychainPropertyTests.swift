@@ -52,8 +52,7 @@ final class KeychainPropertyTests: XCTestCase {
                     return false
                 }
                 // Load
-                guard let loaded = try? keychain.load(for: "auth_token"),
-                      let loadedData = loaded else {
+                guard let loadedData = try? keychain.load(for: "auth_token") else {
                     return false
                 }
                 // Decode
@@ -100,8 +99,7 @@ final class KeychainPropertyTests: XCTestCase {
                       let d2 = try? encoder.encode(second),
                       (try? keychain.save(d1, for: "auth_token")) != nil,
                       (try? keychain.save(d2, for: "auth_token")) != nil,
-                      let loaded = try? keychain.load(for: "auth_token"),
-                      let loadedData = loaded,
+                      let loadedData = try? keychain.load(for: "auth_token"),
                       let decoded = try? decoder.decode(AuthToken.self, from: loadedData) else {
                     return false
                 }
