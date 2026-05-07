@@ -35,6 +35,7 @@ struct RetryStrategy {
              .deviceOffline,
              .streamUnavailable,
              .noSnapshotAvailable,
+             .invalidURL,
              .unknown:
             return false
         }

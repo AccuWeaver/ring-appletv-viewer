@@ -16,6 +16,7 @@ from app.config import get_settings
 from app.middleware.input_sanitizer import InputSanitizationMiddleware
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
 from app.routes.app_api import router as app_api_router
+from app.routes.mock_ring_api import router as mock_ring_api_router
 from app.routes.ring_callbacks import router as ring_callbacks_router
 
 logger = logging.getLogger(__name__)
@@ -139,3 +140,4 @@ async def health_check() -> dict:
 
 app.include_router(ring_callbacks_router)
 app.include_router(app_api_router)
+app.include_router(mock_ring_api_router)
