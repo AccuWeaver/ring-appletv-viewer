@@ -1,18 +1,19 @@
-# Docker Compose stack for local Ring Partner API mock testing.
+# Docker Compose stack for local Ring Partner API testing and real-account dev.
 #
 # Services:
-#   backend   — Python/FastAPI auth backend + mock Ring Partner API endpoints
-#   mediamtx  — WebRTC/RTSP media server (serves the test pattern via WHEP)
-#   ffmpeg    — Generates a test video pattern and publishes it to mediamtx
+#   backend         — Python/FastAPI backend; pluggable adapter (mock or unofficial)
+#   mediamtx        — WebRTC/RTSP media server
+#   ring-sip-bridge — Node.js sidecar that negotiates Ring SIP sessions and
+#                     republishes RTP as RTSP into mediamtx (only exercised
+#                     when `RING_ADAPTER=unofficial`)
+#   ffmpeg          — Test pattern generator. Only started when the ``mock``
+#                     profile is active: `docker compose --profile mock up`.
 #
 # Usage:
-#   docker compose up -d       # start everything in background
-#   docker compose logs -f     # tail logs
-#   docker compose down        # stop everything
-#
-# Once running, the tvOS app can connect to:
-#   http://<your-lan-ip>:8000    (backend + mock API)
-#   http://<your-lan-ip>:8889    (mediamtx WHEP, reached via backend proxy)
+#   docker compose up -d                       # mock or unofficial (no test pattern)
+#   docker compose --profile mock up -d        # mock with ffmpeg test pattern
+#   docker compose logs -f                     # tail logs
+#   docker compose down                        # stop everything
 
 services:
   backend:
@@ -23,7 +24,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # Local dev credentials (not real Ring credentials)
+      # Local dev credentials (not real Ring credentials).
       RING_CLIENT_ID: local_dev_client_id
       RING_CLIENT_SECRET: local_dev_client_secret
       RING_HMAC_KEY: 5E5CqTiFx16SS2V7Ipak1nvTBKQPaXipDLCjgjSj+Nk=
@@ -31,27 +32,58 @@ services:
       TOKEN_ENCRYPTION_KEY: z-6mRAl-NHWoVYqHFG_sEjGk9iy2lpnWyDWDpVBy-u0=
       DATABASE_PATH: /data/tokens.db
       LOG_LEVEL: INFO
-      # Mock WHEP proxy points at mediamtx via the docker network
-      MEDIAMTX_WHEP_URL: http://mediamtx:8889/test/whep
+
+      # Adapter selection (Req 7.1). Defaults to "mock" so `docker compose up`
+      # works without any Ring credentials. Set to "unofficial" in an `.env`
+      # file alongside this compose stack to drive a real Ring account.
+      RING_ADAPTER: ${RING_ADAPTER:-mock}
+      RING_REFRESH_TOKEN: ${RING_REFRESH_TOKEN:-}
+      RING_MAX_CONCURRENT_STREAMS: ${RING_MAX_CONCURRENT_STREAMS:-2}
+      RING_API_RATE_LIMIT_PER_MINUTE: ${RING_API_RATE_LIMIT_PER_MINUTE:-60}
+
+      # Mock adapter's WHEP URL (reads from the ffmpeg test pattern). Unused
+      # by the unofficial adapter, which assembles its own path from
+      # MEDIAMTX_WHEP_BASE + the sidecar's rtsp_path.
+      MEDIAMTX_WHEP_URL: ${MEDIAMTX_WHEP_URL:-http://mediamtx:8889/test/whep}
+
+      # Unofficial adapter endpoints.
+      MEDIAMTX_RTSP_URL: ${MEDIAMTX_RTSP_URL:-rtsp://mediamtx:8554/ring}
+      MEDIAMTX_WHEP_BASE: ${MEDIAMTX_WHEP_BASE:-http://mediamtx:8889}
+      RING_SIP_BRIDGE_URL: ${RING_SIP_BRIDGE_URL:-http://ring-sip-bridge:3000}
     volumes:
       - backend-data:/data
     depends_on:
       - mediamtx
+      - ring-sip-bridge
 
   mediamtx:
     image: bluenviron/mediamtx:latest
     container_name: ring-mediamtx
     restart: unless-stopped
     ports:
-      - "8554:8554"   # RTSP (ffmpeg publishes here)
-      - "8889:8889"   # WHEP (app subscribes here)
+      - "8554:8554"   # RTSP (sidecar + ffmpeg publish here)
+      - "8889:8889"   # WHEP (tvOS app subscribes here via backend)
       - "8189:8189/udp" # WebRTC ICE
     volumes:
       - ./mediamtx.yml:/mediamtx.yml:ro
 
+  ring-sip-bridge:
+    build:
+      context: ./ring-sip-bridge
+    container_name: ring-sip-bridge
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      MEDIAMTX_RTSP_URL: ${MEDIAMTX_RTSP_URL:-rtsp://mediamtx:8554/ring}
+    depends_on:
+      - mediamtx
+
   ffmpeg:
     image: linuxserver/ffmpeg:latest
     container_name: ring-ffmpeg
+    profiles: ["mock"]
     restart: unless-stopped
     depends_on:
       - mediamtx
