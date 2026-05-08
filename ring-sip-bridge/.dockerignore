@@ -1,0 +1,9 @@
+node_modules/
+npm-debug.log
+.env
+coverage/
+.git/
+.github/
+README.md
+test/
+vitest.config.js

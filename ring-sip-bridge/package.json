@@ -1,0 +1,23 @@
+{
+  "name": "ring-sip-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HTTP control plane wrapping ring-client-api SIP negotiation for RingAppleTV",
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": ">=20 <21"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "express": "4.21.2",
+    "ring-client-api": "13.2.1"
+  },
+  "devDependencies": {
+    "supertest": "7.0.0",
+    "vitest": "2.1.9"
+  }
+}

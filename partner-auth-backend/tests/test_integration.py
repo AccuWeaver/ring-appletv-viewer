@@ -281,8 +281,11 @@ for var in ["RING_CLIENT_ID", "RING_CLIENT_SECRET", "RING_HMAC_KEY",
             "APP_API_KEY", "TOKEN_ENCRYPTION_KEY"]:
     os.environ.pop(var, None)
 
-# Also clear any .env file influence
-os.environ["DOTENV_PATH"] = "/nonexistent"
+# Disable python-dotenv so a checked-in .env file cannot silently re-populate
+# the environment. load_dotenv() searches cwd and parents for a .env file by
+# default, which would defeat this test's pop() calls above.
+import dotenv
+dotenv.load_dotenv = lambda *args, **kwargs: False
 
 try:
     from app.config import get_settings

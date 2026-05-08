@@ -36,8 +36,13 @@ def test_missing_env_vars_raises_error_listing_all_missing(
         if var not in omitted:
             env[var] = "test-value"
 
-    # Patch os.environ so only our chosen vars are present
-    with patch.dict(os.environ, env, clear=True):
+    # Patch os.environ so only our chosen vars are present.  Also patch
+    # ``load_dotenv`` so a checked-in ``.env`` file cannot re-populate the
+    # environment between the `clear=True` and the ``Settings()`` call.
+    with (
+        patch.dict(os.environ, env, clear=True),
+        patch("app.config.load_dotenv", lambda *a, **kw: False),
+    ):
         try:
             Settings()
             # If no error raised, the test fails

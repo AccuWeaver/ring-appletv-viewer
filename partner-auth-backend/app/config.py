@@ -57,6 +57,57 @@ class Settings:
         self.database_path: str = os.environ.get("DATABASE_PATH", "./tokens.db")
         self.log_level: str = os.environ.get("LOG_LEVEL", "INFO")
 
+        # Ring adapter selection (Requirement 7.1)
+        # Normalize empty string → default "mock"
+        ring_adapter_raw = os.environ.get("RING_ADAPTER", "").strip() or "mock"
+        if ring_adapter_raw not in {"mock", "unofficial"}:
+            raise ConfigurationError(
+                f"RING_ADAPTER must be one of 'mock' or 'unofficial', "
+                f"got {ring_adapter_raw!r}"
+            )
+        self.ring_adapter: str = ring_adapter_raw
+
+        # Optional bootstrap refresh token (Requirement 7.2)
+        # Stored value wins at runtime; this is only used for first-boot seeding.
+        ring_refresh_token_raw = os.environ.get("RING_REFRESH_TOKEN", "").strip()
+        self.ring_refresh_token: str | None = ring_refresh_token_raw or None
+
+        # Concurrency / rate-limit tuning (Requirements 7.6)
+        self.ring_max_concurrent_streams: int = _parse_int_env(
+            "RING_MAX_CONCURRENT_STREAMS", default=2
+        )
+        self.ring_api_rate_limit_per_minute: int = _parse_int_env(
+            "RING_API_RATE_LIMIT_PER_MINUTE", default=60
+        )
+
+        # MediaMTX / SIP bridge URLs (Requirement 7.8)
+        self.mediamtx_rtsp_url: str = os.environ.get(
+            "MEDIAMTX_RTSP_URL", "rtsp://mediamtx:8554/ring"
+        )
+        self.mediamtx_whep_base: str = os.environ.get(
+            "MEDIAMTX_WHEP_BASE", "http://mediamtx:8889"
+        )
+        # Preserved for MockRingAdapter (matches mock_ring_api.py default)
+        self.mediamtx_whep_url: str = os.environ.get(
+            "MEDIAMTX_WHEP_URL", "http://localhost:8889/test/whep"
+        )
+        self.ring_sip_bridge_url: str = os.environ.get(
+            "RING_SIP_BRIDGE_URL", "http://ring-sip-bridge:3000"
+        )
+
+
+def _parse_int_env(var_name: str, *, default: int) -> int:
+    """Parse an integer environment variable, raising ConfigurationError on bad input."""
+    raw = os.environ.get(var_name, "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError as exc:
+        raise ConfigurationError(
+            f"{var_name} must be an integer, got {raw!r}"
+        ) from exc
+
 
 def get_settings() -> Settings:
     """Create and return a validated Settings instance.

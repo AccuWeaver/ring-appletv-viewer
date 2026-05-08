@@ -77,6 +77,53 @@ uv run pytest tests/test_endpoints.py
 
 If any required environment variable is missing at startup, the service exits immediately with an error listing all missing variables.
 
+## Adapter Selection
+
+The backend ships with two interchangeable adapters behind the `/mock/*` surface. Switch between them via the `RING_ADAPTER` environment variable.
+
+### `RING_ADAPTER=mock` (default)
+
+Returns hardcoded devices, synthetic events, and a placeholder PNG. No Ring credentials required. The WHEP endpoint proxies to the local `mediamtx` test pattern (run `docker compose --profile mock up` to start `ffmpeg` publishing test video).
+
+Use this for:
+
+- CI and offline development
+- Demoing the tvOS app without a Ring account
+
+### `RING_ADAPTER=unofficial`
+
+Backs every endpoint with Ring's unofficial consumer API using the user's personal refresh token. Live streaming uses the companion `ring-sip-bridge` Node.js sidecar (see `ring-sip-bridge/README.md`) which negotiates the Ring SIP session and republishes the RTP as RTSP to `mediamtx`.
+
+#### First-time bootstrap (generating a refresh token)
+
+The refresh token is generated outside this backend using `ring-client-api`'s CLI. You'll complete Ring's 2FA flow interactively:
+
+```bash
+npx -p ring-client-api ring-auth-cli
+```
+
+The CLI prints a long refresh token. Store it in `partner-auth-backend/.env`:
+
+```bash
+RING_ADAPTER=unofficial
+RING_REFRESH_TOKEN=<paste here>
+```
+
+The backend encrypts this value at rest on first boot and will rotate it in place when Ring issues new refresh tokens during normal operation. Do not reuse the CLI output across machines — the token is tied to your Ring account login.
+
+#### Manual end-to-end test
+
+1. Start the stack: `docker compose up -d`.
+2. `curl -H "Authorization: Bearer local-dev-api-key" http://localhost:8000/health/adapter` — confirm `"adapter_mode":"unofficial"` and `"refresh_token_valid":true`.
+3. `curl http://localhost:8000/mock/devices` — should return your real Ring cameras, not the four hardcoded mock devices.
+4. Open the tvOS app and exercise live streaming; verify a camera stream appears.
+
+If the refresh token is invalidated upstream, the backend will surface `401 authentication_required` and `/health/adapter` will report `"refresh_token_valid":false`. Regenerate the token via the CLI and restart the backend.
+
+### `ring-sip-bridge` sidecar
+
+The Node.js sidecar is always built in `docker-compose.yml` but only called by the unofficial adapter; its idle cost in mock mode is negligible. See `ring-sip-bridge/README.md` for the HTTP contract and local test workflow.
+
 ## Docker Deployment
 
 ### Build the image
