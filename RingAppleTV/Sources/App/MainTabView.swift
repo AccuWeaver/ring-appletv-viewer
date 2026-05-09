@@ -46,5 +46,13 @@ struct MainTabView: View {
             }
             .tag(MainTab.events)
         }
+        .background(
+            Image("dashboard-background")
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+                .ignoresSafeArea()
+        )
     }
 }

@@ -11,6 +11,7 @@ targets:
     platform: tvOS
     sources:
       - path: Sources
+      - path: Assets.xcassets
     resources:
       - path: app-credentials.csv
         optional: true

@@ -3,12 +3,10 @@ import SwiftUI
 /// A single row in the events list showing event type, timestamp, and device info.
 struct EventRowView: View {
     let event: RingEvent
+    var device: RingDevice?
 
     var body: some View {
         HStack(spacing: 16) {
-            // Thumbnail placeholder
-            thumbnailArea
-
             // Event info
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
@@ -19,9 +17,14 @@ struct EventRowView: View {
                         .font(.system(size: Constants.UI.bodySize, weight: .medium))
                 }
 
-                Text("Device \(event.deviceId)")
-                    .font(.system(size: Constants.UI.captionSize))
-                    .foregroundColor(.secondary)
+                HStack(spacing: 6) {
+                    Image(systemName: deviceTypeIcon)
+                        .font(.system(size: Constants.UI.captionSize - 4))
+                        .foregroundColor(.secondary)
+                    Text(device?.name ?? "Device \(event.deviceId)")
+                        .font(.system(size: Constants.UI.captionSize))
+                        .foregroundColor(.secondary)
+                }
 
                 Text(event.createdAt.relativeTime())
                     .font(.system(size: Constants.UI.captionSize))
@@ -36,6 +39,8 @@ struct EventRowView: View {
                 .accessibilityHidden(true)
         }
         .padding(Constants.UI.cardPadding)
+        .background(Color(white: 0.15))
+        .cornerRadius(Constants.UI.cornerRadius)
         .focusableCard()
         .accessibilityCard(
             label: accessibilityLabelText,
@@ -43,21 +48,21 @@ struct EventRowView: View {
         )
     }
 
-    // MARK: - Thumbnail
+    // MARK: - Helpers
 
-    private var thumbnailArea: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: Constants.UI.cornerRadius / 2)
-                .fill(Color.gray.opacity(0.2))
-                .frame(width: 120, height: 68)
-
-            Image(systemName: event.eventType.iconName)
-                .font(.system(size: 24))
-                .foregroundColor(.secondary)
+    private var deviceTypeIcon: String {
+        guard let device else { return "camera.fill" }
+        switch device.deviceType {
+        case .doorbell, .doorbellPro, .doorbellV2:
+            return "video.doorbell"
+        case .stickupCam, .spotlightCam, .floodlightCam:
+            return "web.camera.fill"
+        case .indoorCam:
+            return "web.camera"
+        case .unknown:
+            return "camera.fill"
         }
     }
-
-    // MARK: - Helpers
 
     private var iconColor: Color {
         switch event.eventType {

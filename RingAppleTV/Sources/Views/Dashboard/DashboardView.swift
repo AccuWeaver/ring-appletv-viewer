@@ -38,7 +38,7 @@ struct DashboardView: View {
                     )
                 }
             }
-            .navigationTitle("My Cameras")
+            .navigationTitle("")
             .toolbar {
                 ToolbarItem(placement: .automatic) {
                     Button {
@@ -60,25 +60,17 @@ struct DashboardView: View {
 
     private func deviceGrid(_ devices: [RingDevice]) -> some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Constants.UI.gridSpacing / 2) {
-                // Section header
-                Text("Cameras")
-                    .font(.system(size: Constants.UI.titleSize, weight: .bold))
-                    .padding(.horizontal, Constants.UI.gridSpacing)
-                    .padding(.top, 8)
-
-                LazyVGrid(columns: columns, spacing: Constants.UI.gridSpacing) {
-                    ForEach(devices) { device in
-                        NavigationLink {
-                            playerViewBuilder(device, viewModel.snapshots[device.id])
-                        } label: {
-                            DeviceCardView(device: device, snapshotData: viewModel.snapshots[device.id])
-                        }
-                        .buttonStyle(.card)
+            LazyVGrid(columns: columns, spacing: Constants.UI.gridSpacing) {
+                ForEach(devices) { device in
+                    NavigationLink {
+                        playerViewBuilder(device, viewModel.snapshots[device.id])
+                    } label: {
+                        DeviceCardView(device: device, snapshotData: viewModel.snapshots[device.id])
                     }
+                    .buttonStyle(.card)
                 }
-                .padding(.horizontal, Constants.UI.gridSpacing)
             }
+            .padding(.horizontal, Constants.UI.gridSpacing)
             .padding(.bottom, Constants.UI.gridSpacing)
         }
     }

@@ -8,15 +8,18 @@ final class EventsViewModel: ObservableObject {
 
     @Published var state: ViewState<[RingEvent]> = .idle
     @Published var hasRingProtect = true
+    @Published var devices: [String: RingDevice] = [:]
 
     // MARK: - Dependencies
 
     nonisolated(unsafe) private let eventService: EventService
+    nonisolated(unsafe) private let deviceService: DeviceService?
 
     // MARK: - Init
 
-    init(eventService: EventService) {
+    init(eventService: EventService, deviceService: DeviceService? = nil) {
         self.eventService = eventService
+        self.deviceService = deviceService
     }
 
     // MARK: - Actions
@@ -26,16 +29,15 @@ final class EventsViewModel: ObservableObject {
         state = .loading
 
         do {
-            let events = try await eventService.fetchEvents(for: deviceId)
-
-            if events.isEmpty {
-                if hasRingProtect {
-                    state = .empty("No events recorded yet.")
-                } else {
-                    state = .empty("Ring Protect subscription required to view event history.")
-                }
+            async let eventsFetch = eventService.fetchEvents(for: deviceId)
+            if let deviceService {
+                async let devicesFetch = deviceService.fetchDevices()
+                let (events, deviceList) = try await (eventsFetch, devicesFetch)
+                devices = Dictionary(uniqueKeysWithValues: deviceList.map { ($0.id, $0) })
+                updateState(with: events)
             } else {
-                state = .loaded(events)
+                let events = try await eventsFetch
+                updateState(with: events)
             }
         } catch let error as PartnerAPIError {
             state = .error(error.userMessage)
@@ -47,5 +49,17 @@ final class EventsViewModel: ObservableObject {
     /// Force refresh events.
     func refresh(for deviceId: String? = nil) async {
         await loadEvents(for: deviceId)
+    }
+
+    private func updateState(with events: [RingEvent]) {
+        if events.isEmpty {
+            if hasRingProtect {
+                state = .empty("No events recorded yet.")
+            } else {
+                state = .empty("Ring Protect subscription required to view event history.")
+            }
+        } else {
+            state = .loaded(events)
+        }
     }
 }

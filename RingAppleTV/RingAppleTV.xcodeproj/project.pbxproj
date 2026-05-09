@@ -8,8 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		0216D8551ED45DD00F645D50 /* DefaultDeviceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C77C5F9BB4C80144D3B65A /* DefaultDeviceService.swift */; };
-		AAAA000000000001WEBRTCFR /* WebRTC.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAAA000000000002WEBRTCFR /* WebRTC.xcframework */; };
-		AAAA000000000003EMBEDFR /* WebRTC.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AAAA000000000002WEBRTCFR /* WebRTC.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		0297E3CFAE1108292A2416A5 /* DeviceCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C46EF0BAB75E8208F3A5F312 /* DeviceCardView.swift */; };
 		032848BB826891020C25ED86 /* RingDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = F542A15318BD38878A6EE65F /* RingDevice.swift */; };
 		05EB79B4326E42F1756B96B0 /* ViewState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8144BEAF7CCCD375A0B2B9C9 /* ViewState.swift */; };
@@ -17,6 +15,7 @@
 		11C34CC9E0EC36533937CE5E /* DefaultCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67B3C253329C080A02076EF1 /* DefaultCacheService.swift */; };
 		1585C929DD5E9982B487E552 /* PowerSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C04FA103FAC29E9D5261503 /* PowerSource.swift */; };
 		1713E33659CB4465B1543722 /* EventServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E533D5DF19D3343CC7FA01F /* EventServiceProtocol.swift */; };
+		1931255EE54D9094A87FC682 /* NoOpAudioDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E9CCE082CD44051EADE04B6 /* NoOpAudioDevice.swift */; };
 		194B751F6FF4AC5FAE6AD0AA /* StreamSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68188868983E7120393D016F /* StreamSession.swift */; };
 		213292C98649A116D6C6C06B /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEEACBFA2E10FD99A252FD64 /* AuthViewModel.swift */; };
 		22A8971F1F01684D87BA2710 /* StreamSessionManagerProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFAE4F3A347D597C2EB958F2 /* StreamSessionManagerProtocol.swift */; };
@@ -28,6 +27,7 @@
 		49CBB4CFABF554E929B73B7E /* MediaServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 966808F25C905A4D3A772F2F /* MediaServiceProtocol.swift */; };
 		4B10D7F58E78F0A34DD7E697 /* PartnerAPIError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26FE7880D33E71750F270D5E /* PartnerAPIError.swift */; };
 		5899C74A5DA1F6B24D9DA924 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC3E26CFCD98630831A8C86D /* DashboardViewModel.swift */; };
+		5E386A0DA94688EEFB3A75A1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D614F193ADC74E434D6644D0 /* Assets.xcassets */; };
 		6558704DB8520CB4E76096B7 /* WebRTCConnectionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164577FAB4F472E99D34B67D /* WebRTCConnectionState.swift */; };
 		681B512A9AE33BAE2179E5E0 /* RingAppleTVApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B279E24ADE00F7C6B24F00C /* RingAppleTVApp.swift */; };
 		6B3F2BAA6A0A0E5298EC3A74 /* AuthToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5F550B34FC8700DF8DE617 /* AuthToken.swift */; };
@@ -37,6 +37,7 @@
 		8D58105725C61E4C8D40168A /* WebRTCVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F72CD94C558B17741AEF3DAD /* WebRTCVideoView.swift */; };
 		8E4791DCACAB31ED710E255F /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC8C1C50B4C32BD340926167 /* AppConfiguration.swift */; };
 		91B26304D58176162FE24315 /* ServiceContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE3C9C519E36FA42EB9F54DC /* ServiceContainer.swift */; };
+		92627D482CC4E4079408B288 /* SimulatorLiveStreamService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5940D14E98F2E8AF93BE1897 /* SimulatorLiveStreamService.swift */; };
 		97D1FD9F6C77E4E725A78FFD /* SPIKE_FINDINGS.md in Resources */ = {isa = PBXBuildFile; fileRef = 31DE1B9989E3DD5EF453DBE9 /* SPIKE_FINDINGS.md */; };
 		9BA723501C1A3DC7B51A97F0 /* DefaultAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBA4D76097C6E69AB722D39 /* DefaultAuthService.swift */; };
 		9D2990129909D252F89A262E /* BackgroundRefreshManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C7ACF9E70B4DE86CC2C782 /* BackgroundRefreshManager.swift */; };
@@ -47,9 +48,6 @@
 		A43A2D9EC4A3BD55B5DC5748 /* CacheError.swift in Sources */ = {isa = PBXBuildFile; fileRef = B46E1E7FE282C131A41B6496 /* CacheError.swift */; };
 		AE3F84AAB351B5B977F941BA /* RingEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD0498C9E2297FCFA8A1DFF8 /* RingEvent.swift */; };
 		B10AFA311D193DACB338C787 /* BackendAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04E97B2CBA46DEC59E6908F5 /* BackendAuthService.swift */; };
-		BBBB000000000001MOCKAUTH /* MockAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBBB000000000002MOCKAUTH /* MockAuthService.swift */; };
-		CCCC000000000001NOOPADM /* NoOpAudioDevice.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCC000000000002NOOPADM /* NoOpAudioDevice.swift */; };
-		DDDD000000000001HLSPLAY /* HLSPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDDD000000000002HLSPLAY /* HLSPlayerView.swift */; };
 		B3890B73623245A22A461047 /* KeychainError.swift in Sources */ = {isa = PBXBuildFile; fileRef = C13DD1F3FDAE6A014835F89F /* KeychainError.swift */; };
 		B3C87C4889A5C4FAD0BF3465 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A0A54148E73070857143B0C /* ContentView.swift */; };
 		B6FC790F1C91A84F95C97923 /* CacheServiceProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB7C7B7D40C5E55718E2A344 /* CacheServiceProtocol.swift */; };
@@ -68,25 +66,24 @@
 		E99964C9807A0D51ED61B821 /* BackendTokenResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 934A5F62CD221386F2CECD79 /* BackendTokenResponse.swift */; };
 		EF8407443C8973EA9368A341 /* DefaultMediaService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82EA02B3BD92D8EA8DF2C800 /* DefaultMediaService.swift */; };
 		F055E69580370DED1F738F5B /* View+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76C587B829F19C310855B1D4 /* View+Extensions.swift */; };
+		F129C3B6824E9466E5896194 /* HLSPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BE26D6194BB4AEF3BB32CDF /* HLSPlayerView.swift */; };
 		F5217B7DF43870A621D4A51B /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C13201EE27808D60995A58B0 /* Date+Extensions.swift */; };
+		F82AB90773AB8BEE0CBC2FA1 /* MockAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FCB1BAC7B3B61A8B6D9D52F /* MockAuthService.swift */; };
+		FA43C89EB9CD439054464A14 /* DefaultSimulatorLiveStreamService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE1C5E163909681B643B2A8 /* DefaultSimulatorLiveStreamService.swift */; };
 		FA6253F58FBC7DD577C6EBF2 /* PartnerDeviceResource.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA5C24BF6C4ABF65B4DD5BB /* PartnerDeviceResource.swift */; };
 		FAE2EC19A7403B220526B373 /* PartnerEventResource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B90F2A1A270F60B73C20C40 /* PartnerEventResource.swift */; };
-		CCCC000000000001SIMLIVE /* SimulatorLiveStreamService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCC000000000002SIMLIVE /* SimulatorLiveStreamService.swift */; };
-		CCCC000000000003SIMLIVE /* DefaultSimulatorLiveStreamService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCC000000000004SIMLIVE /* DefaultSimulatorLiveStreamService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		AAAA000000000002WEBRTCFR /* WebRTC.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = WebRTC.xcframework; sourceTree = "<group>"; };
 		01CC70E81AEE8850787D3C91 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		02CC59F8BA7E065FAE58F2DC /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		04E97B2CBA46DEC59E6908F5 /* BackendAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendAuthService.swift; sourceTree = "<group>"; };
-		BBBB000000000002MOCKAUTH /* MockAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAuthService.swift; sourceTree = "<group>"; };
-		CCCC000000000002NOOPADM /* NoOpAudioDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoOpAudioDevice.swift; sourceTree = "<group>"; };
-		DDDD000000000002HLSPLAY /* HLSPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HLSPlayerView.swift; sourceTree = "<group>"; };
 		076C08F46F5EC60796378977 /* PartnerAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartnerAPIClient.swift; sourceTree = "<group>"; };
 		0B4767010F7C2757B47851F1 /* DeviceServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceServiceProtocol.swift; sourceTree = "<group>"; };
 		0CBA4D76097C6E69AB722D39 /* DefaultAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultAuthService.swift; sourceTree = "<group>"; };
+		0E9CCE082CD44051EADE04B6 /* NoOpAudioDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoOpAudioDevice.swift; sourceTree = "<group>"; };
 		0ED9269DB47BE3B08099F154 /* RingAppleTV.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = RingAppleTV.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0FCB1BAC7B3B61A8B6D9D52F /* MockAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAuthService.swift; sourceTree = "<group>"; };
 		164577FAB4F472E99D34B67D /* WebRTCConnectionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCConnectionState.swift; sourceTree = "<group>"; };
 		26FE7880D33E71750F270D5E /* PartnerAPIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartnerAPIError.swift; sourceTree = "<group>"; };
 		29CB71ED1CE623CC6D0943B8 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -98,6 +95,7 @@
 		4BC380126EE3228008AE8189 /* DeviceFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceFilter.swift; sourceTree = "<group>"; };
 		4D5221790E9129D8A687259B /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		592DB1F475D25D54DE2B05B6 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		5940D14E98F2E8AF93BE1897 /* SimulatorLiveStreamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorLiveStreamService.swift; sourceTree = "<group>"; };
 		5C04FA103FAC29E9D5261503 /* PowerSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerSource.swift; sourceTree = "<group>"; };
 		64BAD38700D1C2350D9F6926 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		67B3C253329C080A02076EF1 /* DefaultCacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultCacheService.swift; sourceTree = "<group>"; };
@@ -110,6 +108,7 @@
 		82EA02B3BD92D8EA8DF2C800 /* DefaultMediaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultMediaService.swift; sourceTree = "<group>"; };
 		876756043363CAAC63BE0D95 /* DefaultKeychainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultKeychainService.swift; sourceTree = "<group>"; };
 		87B749A4B0FCB06D80E337A5 /* StreamSessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSessionManager.swift; sourceTree = "<group>"; };
+		8BE26D6194BB4AEF3BB32CDF /* HLSPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HLSPlayerView.swift; sourceTree = "<group>"; };
 		8DB4D6FBF79CAD19B2E0DF4A /* WebRTCProofOfConcept.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCProofOfConcept.swift; sourceTree = "<group>"; };
 		900D47E8EB6FFB6B4FAEDDD6 /* PlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerViewModel.swift; sourceTree = "<group>"; };
 		934A5F62CD221386F2CECD79 /* BackendTokenResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendTokenResponse.swift; sourceTree = "<group>"; };
@@ -123,6 +122,7 @@
 		A6024444CCC2AACA7F91C61B /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		AAA5C24BF6C4ABF65B4DD5BB /* PartnerDeviceResource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartnerDeviceResource.swift; sourceTree = "<group>"; };
 		AC18CFE991078FFE02A4728F /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		AEE1C5E163909681B643B2A8 /* DefaultSimulatorLiveStreamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultSimulatorLiveStreamService.swift; sourceTree = "<group>"; };
 		AFAE4F3A347D597C2EB958F2 /* StreamSessionManagerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSessionManagerProtocol.swift; sourceTree = "<group>"; };
 		B092035C2CA6DB1F3011F946 /* EventRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventRowView.swift; sourceTree = "<group>"; };
 		B46E1E7FE282C131A41B6496 /* CacheError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheError.swift; sourceTree = "<group>"; };
@@ -142,6 +142,7 @@
 		CE74F4EA7488DF9CD7B2C4B5 /* DefaultEventService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultEventService.swift; sourceTree = "<group>"; };
 		CF5F550B34FC8700DF8DE617 /* AuthToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthToken.swift; sourceTree = "<group>"; };
 		D4F6313442B3B360C41AA8C6 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
+		D614F193ADC74E434D6644D0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DC8C1C50B4C32BD340926167 /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		E05E34930F483D23F9F233D3 /* PartnerAPIClientProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartnerAPIClientProtocol.swift; sourceTree = "<group>"; };
 		E7C77C5F9BB4C80144D3B65A /* DefaultDeviceService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultDeviceService.swift; sourceTree = "<group>"; };
@@ -150,8 +151,6 @@
 		F16DD32B81CE82CECAA07B7F /* KeychainServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainServiceProtocol.swift; sourceTree = "<group>"; };
 		F542A15318BD38878A6EE65F /* RingDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingDevice.swift; sourceTree = "<group>"; };
 		F72CD94C558B17741AEF3DAD /* WebRTCVideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCVideoView.swift; sourceTree = "<group>"; };
-		CCCC000000000002SIMLIVE /* SimulatorLiveStreamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorLiveStreamService.swift; sourceTree = "<group>"; };
-		CCCC000000000004SIMLIVE /* DefaultSimulatorLiveStreamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultSimulatorLiveStreamService.swift; sourceTree = "<group>"; };
 		FE3C9C519E36FA42EB9F54DC /* ServiceContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceContainer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -187,7 +186,7 @@
 				F16DD32B81CE82CECAA07B7F /* KeychainServiceProtocol.swift */,
 				966808F25C905A4D3A772F2F /* MediaServiceProtocol.swift */,
 				E05E34930F483D23F9F233D3 /* PartnerAPIClientProtocol.swift */,
-				CCCC000000000002SIMLIVE /* SimulatorLiveStreamService.swift */,
+				5940D14E98F2E8AF93BE1897 /* SimulatorLiveStreamService.swift */,
 				AFAE4F3A347D597C2EB958F2 /* StreamSessionManagerProtocol.swift */,
 			);
 			path = Protocols;
@@ -216,9 +215,9 @@
 		3A12B99BE5B8CBB664495373 /* WebRTC */ = {
 			isa = PBXGroup;
 			children = (
+				0E9CCE082CD44051EADE04B6 /* NoOpAudioDevice.swift */,
 				31DE1B9989E3DD5EF453DBE9 /* SPIKE_FINDINGS.md */,
 				8DB4D6FBF79CAD19B2E0DF4A /* WebRTCProofOfConcept.swift */,
-				CCCC000000000002NOOPADM /* NoOpAudioDevice.swift */,
 			);
 			path = WebRTC;
 			sourceTree = "<group>";
@@ -303,7 +302,7 @@
 		84AB28F4DEBE6BB2192FA3AB = {
 			isa = PBXGroup;
 			children = (
-				AAAA000000000002WEBRTCFR /* WebRTC.xcframework */,
+				D614F193ADC74E434D6644D0 /* Assets.xcassets */,
 				3BFF46B703CB42FFEDFD3294 /* Sources */,
 				3C52E584E59AB4D1F22713F2 /* Products */,
 			);
@@ -353,8 +352,8 @@
 				CE74F4EA7488DF9CD7B2C4B5 /* DefaultEventService.swift */,
 				876756043363CAAC63BE0D95 /* DefaultKeychainService.swift */,
 				82EA02B3BD92D8EA8DF2C800 /* DefaultMediaService.swift */,
-				CCCC000000000004SIMLIVE /* DefaultSimulatorLiveStreamService.swift */,
-				BBBB000000000002MOCKAUTH /* MockAuthService.swift */,
+				AEE1C5E163909681B643B2A8 /* DefaultSimulatorLiveStreamService.swift */,
+				0FCB1BAC7B3B61A8B6D9D52F /* MockAuthService.swift */,
 				076C08F46F5EC60796378977 /* PartnerAPIClient.swift */,
 				87B749A4B0FCB06D80E337A5 /* StreamSessionManager.swift */,
 			);
@@ -364,8 +363,8 @@
 		B41908FBB561AF2EE772F4D3 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				8BE26D6194BB4AEF3BB32CDF /* HLSPlayerView.swift */,
 				F72CD94C558B17741AEF3DAD /* WebRTCVideoView.swift */,
-				DDDD000000000002HLSPLAY /* HLSPlayerView.swift */,
 				63A6424C53B18DD4C47F21D8 /* Authentication */,
 				65E1CED23D1FCE4CF8EC47A6 /* Dashboard */,
 				7EAF936AEA3B978A50A78FFF /* Events */,
@@ -383,9 +382,7 @@
 			buildConfigurationList = D58C360078B9252884156F94 /* Build configuration list for PBXNativeTarget "RingAppleTV" */;
 			buildPhases = (
 				EB1248C757A5AFE581DEC32D /* Sources */,
-				AAAA000000000004FRMWKPH /* Frameworks */,
 				DD74540F92F36BC3CB99874E /* Resources */,
-				AAAA000000000005EMBEDPH /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -431,36 +428,12 @@
 		};
 /* End PBXProject section */
 
-/* Begin PBXFrameworksBuildPhase section */
-		AAAA000000000004FRMWKPH /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				AAAA000000000001WEBRTCFR /* WebRTC.xcframework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXFrameworksBuildPhase section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		AAAA000000000005EMBEDPH /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				AAAA000000000003EMBEDFR /* WebRTC.xcframework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXResourcesBuildPhase section */
 		DD74540F92F36BC3CB99874E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5E386A0DA94688EEFB3A75A1 /* Assets.xcassets in Resources */,
 				97D1FD9F6C77E4E725A78FFD /* SPIKE_FINDINGS.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -477,7 +450,6 @@
 				6B3F2BAA6A0A0E5298EC3A74 /* AuthToken.swift in Sources */,
 				213292C98649A116D6C6C06B /* AuthViewModel.swift in Sources */,
 				B10AFA311D193DACB338C787 /* BackendAuthService.swift in Sources */,
-				BBBB000000000001MOCKAUTH /* MockAuthService.swift in Sources */,
 				E99964C9807A0D51ED61B821 /* BackendTokenResponse.swift in Sources */,
 				9D2990129909D252F89A262E /* BackgroundRefreshManager.swift in Sources */,
 				A43A2D9EC4A3BD55B5DC5748 /* CacheError.swift in Sources */,
@@ -493,8 +465,7 @@
 				BE069189AA9E5A4DB862A846 /* DefaultEventService.swift in Sources */,
 				A428C8D04BEE93E07AE06DBA /* DefaultKeychainService.swift in Sources */,
 				EF8407443C8973EA9368A341 /* DefaultMediaService.swift in Sources */,
-				CCCC000000000001SIMLIVE /* SimulatorLiveStreamService.swift in Sources */,
-				CCCC000000000003SIMLIVE /* DefaultSimulatorLiveStreamService.swift in Sources */,
+				FA43C89EB9CD439054464A14 /* DefaultSimulatorLiveStreamService.swift in Sources */,
 				0297E3CFAE1108292A2416A5 /* DeviceCardView.swift in Sources */,
 				BE9DB4E50E7BC4CBC43AF6E6 /* DeviceCodeResponse.swift in Sources */,
 				898777680995D0F40B44E6AE /* DeviceFilter.swift in Sources */,
@@ -505,12 +476,15 @@
 				1713E33659CB4465B1543722 /* EventServiceProtocol.swift in Sources */,
 				9E9CE220955390460B4D718F /* EventsView.swift in Sources */,
 				BADE280321326138A98EDDAB /* EventsViewModel.swift in Sources */,
+				F129C3B6824E9466E5896194 /* HLSPlayerView.swift in Sources */,
 				B3890B73623245A22A461047 /* KeychainError.swift in Sources */,
 				DB3A029EB4E52CF26497EEF8 /* KeychainServiceProtocol.swift in Sources */,
 				D32DA80289C187930E7D575C /* LoadingView.swift in Sources */,
 				43521F1DB96FF773F4D187B4 /* LoginView.swift in Sources */,
 				27D330B6BEAD96EF54A11CE4 /* MainTabView.swift in Sources */,
 				49CBB4CFABF554E929B73B7E /* MediaServiceProtocol.swift in Sources */,
+				F82AB90773AB8BEE0CBC2FA1 /* MockAuthService.swift in Sources */,
+				1931255EE54D9094A87FC682 /* NoOpAudioDevice.swift in Sources */,
 				7990584F6C654B23882C8172 /* PartnerAPIClient.swift in Sources */,
 				9DB7A8BE0936B6225C6E91C6 /* PartnerAPIClientProtocol.swift in Sources */,
 				4B10D7F58E78F0A34DD7E697 /* PartnerAPIError.swift in Sources */,
@@ -524,6 +498,7 @@
 				032848BB826891020C25ED86 /* RingDevice.swift in Sources */,
 				AE3F84AAB351B5B977F941BA /* RingEvent.swift in Sources */,
 				91B26304D58176162FE24315 /* ServiceContainer.swift in Sources */,
+				92627D482CC4E4079408B288 /* SimulatorLiveStreamService.swift in Sources */,
 				194B751F6FF4AC5FAE6AD0AA /* StreamSession.swift in Sources */,
 				DCAA1896B814DD51D94189BA /* StreamSessionManager.swift in Sources */,
 				22A8971F1F01684D87BA2710 /* StreamSessionManagerProtocol.swift in Sources */,
@@ -532,8 +507,6 @@
 				1004C2BB19FF8F8542B5D005 /* WHEPSessionResponse.swift in Sources */,
 				6558704DB8520CB4E76096B7 /* WebRTCConnectionState.swift in Sources */,
 				345B69E4FEAD0C93EEF4EA89 /* WebRTCProofOfConcept.swift in Sources */,
-				CCCC000000000001NOOPADM /* NoOpAudioDevice.swift in Sources */,
-				DDDD000000000001HLSPLAY /* HLSPlayerView.swift in Sources */,
 				8D58105725C61E4C8D40168A /* WebRTCVideoView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -614,10 +587,6 @@
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)",
-				);
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -645,10 +614,6 @@
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_TESTABILITY = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)",
-				);
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				INFOPLIST_FILE = Info.plist;

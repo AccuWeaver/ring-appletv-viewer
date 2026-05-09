@@ -97,7 +97,7 @@ final class ServiceContainer: ObservableObject {
             mediaService: domain.mediaService,
             refreshInterval: configuration.deviceRefreshInterval
         )
-        self.eventsViewModel = EventsViewModel(eventService: domain.eventService)
+        self.eventsViewModel = EventsViewModel(eventService: domain.eventService, deviceService: domain.deviceService)
     }
 
     // MARK: - Factory Methods

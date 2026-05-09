@@ -28,7 +28,7 @@ struct EventsView: View {
                     emptyState(message: message)
                 }
             }
-            .navigationTitle("Events")
+            .navigationTitle("")
         }
     }
 
@@ -46,7 +46,7 @@ struct EventsView: View {
                     NavigationLink {
                         playerViewBuilder(event)
                     } label: {
-                        EventRowView(event: event)
+                        EventRowView(event: event, device: viewModel.devices[event.deviceId])
                     }
                     .buttonStyle(.card)
                 }
