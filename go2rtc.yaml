@@ -1,0 +1,25 @@
+# go2rtc configuration for the Ring adapter-live-media bridge.
+#
+# This file is the seed config loaded at container start. The backend
+# adds named Ring streams dynamically via the go2rtc HTTP API based on
+# the cameras that appear in /mock/devices, so we don't list them here.
+#
+# Secrets: RING_REFRESH_TOKEN_G2R is injected into per-stream URLs by
+# the backend; we never store it in this file.
+
+api:
+  # Allow requests from the tvOS simulator (running on the host) without
+  # CORS headaches. The API is already only reachable on localhost.
+  origin: '*'
+
+log:
+  # Keep noise low in production; bump to "debug" only when
+  # troubleshooting. Never set to "trace" — it echoes full URLs (which
+  # contain the refresh token on Ring streams) to the log.
+  level: info
+
+rtsp:
+  default_query: 'video&audio'
+
+# Seed with no streams; backend creates them on demand.
+streams: {}

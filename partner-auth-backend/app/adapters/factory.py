@@ -12,6 +12,7 @@ from collections.abc import Awaitable, Callable
 import httpx
 
 from app.adapters.base import RingAdapter
+from app.adapters.go2rtc_client import Go2rtcClient
 from app.adapters.mock import MockRingAdapter
 from app.adapters.partner import PartnerRingAdapter
 from app.adapters.rate_limit import RateLimitGovernor
@@ -141,6 +142,7 @@ async def _create_unofficial_adapter(settings: Settings) -> UnofficialRingAdapte
         max_concurrent=settings.ring_max_concurrent_streams,
         mediamtx_whep_base=settings.mediamtx_whep_base,
         mediamtx_hls_public_base=settings.mediamtx_hls_public_base,
+        go2rtc=_build_go2rtc_client(settings),
     )
 
     # Stash the Ring-API httpx client on the adapter so the lifespan hook
@@ -174,6 +176,23 @@ def _create_partner_adapter(
     adapter._http_owned = True  # type: ignore[attr-defined]
     logger.info("startup adapter_mode=partner")
     return adapter
+
+
+def _build_go2rtc_client(settings: Settings) -> Go2rtcClient | None:
+    """Return a go2rtc client when the wrapped refresh token is present.
+
+    The unofficial adapter uses this client to upsert per-camera Ring
+    streams and return a public HLS URL for simulator clients. If the
+    ``RING_REFRESH_TOKEN_G2R`` env var is empty, we return None and the
+    adapter falls back to the ring-sip-bridge path.
+    """
+    if not settings.ring_refresh_token_g2r:
+        return None
+    return Go2rtcClient(
+        internal_base_url=settings.go2rtc_url,
+        public_base_url=settings.go2rtc_public_url,
+        wrapped_refresh_token=settings.ring_refresh_token_g2r,
+    )
 
 
 async def _bootstrap_refresh_token(store: RefreshTokenStore, settings: Settings) -> None:

@@ -125,6 +125,18 @@ class Settings:
         self.mediamtx_hls_public_base: str = os.environ.get(
             "MEDIAMTX_HLS_PUBLIC_BASE", "http://localhost:8888"
         )
+
+        # go2rtc native Ring → HLS bridge (optional).
+        # When RING_REFRESH_TOKEN_G2R is set, the unofficial adapter's
+        # create_hls_stream_session routes through go2rtc instead of the
+        # ring-sip-bridge + mediamtx chain.
+        self.go2rtc_url: str = os.environ.get("GO2RTC_URL", "http://go2rtc:1984")
+        self.go2rtc_public_url: str = os.environ.get(
+            "GO2RTC_PUBLIC_URL", "http://localhost:1984"
+        )
+        self.ring_refresh_token_g2r: str = os.environ.get(
+            "RING_REFRESH_TOKEN_G2R", ""
+        )
         # Preserved for MockRingAdapter (matches mock_ring_api.py default)
         self.mediamtx_whep_url: str = os.environ.get(
             "MEDIAMTX_WHEP_URL", "http://localhost:8889/test/whep"

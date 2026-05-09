@@ -32,6 +32,7 @@ from app.adapters.errors import (
     UpstreamTimeoutError,
     UpstreamUnavailableError,
 )
+from app.adapters.go2rtc_client import Go2rtcClient
 from app.adapters.mappers import is_camera_kind, map_device, map_event
 from app.adapters.ring_consumer_client import RingConsumerClient
 from app.adapters.ring_schemas import RingDevice, RingEvent
@@ -121,6 +122,7 @@ class UnofficialRingAdapter(RingAdapter):
         max_concurrent: int,
         mediamtx_whep_base: str,
         mediamtx_hls_public_base: str = "",
+        go2rtc: Go2rtcClient | None = None,
         http: httpx.AsyncClient | None = None,
     ) -> None:
         self._client = client
@@ -129,6 +131,7 @@ class UnofficialRingAdapter(RingAdapter):
         self._max_concurrent = max_concurrent
         self._mediamtx_whep_base = mediamtx_whep_base.rstrip("/")
         self._mediamtx_hls_public_base = mediamtx_hls_public_base.rstrip("/")
+        self._go2rtc = go2rtc
         # Optional separate httpx client for mediamtx WHEP traffic so it
         # does not share the Ring-API client's rate-limit path. If omitted
         # we create our own and close it on aclose().
@@ -316,34 +319,96 @@ class UnofficialRingAdapter(RingAdapter):
     @_logged("delete_stream_session")
     async def delete_stream_session(self, session_id: str) -> None:
         session = await self._sessions.lookup(session_id)
-        assert isinstance(session, UnofficialStreamSession)
-        try:
-            await self._sip.stop(session.bridge_session_id)
-        finally:
-            await self._sessions.remove(session_id)
-        # RTSP publish stopped first (the sidecar tears down the publish
-        # leg before closing the SIP dialog); we surface both events so
-        # that downstream correlation tools see the full teardown order.
+        if isinstance(session, UnofficialStreamSession):
+            try:
+                await self._sip.stop(session.bridge_session_id)
+            finally:
+                await self._sessions.remove(session_id)
+            logger.info(
+                "sip_bridge_lifecycle event=rtsp_publish_stopped session_id=%s device_id=%s mode=%s",
+                session_id,
+                session.device_id,
+                self.mode(),
+            )
+            logger.info(
+                "sip_bridge_lifecycle event=sip_terminated session_id=%s device_id=%s mode=%s",
+                session_id,
+                session.device_id,
+                self.mode(),
+            )
+            logger.info(
+                "stream_session_deleted session_id=%s device_id=%s",
+                session_id,
+                session.device_id,
+            )
+            return
+
+        # go2rtc-backed HLS session. Ask go2rtc to drop the stream (it will
+        # also reap the producer when the last consumer disconnects, so
+        # this is mostly a cleanliness call).
+        if self._go2rtc is not None:
+            await self._go2rtc.delete_stream(session.device_id)
+        await self._sessions.remove(session_id)
         logger.info(
-            "sip_bridge_lifecycle event=rtsp_publish_stopped session_id=%s device_id=%s mode=%s",
-            session_id,
-            session.device_id,
-            self.mode(),
-        )
-        logger.info(
-            "sip_bridge_lifecycle event=sip_terminated session_id=%s device_id=%s mode=%s",
-            session_id,
-            session.device_id,
-            self.mode(),
-        )
-        logger.info(
-            "stream_session_deleted session_id=%s device_id=%s",
+            "stream_session_deleted backend=go2rtc session_id=%s device_id=%s",
             session_id,
             session.device_id,
         )
 
     @_logged("create_hls_stream_session")
     async def create_hls_stream_session(self, device_id: str) -> HLSStreamSessionResult:
+        """Produce an HLS URL for the given device.
+
+        When a go2rtc client is configured we delegate the whole Ring
+        → HLS path to go2rtc (native Go WebRTC client, no ffmpeg in the
+        critical path). The backend just upserts a named stream and
+        hands the tvOS client the public HLS URL; go2rtc handles the
+        SIP/WebRTC/HLS dance internally.
+
+        When go2rtc is not configured we fall back to the legacy
+        ring-sip-bridge + mediamtx path.
+        """
+        if self._go2rtc is not None and self._go2rtc.is_configured:
+            return await self._create_go2rtc_hls_session(device_id)
+        return await self._create_mediamtx_hls_session(device_id)
+
+    async def _create_go2rtc_hls_session(self, device_id: str) -> HLSStreamSessionResult:
+        """HLS via go2rtc's native Ring client.
+
+        Go2rtc keys streams off the internal ``camera_id`` rather than the
+        device id we expose to the tvOS client. For the unofficial path
+        they're the same value — both come from Ring's numeric camera id.
+        """
+        assert self._go2rtc is not None
+        await self._go2rtc.ensure_stream(device_id=device_id, camera_id=device_id)
+
+        # We bind a mock-style session so delete_stream_session can
+        # release the go2rtc stream through the same code path as the
+        # mediamtx variant. The session id we return is our own UUID;
+        # go2rtc doesn't have a per-subscription id worth exposing.
+        from app.adapters.types import MockStreamSession
+
+        session_id = str(uuid.uuid4())
+        await self._sessions.bind(
+            MockStreamSession(
+                session_id=session_id,
+                device_id=device_id,
+                created_at=time.time(),
+            )
+        )
+        logger.info(
+            "hls_stream_session_created backend=go2rtc session_id=%s device_id=%s",
+            session_id,
+            device_id,
+        )
+        return HLSStreamSessionResult(
+            hls_url=self._go2rtc.public_hls_url(device_id),
+            session_id=session_id,
+        )
+
+    async def _create_mediamtx_hls_session(
+        self, device_id: str
+    ) -> HLSStreamSessionResult:
         """Start a SIP session and expose it as a mediamtx HLS URL.
 
         Used by tvOS simulator builds where WebRTC frames don't render
@@ -385,10 +450,9 @@ class UnofficialRingAdapter(RingAdapter):
 
         hls_url = f"{self._mediamtx_hls_public_base}/{bridge.rtsp_path}/index.m3u8"
         logger.info(
-            "hls_stream_session_created session_id=%s device_id=%s url=%s",
+            "hls_stream_session_created backend=mediamtx session_id=%s device_id=%s",
             session_id,
             device_id,
-            hls_url,
         )
         return HLSStreamSessionResult(hls_url=hls_url, session_id=session_id)
 
@@ -421,6 +485,8 @@ class UnofficialRingAdapter(RingAdapter):
         if self._owned_whep is not None:
             await self._owned_whep.aclose()
             self._owned_whep = None
+        if self._go2rtc is not None:
+            await self._go2rtc.aclose()
 
     # ------------------------------------------------------------------
     # Internals
