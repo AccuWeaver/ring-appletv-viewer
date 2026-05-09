@@ -62,9 +62,7 @@ async def _init_db() -> None:
 
 def _compute_hmac(nonce: str) -> str:
     """Compute HMAC-SHA256 signature for a nonce using the active HMAC key."""
-    return hmac.new(
-        _ACTIVE_HMAC_KEY_BYTES, nonce.encode("utf-8"), hashlib.sha256
-    ).hexdigest()
+    return hmac.new(_ACTIVE_HMAC_KEY_BYTES, nonce.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 # ---------------------------------------------------------------------------
@@ -248,9 +246,7 @@ async def test_e2e_webhook_delivery_storage_retrieval() -> None:
     # Verify all events were stored
     stored_event_ids = {e["event_id"] for e in stored_events}
     for event in events:
-        assert event["event_id"] in stored_event_ids, (
-            f"Event {event['event_id']} should be stored"
-        )
+        assert event["event_id"] in stored_event_ids, f"Event {event['event_id']} should be stored"
 
     # Verify field preservation for the first event
     evt_001 = next(e for e in stored_events if e["event_id"] == "evt_integration_001")
@@ -343,6 +339,5 @@ except Exception as exc:
         "TOKEN_ENCRYPTION_KEY",
     ]:
         assert var in stderr, (
-            f"Error message should mention missing variable '{var}'. "
-            f"Got: {stderr}"
+            f"Error message should mention missing variable '{var}'. Got: {stderr}"
         )

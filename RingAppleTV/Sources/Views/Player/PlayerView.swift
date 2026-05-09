@@ -42,6 +42,15 @@ struct PlayerView: View {
         .navigationBarHidden(true)
         #endif
         .ignoresSafeArea()
+        // Always-on focus + onExitCommand so the Menu button dismisses the
+        // player from any state (idle, loading, loaded, error). Without the
+        // outer focusable() the player isn't the first responder during
+        // loading/error overlays, and Menu escapes the NavigationView and
+        // quits the app.
+        .focusable(true)
+        .onExitCommand {
+            dismiss()
+        }
         .onDisappear {
             viewModel.stopStream()
         }
@@ -58,30 +67,33 @@ struct PlayerView: View {
                 // Used in mock mode (simulator) and when the WebRTC framework is
                 // unavailable. On a real Apple TV with Ring credentials, the
                 // WebRTC path above handles live streams.
-                mockHLSPlayer
+                mockHLSPlayer(session: session)
             }
 
             // Device name overlay
             deviceNameOverlay
         }
-        // Make the player view focusable so .onExitCommand fires on the Menu button.
-        // Without this, tvOS routes Menu to the home screen instead of our handler.
-        .focusable(true)
-        .onExitCommand {
-            dismiss()
-        }
     }
 
     // MARK: - Mock HLS Player (simulator / dev)
 
-    private var mockHLSPlayer: some View {
-        // Apple's BipBop HLS test stream — plays reliably in the tvOS simulator.
+    /// Returns the URL to play in the HLS fallback. If the PlayerViewModel
+    /// managed to resolve the device's most recent recorded clip URL we play
+    /// that; otherwise we fall back to Apple's BipBop test stream so the UI
+    /// flow still works when the device has no recorded events.
+    private static let bipBopFallbackURL: URL = {
+        let urlString = "https://devstreaming-cdn.apple.com/videos/streaming/examples/"
+            + "bipbop_16x9/bipbop_16x9_variant.m3u8"
+        return URL(string: urlString) ?? URL(fileURLWithPath: "/dev/null")
+    }()
+
+    private func mockHLSPlayer(session: StreamSession) -> some View {
         // Uses a custom AVPlayerLayer wrapper (HLSPlayerView) instead of AVKit's
         // VideoPlayer so the Menu button isn't captured by AVKit's player chrome —
         // our `.onExitCommand` handler on the parent view can receive it and dismiss.
-        let bipBopURLString = "https://devstreaming-cdn.apple.com/videos/streaming/examples/"
-            + "bipbop_16x9/bipbop_16x9_variant.m3u8"
-        return HLSPlayerView(url: URL(string: bipBopURLString) ?? URL(fileURLWithPath: "/dev/null"))
+        let isPlaceholder = session.sessionURL == PlayerViewModel.placeholderMockSessionURL
+        let url = isPlaceholder ? Self.bipBopFallbackURL : session.sessionURL
+        return HLSPlayerView(url: url)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityLabel(Text("HLS stream for \(device.name)"))
     }

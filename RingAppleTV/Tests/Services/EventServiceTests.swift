@@ -48,18 +48,25 @@ final class EventServiceTests: XCTestCase {
 
     private var mockAuth: MockAuthService!
     private var mockAPI: MockPartnerAPIClient!
+    private var mockDeviceService: MockDeviceService!
     private var sut: DefaultEventService!
 
     override func setUp() {
         super.setUp()
         mockAuth = MockAuthService()
         mockAPI = MockPartnerAPIClient()
+        mockDeviceService = MockDeviceService()
         mockAuth.getValidTokenResult = .success(makeValidToken())
-        sut = DefaultEventService(authService: mockAuth, partnerAPIClient: mockAPI)
+        sut = DefaultEventService(
+            authService: mockAuth,
+            partnerAPIClient: mockAPI,
+            deviceService: mockDeviceService
+        )
     }
 
     override func tearDown() {
         sut = nil
+        mockDeviceService = nil
         mockAPI = nil
         mockAuth = nil
         super.tearDown()
@@ -148,11 +155,64 @@ final class EventServiceTests: XCTestCase {
         }
     }
 
-    // MARK: - fetchEvents — Nil DeviceId
+    // MARK: - fetchEvents — Nil DeviceId (aggregation)
 
-    func testFetchEventsWithNilDeviceId() async throws {
+    func testFetchEventsWithNilDeviceIdReturnsEmptyWhenNoDevices() async throws {
+        mockDeviceService.fetchDevicesResult = .success([])
+
         let events = try await sut.fetchEvents(for: nil)
+
         XCTAssertTrue(events.isEmpty)
+    }
+
+    func testFetchEventsWithNilDeviceIdAggregatesAcrossDevices() async throws {
+        let devices = [
+            RingDevice(
+                id: "1", name: "Front", model: "doorbell", deviceType: .doorbell,
+                firmwareVersion: nil, powerSource: .battery, isOnline: true
+            ),
+            RingDevice(
+                id: "2", name: "Back", model: "stickup", deviceType: .stickupCam,
+                firmwareVersion: nil, powerSource: .hardwired, isOnline: true
+            )
+        ]
+        mockDeviceService.fetchDevicesResult = .success(devices)
+        // Both devices share the same mock result — that's fine, the count is
+        // what matters. We end up with 2× events, then sorted/truncated.
+        mockAPI.fetchEventsResult = .success([
+            makeEventResource(id: "a", deviceId: "1", createdAt: "2026-01-15T10:00:00Z"),
+            makeEventResource(id: "b", deviceId: "1", createdAt: "2026-01-15T11:00:00Z")
+        ])
+
+        let events = try await sut.fetchEvents(for: nil)
+
+        XCTAssertEqual(events.count, 4, "Expected 2 events per device × 2 devices = 4")
+        // Sorted descending by createdAt
+        for i in 0..<(events.count - 1) {
+            XCTAssertGreaterThanOrEqual(events[i].createdAt, events[i + 1].createdAt)
+        }
+    }
+
+    func testFetchEventsWithNilDeviceIdCapsAtFiftyAcrossAggregation() async throws {
+        // 3 devices × 25 events each = 75, should truncate to 50
+        let devices = (1...3).map { i in
+            RingDevice(
+                id: String(i), name: "d\(i)", model: "doorbell", deviceType: .doorbell,
+                firmwareVersion: nil, powerSource: .battery, isOnline: true
+            )
+        }
+        mockDeviceService.fetchDevicesResult = .success(devices)
+        let resources = (0..<25).map { i in
+            makeEventResource(
+                id: String(i),
+                createdAt: "2026-01-15T\(String(format: "%02d", i % 24)):00:00Z"
+            )
+        }
+        mockAPI.fetchEventsResult = .success(resources)
+
+        let events = try await sut.fetchEvents(for: nil)
+
+        XCTAssertLessThanOrEqual(events.count, 50)
     }
 
     // MARK: - fetchEventVideoURL

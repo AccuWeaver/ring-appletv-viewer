@@ -74,7 +74,7 @@ struct DashboardView: View {
                         } label: {
                             DeviceCardView(device: device, snapshotData: viewModel.snapshots[device.id])
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.card)
                     }
                 }
                 .padding(.horizontal, Constants.UI.gridSpacing)

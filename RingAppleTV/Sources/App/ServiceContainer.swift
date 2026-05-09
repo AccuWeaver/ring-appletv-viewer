@@ -90,7 +90,11 @@ final class ServiceContainer: ObservableObject {
 
     /// Creates a `PlayerViewModel` for a specific streaming session.
     func makePlayerViewModel() -> PlayerViewModel {
-        PlayerViewModel(streamSessionManager: streamSessionManager)
+        PlayerViewModel(
+            streamSessionManager: streamSessionManager,
+            eventService: eventService,
+            mediaService: mediaService
+        )
     }
 
     // MARK: - Private Construction Helpers
@@ -144,16 +148,20 @@ final class ServiceContainer: ObservableObject {
                 keychainService: keychainService
             )
         }
+        // Build deviceService once so it can be shared with eventService's
+        // "all devices" aggregation path.
+        let deviceService = DefaultDeviceService(
+            authService: authService,
+            partnerAPIClient: apiClient,
+            cacheService: cacheService
+        )
         return DomainServices(
             authService: authService,
-            deviceService: DefaultDeviceService(
-                authService: authService,
-                partnerAPIClient: apiClient,
-                cacheService: cacheService
-            ),
+            deviceService: deviceService,
             eventService: DefaultEventService(
                 authService: authService,
-                partnerAPIClient: apiClient
+                partnerAPIClient: apiClient,
+                deviceService: deviceService
             ),
             mediaService: DefaultMediaService(
                 authService: authService,

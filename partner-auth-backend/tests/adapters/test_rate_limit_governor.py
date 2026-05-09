@@ -50,9 +50,7 @@ class _FastGovernor(RateLimitGovernor):
     max_per_minute=st.integers(min_value=1, max_value=20),
     burst=st.integers(min_value=0, max_value=25),
 )
-def test_governor_admits_at_most_max_per_minute_per_window(
-    max_per_minute: int, burst: int
-) -> None:
+def test_governor_admits_at_most_max_per_minute_per_window(max_per_minute: int, burst: int) -> None:
     """**Validates: Requirements 8.1, 8.2**
 
     Fire ``burst`` back-to-back ``acquire()`` calls against a governor with

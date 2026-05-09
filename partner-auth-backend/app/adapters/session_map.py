@@ -16,7 +16,7 @@ from app.adapters.errors import (
     StreamCapacityExceededError,
     StreamSessionNotFoundError,
 )
-from app.adapters.types import StreamSession
+from app.adapters.types import BaseStreamSession
 
 
 class StreamSessionMap:
@@ -24,9 +24,9 @@ class StreamSessionMap:
 
     def __init__(self) -> None:
         self._lock = asyncio.Lock()
-        self._sessions: dict[str, StreamSession] = {}
+        self._sessions: dict[str, BaseStreamSession] = {}
 
-    async def bind(self, session: StreamSession) -> None:
+    async def bind(self, session: BaseStreamSession) -> None:
         """Register a freshly created session.
 
         Raises:
@@ -36,12 +36,10 @@ class StreamSessionMap:
         """
         async with self._lock:
             if session.session_id in self._sessions:
-                raise ValueError(
-                    f"duplicate session_id in map: {session.session_id!r}"
-                )
+                raise ValueError(f"duplicate session_id in map: {session.session_id!r}")
             self._sessions[session.session_id] = session
 
-    async def lookup(self, session_id: str) -> StreamSession:
+    async def lookup(self, session_id: str) -> BaseStreamSession:
         """Return the session for ``session_id`` or raise.
 
         Raises:
@@ -51,12 +49,10 @@ class StreamSessionMap:
         async with self._lock:
             session = self._sessions.get(session_id)
         if session is None:
-            raise StreamSessionNotFoundError(
-                f"no active stream session with id {session_id!r}"
-            )
+            raise StreamSessionNotFoundError(f"no active stream session with id {session_id!r}")
         return session
 
-    async def remove(self, session_id: str) -> StreamSession | None:
+    async def remove(self, session_id: str) -> BaseStreamSession | None:
         """Remove and return the session for ``session_id``, or ``None``.
 
         Idempotent: returning ``None`` for an unknown id is not an error
@@ -85,16 +81,15 @@ class StreamSessionMap:
         async with self._lock:
             if len(self._sessions) >= max_concurrent:
                 raise StreamCapacityExceededError(
-                    f"stream capacity {max_concurrent} exceeded "
-                    f"(active={len(self._sessions)})"
+                    f"stream capacity {max_concurrent} exceeded (active={len(self._sessions)})"
                 )
 
-    async def snapshot(self) -> tuple[StreamSession, ...]:
+    async def snapshot(self) -> tuple[BaseStreamSession, ...]:
         """Return an immutable snapshot of the current sessions."""
         async with self._lock:
             return tuple(self._sessions.values())
 
-    async def clear(self) -> Iterable[StreamSession]:
+    async def clear(self) -> Iterable[BaseStreamSession]:
         """Remove and return all sessions. Used during adapter ``aclose``.
 
         Returns a list rather than a tuple to emphasise the caller may

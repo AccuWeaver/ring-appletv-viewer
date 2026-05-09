@@ -109,9 +109,7 @@ def _oauth_response(
     expires_in=st.integers(min_value=60, max_value=86_400),
     elapsed=st.integers(min_value=0, max_value=86_400),
 )
-def test_property4_refresh_iff_within_threshold(
-    expires_in: int, elapsed: int
-) -> None:
+def test_property4_refresh_iff_within_threshold(expires_in: int, elapsed: int) -> None:
     """**Validates: Requirements 3.3, 3.4**
 
     Pin a fake clock, make an initial ``ensure_access_token()`` call (which
@@ -204,9 +202,7 @@ def recorded_sleeps(monkeypatch: pytest.MonkeyPatch) -> list[float]:
     async def fake_sleep(seconds: float) -> None:
         recorded.append(float(seconds))
 
-    monkeypatch.setattr(
-        "app.adapters.ring_consumer_client.asyncio.sleep", fake_sleep
-    )
+    monkeypatch.setattr("app.adapters.ring_consumer_client.asyncio.sleep", fake_sleep)
     return recorded
 
 
@@ -219,9 +215,7 @@ async def test_429_retry_after_honored_exactly_once(
         httpx.Response(429, headers={"retry-after": "7"}),
         httpx.Response(200, json=[]),
     ]
-    http = httpx.AsyncClient(
-        transport=httpx.MockTransport(_seeded_handler(responses))
-    )
+    http = httpx.AsyncClient(transport=httpx.MockTransport(_seeded_handler(responses)))
     try:
         client = RingConsumerClient(http, _make_governor(), FakeStore())
         await client.get_devices()
@@ -238,12 +232,8 @@ async def test_429_without_retry_after_uses_exponential_backoff(
 ) -> None:
     """Sequence of 429s (no ``Retry-After``) produces the capped-exponential
     1 → 2 → 4 → 8 → 16 → 30 s backoff schedule (Req 8.3)."""
-    responses = [httpx.Response(429) for _ in range(5)] + [
-        httpx.Response(200, json=[])
-    ]
-    http = httpx.AsyncClient(
-        transport=httpx.MockTransport(_seeded_handler(responses))
-    )
+    responses = [httpx.Response(429) for _ in range(5)] + [httpx.Response(200, json=[])]
+    http = httpx.AsyncClient(transport=httpx.MockTransport(_seeded_handler(responses)))
     try:
         client = RingConsumerClient(http, _make_governor(), FakeStore())
         await client.get_devices()
@@ -262,9 +252,7 @@ async def test_5xx_retried_up_to_two_times_then_raises(
     # Five 500s is more than enough — only three should be consumed before
     # the client gives up.
     responses = [httpx.Response(500) for _ in range(5)]
-    http = httpx.AsyncClient(
-        transport=httpx.MockTransport(_seeded_handler(responses))
-    )
+    http = httpx.AsyncClient(transport=httpx.MockTransport(_seeded_handler(responses)))
     try:
         client = RingConsumerClient(http, _make_governor(), FakeStore())
         with pytest.raises(UpstreamUnavailableError):
@@ -292,9 +280,7 @@ async def test_user_agent_header_includes_backend_name_and_version() -> None:
 
     http = httpx.AsyncClient(transport=httpx.MockTransport(handler))
     try:
-        client = RingConsumerClient(
-            http, _make_governor(), FakeStore(), version="1.2.3"
-        )
+        client = RingConsumerClient(http, _make_governor(), FakeStore(), version="1.2.3")
         await client.get_devices()
     finally:
         await http.aclose()
@@ -449,10 +435,7 @@ async def test_get_snapshot_refreshes_when_cache_is_empty() -> None:
         requests.append((method, url, body))
         if "/snapshots/image/" in url and method == "GET":
             # First GET 404s; second (post-refresh) GET returns a JPEG.
-            get_count = sum(
-                1 for m, u, _ in requests
-                if m == "GET" and "/snapshots/image/" in u
-            )
+            get_count = sum(1 for m, u, _ in requests if m == "GET" and "/snapshots/image/" in u)
             if get_count == 1:
                 return httpx.Response(404)
             return httpx.Response(

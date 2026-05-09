@@ -53,9 +53,7 @@ def test_property7_single_adapter_instance_across_requests(n_requests: int) -> N
 
     async def run() -> None:
         app, adapter = _build_app()
-        async with AsyncClient(
-            transport=ASGITransport(app=app), base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             ids: set[int] = set()
             modes: set[str] = set()
             for _ in range(n_requests):

@@ -19,20 +19,25 @@ from slowapi.errors import RateLimitExceeded
 
 from app.adapters.base import RingAdapter
 from app.adapters.errors import RingAdapterError
-from app.adapters.factory import create_adapter
+from app.adapters.factory import create_adapters_for_profile
 from app.adapters.rate_limit import RateLimitGovernor
 from app.adapters.session_map import StreamSessionMap
 from app.config import ConfigurationError, get_settings
 from app.data.encryptor import FernetEncryptor
 from app.data.refresh_token_store import RefreshTokenStore
 from app.data.token_store import TokenStore
-from app.dependencies import get_ring_adapter
+from app.dependencies import get_ring_adapter, get_source_router
 from app.middleware.input_sanitizer import InputSanitizationMiddleware
 from app.middleware.rate_limiter import limiter, rate_limit_exceeded_handler
 from app.routes.app_api import router as app_api_router
 from app.routes.mock_ring_api import router as mock_ring_api_router
 from app.routes.ring_callbacks import router as ring_callbacks_router
+from app.routing.health_manager import HealthManager
+from app.routing.snapshot_cache import SnapshotCache
+from app.routing.snapshot_refresh_job import SnapshotRefreshJob
+from app.routing.source_router import SourceRouter
 from app.services.auth import verify_api_key
+from app.services.token_service import TokenService
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +57,7 @@ async def lifespan(app: FastAPI):
         # Fail fast (Req 10.6): do not start the HTTP server.
         sys.exit(1)
 
-    logging.basicConfig(
-        level=getattr(logging, settings.log_level.upper(), logging.INFO)
-    )
+    logging.basicConfig(level=getattr(logging, settings.log_level.upper(), logging.INFO))
     # Attach the redacting filter to the root logger (Req 3.8, 9.2, 9.5).
     from app.logging_redaction import install as install_log_redaction
 
@@ -69,36 +72,104 @@ async def lifespan(app: FastAPI):
     refresh_store = RefreshTokenStore(settings.database_path, encryptor)
     await refresh_store.initialize()
 
+    # Build a token_provider callable for the PartnerRingAdapter when
+    # "partner" is in the routing profile.  The TokenService already
+    # handles proactive refresh before expiry, so we just call
+    # get_valid_token() and extract the access_token string.
+    token_service: TokenService | None = None
+    if "partner" in settings.routing_profile:
+        token_service = TokenService(
+            client_id=settings.ring_client_id,
+            client_secret=settings.ring_client_secret,
+            token_store=token_store,
+        )
+
+    async def _partner_token_provider() -> str:
+        """Return a valid partner OAuth access token."""
+        assert token_service is not None, "token_service not initialised"
+        token_data = await token_service.get_valid_token()
+        return token_data["access_token"]
+
+    token_provider = _partner_token_provider if token_service is not None else None
+
     try:
-        adapter = await create_adapter(settings)
+        adapters = await create_adapters_for_profile(settings, token_provider=token_provider)
     except ConfigurationError as exc:
         logger.error("startup_failure reason=adapter_config error=%r", exc)
         sys.exit(1)
 
-    # Install the adapter singleton for all /mock/* routes (Req 7.3).
-    app.dependency_overrides[get_ring_adapter] = lambda: adapter
+    # The "primary" adapter is the first in the profile — used for legacy
+    # health/adapter reporting and the get_ring_adapter dependency.
+    primary_adapter = adapters[0]
+
+    # Install the primary adapter singleton for the legacy get_ring_adapter
+    # dependency (still used by /health and /health/adapter).
+    app.dependency_overrides[get_ring_adapter] = lambda: primary_adapter
+
+    # Build SourceRouter with all adapters in profile order, using
+    # settings-driven HealthManager and SnapshotCache.
+    # Requirements: 1.1, 1.2, 9.1, 9.5
+    session_map = _extract_session_map(primary_adapter)
+    health_manager = HealthManager(
+        quarantine_threshold=settings.source_quarantine_threshold,
+        quarantine_seconds=settings.source_quarantine_seconds,
+    )
+    snapshot_cache = SnapshotCache(
+        max_bytes=settings.snapshot_cache_max_bytes,
+        ttl_fresh_seconds=settings.snapshot_ttl_fresh_seconds,
+        ttl_stale_serve_seconds=settings.snapshot_ttl_stale_serve_seconds,
+    )
+    source_router = SourceRouter(
+        routing_profile=adapters,
+        health_manager=health_manager,
+        snapshot_cache=snapshot_cache,
+        session_map=session_map or StreamSessionMap(),
+    )
+    app.dependency_overrides[get_source_router] = lambda: source_router
+
+    # Start the snapshot refresh job.
+    # Requirements: 6.4, 6.5
+    refresh_job = SnapshotRefreshJob(
+        source_router=source_router,
+        interval_seconds=settings.snapshot_refresh_interval_seconds,
+    )
+    await refresh_job.start()
 
     # Expose health-adapter dependencies on app.state for the endpoint
     # below to read without re-creating.
-    app.state.adapter = adapter
+    app.state.adapter = primary_adapter
     app.state.refresh_store = refresh_store
-    app.state.governor = _extract_governor(adapter)
-    app.state.session_map = _extract_session_map(adapter)
+    app.state.governor = _extract_governor(primary_adapter)
+    app.state.session_map = session_map
+    app.state.source_router = source_router
+    app.state.health_manager = health_manager
+    app.state.snapshot_cache = snapshot_cache
 
-    logger.info("startup adapter_mode=%s", adapter.mode())  # Req 7.5
+    logger.info(
+        "startup routing_profile=%s",
+        ",".join(a.mode() for a in adapters),
+    )
 
     try:
         yield
     finally:
-        aclose = getattr(adapter, "aclose", None)
-        if aclose is not None:
-            await aclose()
-        # The factory may have stashed a separate Ring-API httpx client
-        # on the adapter; close it now if present.
-        ring_http = getattr(adapter, "_ring_http", None)
-        if ring_http is not None:
-            await ring_http.aclose()
-        logger.info("shutdown adapter_mode=%s", adapter.mode())
+        # Stop the refresh job before closing adapters.
+        await refresh_job.stop()
+
+        for adapter in adapters:
+            aclose = getattr(adapter, "aclose", None)
+            if aclose is not None:
+                await aclose()
+            # The factory may have stashed a separate Ring-API httpx client
+            # on the adapter; close it now if present.
+            ring_http = getattr(adapter, "_ring_http", None)
+            if ring_http is not None:
+                await ring_http.aclose()
+
+        logger.info(
+            "shutdown routing_profile=%s",
+            ",".join(a.mode() for a in adapters),
+        )
 
 
 def _extract_governor(adapter: RingAdapter) -> RateLimitGovernor | None:
@@ -141,9 +212,7 @@ app.add_middleware(InputSanitizationMiddleware)
 
 
 @app.exception_handler(RingAdapterError)
-async def ring_adapter_error_handler(
-    request: Request, exc: RingAdapterError
-) -> JSONResponse:
+async def ring_adapter_error_handler(request: Request, exc: RingAdapterError) -> JSONResponse:
     """Translate an adapter error into a stable HTTP envelope.
 
     Body: ``{"error": "<code>"}``. Upstream Ring messages, stack traces,
@@ -155,8 +224,7 @@ async def ring_adapter_error_handler(
     device_id = request.path_params.get("device_id") if request.path_params else None
 
     logger.warning(
-        "adapter_error request_id=%s mode=%s code=%s status=%d "
-        "device_id=%s operation=%s",
+        "adapter_error request_id=%s mode=%s code=%s status=%d device_id=%s operation=%s",
         request_id,
         mode,
         exc.code,
@@ -247,32 +315,92 @@ async def health_adapter(
     adapter: RingAdapter = Depends(get_ring_adapter),  # noqa: B008
     _api_key: str = Depends(verify_api_key),  # noqa: B008
 ) -> dict:
-    """Adapter-level diagnostics. API key required (Req 11.6)."""
+    """Adapter-level diagnostics. API key required (Req 11.6).
+
+    Requirements: 10.1, 10.2, 10.3, 10.4, 11.5
+    """
     mode = adapter.mode()
 
     refresh_store = getattr(app.state, "refresh_store", None)
     governor = getattr(app.state, "governor", None)
     session_map = getattr(app.state, "session_map", None)
+    source_router: SourceRouter | None = getattr(app.state, "source_router", None)
+    health_manager: HealthManager | None = getattr(app.state, "health_manager", None)
+    snapshot_cache: SnapshotCache | None = getattr(app.state, "snapshot_cache", None)
 
     if mode == "unofficial" and refresh_store is not None:
         refresh_token_valid: bool | None = await refresh_store.is_valid()
     else:
         refresh_token_valid = None
 
-    active_stream_sessions = (
-        await session_map.count() if session_map is not None else 0
-    )
+    active_stream_sessions = await session_map.count() if session_map is not None else 0
 
     if mode == "unofficial" and governor is not None:
         ring_api_requests_last_minute = await governor.current_rate()
     else:
         ring_api_requests_last_minute = 0
 
+    # --- Requirement 10.1: per-source, per-operation health state ---
+    sources: dict[str, dict[str, dict]] = {}
+    if source_router is not None and health_manager is not None:
+        health_snapshot = health_manager.snapshot()
+        for src_adapter in source_router._profile:
+            src_mode = src_adapter.mode()
+            ops: dict[str, dict] = {}
+            for (s, op), hs in health_snapshot.items():
+                if s == src_mode:
+                    ops[op] = {
+                        "state": hs.state,
+                        "consecutive_failures": hs.consecutive_failures,
+                        "last_success_at": hs.last_success_at,
+                    }
+            sources[src_mode] = ops
+
+    # --- Requirement 10.2: snapshot cache stats ---
+    if snapshot_cache is not None:
+        cache_info: dict = {
+            "entry_count": snapshot_cache.entry_count,
+            "total_bytes": snapshot_cache.total_bytes,
+            "oldest_entry_age_seconds": snapshot_cache.oldest_age(),
+            "newest_entry_age_seconds": snapshot_cache.newest_age(),
+        }
+    else:
+        cache_info = {
+            "entry_count": 0,
+            "total_bytes": 0,
+            "oldest_entry_age_seconds": None,
+            "newest_entry_age_seconds": None,
+        }
+
+    # --- Requirement 10.3: active streams grouped by source mode ---
+    active_streams: dict[str, int] = {}
+    if source_router is not None:
+        for src_adapter in source_router._profile:
+            active_streams[src_adapter.mode()] = 0
+    # Count sessions per mode from the session map snapshot
+    if session_map is not None:
+        sessions = await session_map.snapshot()
+        for session in sessions:
+            src_mode = getattr(session, "source_mode", "unknown")
+            if src_mode in active_streams:
+                active_streams[src_mode] += 1
+            else:
+                active_streams[src_mode] = 1
+
+    # --- Requirement 10.3: routing profile ---
+    routing_profile: list[str] = []
+    if source_router is not None:
+        routing_profile = [a.mode() for a in source_router._profile]
+
     return {
         "adapter_mode": mode,
         "refresh_token_valid": refresh_token_valid,
         "active_stream_sessions": active_stream_sessions,
         "ring_api_requests_last_minute": ring_api_requests_last_minute,
+        "sources": sources,
+        "snapshot_cache": cache_info,
+        "active_streams": active_streams,
+        "routing_profile": routing_profile,
     }
 
 

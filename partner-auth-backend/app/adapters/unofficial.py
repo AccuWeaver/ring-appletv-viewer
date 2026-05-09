@@ -18,7 +18,9 @@ import httpx
 
 from app.adapters.base import RingAdapter, SnapshotPayload, StreamSessionResult
 from app.adapters.errors import (
+    AuthenticationRequiredError,
     DeviceNotFoundError,
+    RateLimitedError,
     RingAdapterError,
     SnapshotUnavailableError,
     SubscriptionRequiredError,
@@ -30,7 +32,7 @@ from app.adapters.ring_consumer_client import RingConsumerClient
 from app.adapters.ring_schemas import RingDevice, RingEvent
 from app.adapters.session_map import StreamSessionMap
 from app.adapters.sip_bridge_client import SipBridgeClient
-from app.adapters.types import StreamSession
+from app.adapters.types import UnofficialStreamSession
 
 logger = logging.getLogger(__name__)
 
@@ -141,9 +143,7 @@ class UnofficialRingAdapter(RingAdapter):
         try:
             raw_devices = await self._client.get_devices()
         except httpx.HTTPStatusError as exc:
-            raise UpstreamUnavailableError(
-                f"ring devices {exc.response.status_code}"
-            ) from exc
+            raise UpstreamUnavailableError(f"ring devices {exc.response.status_code}") from exc
         parsed: list[RingDevice] = []
         for d in raw_devices:
             try:
@@ -172,12 +172,8 @@ class UnofficialRingAdapter(RingAdapter):
             status = exc.response.status_code
             if status == 404:
                 # Device id not visible to this account (Requirement 4.5).
-                raise DeviceNotFoundError(
-                    f"device {device_id} not found"
-                ) from exc
-            raise UpstreamUnavailableError(
-                f"ring history {status}"
-            ) from exc
+                raise DeviceNotFoundError(f"device {device_id} not found") from exc
+            raise UpstreamUnavailableError(f"ring history {status}") from exc
 
         parsed: list[RingEvent] = []
         for e in raw_events:
@@ -199,13 +195,16 @@ class UnofficialRingAdapter(RingAdapter):
         try:
             content, content_type = await self._client.get_snapshot(device_id)
         except httpx.HTTPStatusError as exc:
-            if exc.response.status_code == 404:
-                raise SnapshotUnavailableError(
-                    f"no snapshot for {device_id}"
+            status = exc.response.status_code
+            if status in (404, 204):
+                raise SnapshotUnavailableError(f"no snapshot for {device_id}") from exc
+            if status == 429:
+                raise RateLimitedError(f"ring snapshot rate limited for {device_id}") from exc
+            if status == 401:
+                raise AuthenticationRequiredError(
+                    f"ring snapshot auth required for {device_id}"
                 ) from exc
-            raise UpstreamUnavailableError(
-                f"ring snapshot {exc.response.status_code}"
-            ) from exc
+            raise UpstreamUnavailableError(f"ring snapshot {status}") from exc
         return SnapshotPayload(content=content, content_type=content_type)
 
     @_logged("download_video")
@@ -221,13 +220,9 @@ class UnofficialRingAdapter(RingAdapter):
         except httpx.HTTPStatusError as exc:
             status = exc.response.status_code
             if status == 402:
-                raise SubscriptionRequiredError(
-                    "Ring Protect subscription required"
-                ) from exc
+                raise SubscriptionRequiredError("Ring Protect subscription required") from exc
             if status == 404:
-                raise DeviceNotFoundError(
-                    f"clip not found for event {event_id}"
-                ) from exc
+                raise DeviceNotFoundError(f"clip not found for event {event_id}") from exc
             raise UpstreamUnavailableError(f"ring clip {status}") from exc
         return {"url": url}
 
@@ -236,9 +231,7 @@ class UnofficialRingAdapter(RingAdapter):
     # ------------------------------------------------------------------
 
     @_logged("create_stream_session")
-    async def create_stream_session(
-        self, device_id: str, sdp_offer: str
-    ) -> StreamSessionResult:
+    async def create_stream_session(self, device_id: str, sdp_offer: str) -> StreamSessionResult:
         # Capacity check first (Req 6.7). Raises StreamCapacityExceededError.
         await self._sessions.check_capacity(self._max_concurrent)
 
@@ -249,7 +242,7 @@ class UnofficialRingAdapter(RingAdapter):
 
         # Bind the backend-generated session_id → sidecar/device/path map.
         session_id = str(uuid.uuid4())
-        session = StreamSession(
+        session = UnofficialStreamSession(
             session_id=session_id,
             bridge_session_id=bridge.bridge_session_id,
             device_id=device_id,
@@ -283,15 +276,11 @@ class UnofficialRingAdapter(RingAdapter):
             raise UpstreamTimeoutError("mediamtx whep timeout") from exc
         except httpx.HTTPError as exc:
             await self._cleanup_failed_session(session)
-            raise UpstreamUnavailableError(
-                f"mediamtx whep transport error: {exc!r}"
-            ) from exc
+            raise UpstreamUnavailableError(f"mediamtx whep transport error: {exc!r}") from exc
 
         if response.status_code != 201:
             await self._cleanup_failed_session(session)
-            raise UpstreamUnavailableError(
-                f"mediamtx whep returned {response.status_code}"
-            )
+            raise UpstreamUnavailableError(f"mediamtx whep returned {response.status_code}")
 
         sdp_answer = response.content.decode()
         session.has_audio = "m=audio" in sdp_answer
@@ -320,6 +309,7 @@ class UnofficialRingAdapter(RingAdapter):
     @_logged("delete_stream_session")
     async def delete_stream_session(self, session_id: str) -> None:
         session = await self._sessions.lookup(session_id)
+        assert isinstance(session, UnofficialStreamSession)
         try:
             await self._sip.stop(session.bridge_session_id)
         finally:
@@ -353,6 +343,7 @@ class UnofficialRingAdapter(RingAdapter):
         """Tear down every active stream session, then close owned clients."""
         sessions = await self._sessions.clear()
         for session in sessions:
+            assert isinstance(session, UnofficialStreamSession)
             try:
                 await self._sip.stop(session.bridge_session_id)
             except Exception as exc:
@@ -378,7 +369,7 @@ class UnofficialRingAdapter(RingAdapter):
     # Internals
     # ------------------------------------------------------------------
 
-    async def _cleanup_failed_session(self, session: StreamSession) -> None:
+    async def _cleanup_failed_session(self, session: UnofficialStreamSession) -> None:
         """Best-effort cleanup after the mediamtx WHEP proxy fails.
 
         Removes the session from the map and asks the sidecar to stop.

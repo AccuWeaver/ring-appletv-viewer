@@ -7,11 +7,13 @@ backend; installs the resulting adapter via `app.dependency_overrides`.
 from __future__ import annotations
 
 import logging
+from collections.abc import Awaitable, Callable
 
 import httpx
 
 from app.adapters.base import RingAdapter
 from app.adapters.mock import MockRingAdapter
+from app.adapters.partner import PartnerRingAdapter
 from app.adapters.rate_limit import RateLimitGovernor
 from app.adapters.ring_consumer_client import RingConsumerClient
 from app.adapters.session_map import StreamSessionMap
@@ -26,6 +28,52 @@ logger = logging.getLogger(__name__)
 # Rate-limit governor queue budget (Requirement 8.2): callers wait up to
 # this many seconds for a slot before a RateLimitedError is raised.
 _RATE_LIMIT_QUEUE_WAIT_SECONDS: float = 5.0
+
+
+async def create_adapters_for_profile(
+    settings: Settings,
+    token_provider: Callable[[], Awaitable[str]] | None = None,
+) -> list[RingAdapter]:
+    """Instantiate one RingAdapter per mode in ``settings.routing_profile``.
+
+    Returns adapters in profile order.  The caller (lifespan hook) is
+    responsible for closing any adapters that own HTTP clients on shutdown.
+
+    Args:
+        settings: Validated application settings.
+        token_provider: Async callable that returns a valid partner OAuth
+            access token.  Required when ``"partner"`` appears in the
+            routing profile; ignored otherwise.
+
+    Raises:
+        ConfigurationError: when the unofficial adapter is selected but no
+            refresh token is available, when ``"partner"`` is in the profile
+            but no *token_provider* is supplied, or when an unknown mode is
+            encountered.
+
+    Requirements: 1.1, 1.2, 9.1, 9.5
+    """
+    adapters: list[RingAdapter] = []
+    for mode in settings.routing_profile:
+        if mode == "mock":
+            logger.info("startup adapter_mode=mock")
+            adapters.append(MockRingAdapter(mediamtx_whep_url=settings.mediamtx_whep_url))
+
+        elif mode == "unofficial":
+            adapters.append(await _create_unofficial_adapter(settings))
+
+        elif mode == "partner":
+            if token_provider is None:
+                raise ConfigurationError(
+                    "routing profile includes 'partner' but no token_provider was supplied"
+                )
+            adapters.append(_create_partner_adapter(token_provider))
+
+        else:
+            # config.py already validates tokens, but belt-and-braces here.
+            raise ConfigurationError(f"unknown adapter mode {mode!r} in routing profile")
+
+    return adapters
 
 
 async def create_adapter(settings: Settings) -> RingAdapter:
@@ -51,9 +99,7 @@ async def create_adapter(settings: Settings) -> RingAdapter:
     # ``config.py`` already validates the enum, but belt-and-braces here so a
     # future refactor that bypasses the config check still fails cleanly
     # (Requirement 7.2).
-    raise ConfigurationError(
-        f"unknown ring_adapter {settings.ring_adapter!r}"
-    )
+    raise ConfigurationError(f"unknown ring_adapter {settings.ring_adapter!r}")
 
 
 async def _create_unofficial_adapter(settings: Settings) -> UnofficialRingAdapter:
@@ -107,9 +153,29 @@ async def _create_unofficial_adapter(settings: Settings) -> UnofficialRingAdapte
     return adapter
 
 
-async def _bootstrap_refresh_token(
-    store: RefreshTokenStore, settings: Settings
-) -> None:
+def _create_partner_adapter(
+    token_provider: Callable[[], Awaitable[str]],
+) -> PartnerRingAdapter:
+    """Build a PartnerRingAdapter with its own httpx.AsyncClient.
+
+    The HTTP client is owned by the adapter; the lifespan hook closes it
+    via ``adapter.aclose()`` on shutdown.
+
+    Requirements: 2.1, 9.1
+    """
+    http = httpx.AsyncClient()
+    adapter = PartnerRingAdapter(
+        http=http,
+        token_provider=token_provider,
+        session_map=StreamSessionMap(),
+    )
+    # Stash the http client so the lifespan hook can close it on shutdown.
+    adapter._http_owned = True  # type: ignore[attr-defined]
+    logger.info("startup adapter_mode=partner")
+    return adapter
+
+
+async def _bootstrap_refresh_token(store: RefreshTokenStore, settings: Settings) -> None:
     """Seed the refresh-token store from env only when the store is empty.
 
     Implements Requirements 3.1 and 3.2:

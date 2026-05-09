@@ -108,14 +108,97 @@ final class PlayerViewModelTests: XCTestCase {
         vm.stopStream()
     }
 
-    func testRequestStream_withoutManager_showsError() async {
+    func testRequestStream_withoutManager_transitionsToLoadedWithPlaceholder() async {
+        // When no WebRTC manager is available and no event/media service is
+        // wired in either, requestStream should transition to .loaded with
+        // the placeholder session URL so the view can render the HLS fallback.
         let vm = PlayerViewModel(streamSessionManager: nil)
         await vm.requestStream(for: "42", powerSource: .line)
 
-        guard case .error(let message) = vm.state else {
-            XCTFail("Expected .error state, got \(vm.state)")
+        guard case .loaded(let session) = vm.state else {
+            XCTFail("Expected .loaded state, got \(vm.state)")
             return
         }
-        XCTAssertEqual(message, "Live streaming is not available on this platform.")
+        XCTAssertEqual(session.deviceId, "42")
+        XCTAssertEqual(session.sessionURL, PlayerViewModel.placeholderMockSessionURL)
+        XCTAssertTrue(vm.isPlaying)
+    }
+
+    func testRequestStream_withoutManager_withEventServiceAndClip_usesClipURL() async {
+        // When no WebRTC manager is available but an EventService returns a
+        // recent event and the video URL lookup succeeds, the fallback
+        // session should carry the resolved clip URL.
+        let eventService = MockEventService()
+        let expectedEvent = RingEvent(
+            id: "evt-1",
+            deviceId: "42",
+            eventType: .motion,
+            createdAt: Date(),
+            duration: 30
+        )
+        let expectedURL = URL(string: "https://cdn.ring.invalid/clip.m3u8")!
+        eventService.fetchEventsResult = .success([expectedEvent])
+        eventService.fetchEventVideoURLResult = .success(expectedURL)
+
+        let vm = PlayerViewModel(
+            streamSessionManager: nil,
+            eventService: eventService,
+            mediaService: MockMediaService()
+        )
+        await vm.requestStream(for: "42", powerSource: .line)
+
+        guard case .loaded(let session) = vm.state else {
+            XCTFail("Expected .loaded state, got \(vm.state)")
+            return
+        }
+        XCTAssertEqual(session.sessionURL, expectedURL)
+        XCTAssertEqual(eventService.fetchEventsCalls, ["42"])
+        XCTAssertEqual(eventService.fetchEventVideoURLCalls.first?.id, "evt-1")
+    }
+
+    func testRequestStream_withoutManager_noEvents_fallsBackToPlaceholder() async {
+        // When EventService returns no events, session URL must fall back to
+        // the placeholder so the view picks the hard-coded test stream.
+        let eventService = MockEventService()
+        eventService.fetchEventsResult = .success([])
+
+        let vm = PlayerViewModel(
+            streamSessionManager: nil,
+            eventService: eventService,
+            mediaService: MockMediaService()
+        )
+        await vm.requestStream(for: "42", powerSource: .line)
+
+        guard case .loaded(let session) = vm.state else {
+            XCTFail("Expected .loaded state, got \(vm.state)")
+            return
+        }
+        XCTAssertEqual(session.sessionURL, PlayerViewModel.placeholderMockSessionURL)
+    }
+
+    func testRequestStream_withoutManager_clipLookupFails_fallsBackToPlaceholder() async {
+        // When fetchEventVideoURL throws (e.g., no Ring Protect), the fallback
+        // session URL is the placeholder — never a crash.
+        let eventService = MockEventService()
+        eventService.fetchEventsResult = .success([
+            RingEvent(
+                id: "evt-1", deviceId: "42", eventType: .motion,
+                createdAt: Date(), duration: 30
+            )
+        ])
+        eventService.fetchEventVideoURLResult = .failure(PartnerAPIError.forbidden)
+
+        let vm = PlayerViewModel(
+            streamSessionManager: nil,
+            eventService: eventService,
+            mediaService: MockMediaService()
+        )
+        await vm.requestStream(for: "42", powerSource: .line)
+
+        guard case .loaded(let session) = vm.state else {
+            XCTFail("Expected .loaded state, got \(vm.state)")
+            return
+        }
+        XCTAssertEqual(session.sessionURL, PlayerViewModel.placeholderMockSessionURL)
     }
 }

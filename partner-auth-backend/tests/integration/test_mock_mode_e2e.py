@@ -62,9 +62,7 @@ async def mock_client() -> AsyncIterator[AsyncClient]:
     try:
         async with (
             app.router.lifespan_context(app),
-            AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as client,
+            AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client,
         ):
             yield client
     finally:
@@ -112,9 +110,7 @@ async def test_get_events_honors_limit(mock_client: AsyncClient) -> None:
 async def test_download_snapshot_returns_blue_pixel_png(
     mock_client: AsyncClient,
 ) -> None:
-    response = await mock_client.post(
-        "/mock/devices/device_front_door/media/image/download"
-    )
+    response = await mock_client.post("/mock/devices/device_front_door/media/image/download")
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("image/png")
     # 1x1 PNG is 67 bytes in the canonical blue-pixel encoding.
@@ -122,9 +118,7 @@ async def test_download_snapshot_returns_blue_pixel_png(
 
 
 async def test_download_video_returns_hls_test_url(mock_client: AsyncClient) -> None:
-    response = await mock_client.post(
-        "/mock/devices/device_front_door/media/video/download"
-    )
+    response = await mock_client.post("/mock/devices/device_front_door/media/video/download")
     assert response.status_code == 200
     assert response.json() == {"url": _HLS_STREAM_URL}
 
@@ -146,6 +140,16 @@ async def test_create_whep_session_returns_sdp_with_location_header(
 
 
 async def test_delete_session_acknowledges(mock_client: AsyncClient) -> None:
-    response = await mock_client.delete("/mock/session/some-session-id")
+    # First create a session so we have a valid session_id to delete.
+    sdp_offer = "v=0\r\no=- 0 0 IN IP4 127.0.0.1\r\n"
+    create_response = await mock_client.post(
+        "/mock/devices/device_front_door/media/streaming/whep/sessions",
+        content=sdp_offer.encode(),
+        headers={"Content-Type": "application/sdp"},
+    )
+    assert create_response.status_code == 201
+    session_id = create_response.headers["location"].removeprefix("/mock/session/")
+
+    response = await mock_client.delete(f"/mock/session/{session_id}")
     assert response.status_code == 200
     assert response.json() == {"status": "deleted"}

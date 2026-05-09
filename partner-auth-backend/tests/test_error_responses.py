@@ -170,6 +170,5 @@ async def test_unhandled_exception_returns_generic_error() -> None:
     response_text = response.text
     leaked = response_contains_internal_details(response_text)
     assert leaked is None, (
-        f"Error response contains internal details: {leaked}\n"
-        f"Response: {response_text[:500]}"
+        f"Error response contains internal details: {leaked}\nResponse: {response_text[:500]}"
     )

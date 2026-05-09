@@ -56,9 +56,7 @@ class RingAdapter(ABC):
         """
 
     @abstractmethod
-    async def create_stream_session(
-        self, device_id: str, sdp_offer: str
-    ) -> StreamSessionResult:
+    async def create_stream_session(self, device_id: str, sdp_offer: str) -> StreamSessionResult:
         """Create a WHEP stream session for ``device_id`` from an SDP offer."""
 
     @abstractmethod

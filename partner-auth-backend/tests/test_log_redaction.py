@@ -70,6 +70,7 @@ def test_property6_dict_args_redact_known_fields(field: str, secret: str) -> Non
 
     **Validates: Requirements 3.8, 9.2, 9.5**
     """
+
     def run() -> None:
         logger = logging.getLogger("test.redaction.dict")
         logger.info("secret-log", {field: secret, "other": "kept"})
@@ -87,14 +88,13 @@ def test_property6_dict_args_redact_known_fields(field: str, secret: str) -> Non
 
 @settings(max_examples=50, deadline=None)
 @given(field=_field_strategy, secret=_secret_strategy)
-def test_property6_field_value_patterns_in_message_are_redacted(
-    field: str, secret: str
-) -> None:
+def test_property6_field_value_patterns_in_message_are_redacted(field: str, secret: str) -> None:
     """Free-form log strings of the form ``field=value`` get the value
     replaced by ``[REDACTED]`` regardless of which logger emitted them.
 
     **Validates: Requirements 3.8, 9.2, 9.5**
     """
+
     def run() -> None:
         logger = logging.getLogger("test.redaction.msg")
         logger.info("auth attempt %s=%s other=kept", field, secret)
@@ -112,14 +112,13 @@ def test_property6_field_value_patterns_in_message_are_redacted(
 
 @settings(max_examples=50, deadline=None)
 @given(field=_field_strategy, secret=_secret_strategy)
-def test_property6_json_patterns_in_message_are_redacted(
-    field: str, secret: str
-) -> None:
+def test_property6_json_patterns_in_message_are_redacted(field: str, secret: str) -> None:
     """JSON-ish patterns like ``"field": "value"`` in the message are
     redacted when the field name is in the redaction list.
 
     **Validates: Requirements 3.8, 9.2, 9.5**
     """
+
     def run() -> None:
         logger = logging.getLogger("test.redaction.json")
         logger.info('body: {"%s": "%s", "kept": "visible"}', field, secret)
@@ -143,6 +142,7 @@ def test_property6_case_insensitive_field_matches(secret: str) -> None:
 
     **Validates: Requirements 3.8, 9.2, 9.5**
     """
+
     def run() -> None:
         logger = logging.getLogger("test.redaction.case")
         logger.info("header Authorization=%s", secret)
@@ -158,16 +158,19 @@ def test_property6_case_insensitive_field_matches(secret: str) -> None:
 
 
 @settings(max_examples=30, deadline=None)
-@given(benign=st.text(
-    alphabet=st.characters(min_codepoint=0x21, max_codepoint=0x7E, blacklist_characters='"='),
-    min_size=6,
-    max_size=40,
-))
+@given(
+    benign=st.text(
+        alphabet=st.characters(min_codepoint=0x21, max_codepoint=0x7E, blacklist_characters='"='),
+        min_size=6,
+        max_size=40,
+    )
+)
 def test_property6_benign_messages_are_not_mutated(benign: str) -> None:
     """Messages without any redacted field name pass through unchanged.
 
     **Validates: Requirements 3.8, 9.2, 9.5**
     """
+
     def run() -> None:
         logger = logging.getLogger("test.redaction.benign")
         logger.info("status ok=%s", benign)

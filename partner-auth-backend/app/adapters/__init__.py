@@ -21,6 +21,11 @@ from app.adapters.errors import (
     UpstreamTimeoutError,
     UpstreamUnavailableError,
 )
+from app.adapters.failure_class import (
+    FALLBACK_ELIGIBLE,
+    SNAPSHOT_FALLBACK_ELIGIBLE,
+    FailureClass,
+)
 from app.adapters.models import (
     DeviceAttributes,
     DeviceResource,
@@ -29,6 +34,7 @@ from app.adapters.models import (
     EventType,
     PowerSource,
 )
+from app.adapters.partner import PartnerRingAdapter
 from app.adapters.ring_schemas import (
     RingDevice,
     RingDeviceHealth,
@@ -37,14 +43,21 @@ from app.adapters.ring_schemas import (
 )
 from app.adapters.types import (
     AccessTokenCacheEntry,
+    BaseStreamSession,
+    MockStreamSession,
+    PartnerStreamSession,
     StreamSession,
+    StreamSessionMode,
     StreamSessionState,
+    UnofficialStreamSession,
 )
 
 __all__ = [
     "AccessTokenCacheEntry",
     "AdapterConfigurationError",
+    "PartnerRingAdapter",
     "AuthenticationRequiredError",
+    "BaseStreamSession",
     "DeviceAttributes",
     "DeviceNotFoundError",
     "DeviceResource",
@@ -52,6 +65,10 @@ __all__ = [
     "ErrorCode",
     "EventResource",
     "EventType",
+    "FALLBACK_ELIGIBLE",
+    "FailureClass",
+    "MockStreamSession",
+    "PartnerStreamSession",
     "PowerSource",
     "RateLimitedError",
     "RingAdapter",
@@ -60,14 +77,17 @@ __all__ = [
     "RingDeviceHealth",
     "RingEvent",
     "RingOAuthTokenResponse",
+    "SNAPSHOT_FALLBACK_ELIGIBLE",
     "SnapshotPayload",
     "SnapshotUnavailableError",
     "StreamCapacityExceededError",
     "StreamSession",
+    "StreamSessionMode",
     "StreamSessionNotFoundError",
     "StreamSessionResult",
     "StreamSessionState",
     "SubscriptionRequiredError",
+    "UnofficialStreamSession",
     "UpstreamTimeoutError",
     "UpstreamUnavailableError",
 ]

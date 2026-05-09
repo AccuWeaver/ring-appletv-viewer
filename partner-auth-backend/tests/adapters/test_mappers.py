@@ -40,9 +40,7 @@ _printable_text = st.text(
 _health_strategy = st.builds(
     RingDeviceHealth,
     battery_life=st.one_of(st.none(), st.integers(min_value=0, max_value=100)),
-    wifi_signal_strength=st.one_of(
-        st.none(), st.integers(min_value=-100, max_value=0)
-    ),
+    wifi_signal_strength=st.one_of(st.none(), st.integers(min_value=-100, max_value=0)),
     firmware=st.one_of(st.none(), _printable_text),
 )
 
@@ -64,9 +62,7 @@ _device_strategy = st.builds(
 )
 
 _mappable_event_kinds = st.sampled_from(["motion", "ding"])
-_unsupported_event_kinds = st.sampled_from(
-    ["on_demand", "alarm", "update", "", "unknown"]
-)
+_unsupported_event_kinds = st.sampled_from(["on_demand", "alarm", "update", "", "unknown"])
 
 
 # ---------------------------------------------------------------------------
@@ -139,9 +135,7 @@ def test_map_event_mappable_kinds_pass_validation(
       - The result round-trips through Pydantic validation.
       - Fields are forwarded faithfully; missing ``duration`` defaults to 0.
     """
-    event = RingEvent(
-        id=event_id, kind=kind, created_at=created_at, duration=duration
-    )
+    event = RingEvent(id=event_id, kind=kind, created_at=created_at, duration=duration)
     result = map_event(event, device_id=device_id)
 
     assert isinstance(result, EventResource)
@@ -159,9 +153,7 @@ def test_map_event_mappable_kinds_pass_validation(
     kind=_unsupported_event_kinds,
     created_at=_printable_text,
 )
-def test_map_event_rejects_unsupported_kinds(
-    event_id: int, kind: str, created_at: str
-) -> None:
+def test_map_event_rejects_unsupported_kinds(event_id: int, kind: str, created_at: str) -> None:
     """**Validates: Requirement 4.4**
 
     Unsupported Ring event kinds raise ``ValueError`` so the adapter can
@@ -184,9 +176,7 @@ def test_map_event_rejects_unsupported_kinds(
     events=st.lists(
         st.tuples(
             st.integers(min_value=1, max_value=2**31 - 1),
-            st.sampled_from(
-                ["motion", "ding", "on_demand", "alarm", "update", "unknown"]
-            ),
+            st.sampled_from(["motion", "ding", "on_demand", "alarm", "update", "unknown"]),
             _printable_text,
         ),
         min_size=0,

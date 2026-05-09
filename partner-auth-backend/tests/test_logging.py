@@ -123,9 +123,7 @@ async def test_request_logging_completeness(method: str, path: str) -> None:
     )
 
     # Verify method is present
-    assert f"method={method}" in log_entry, (
-        f"Log entry missing method={method}: {log_entry}"
-    )
+    assert f"method={method}" in log_entry, f"Log entry missing method={method}: {log_entry}"
 
     # Verify path is present
     assert f"path={path}" in log_entry, f"Log entry missing path={path}: {log_entry}"

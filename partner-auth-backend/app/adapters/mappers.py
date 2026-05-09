@@ -48,7 +48,7 @@ Duration default (Requirement 4.4)
     ``0`` to satisfy the strict ``EventResource.duration: int`` contract.
 """
 
-from app.adapters.models import DeviceAttributes, DeviceResource, EventResource
+from app.adapters.models import DeviceAttributes, DeviceResource, EventResource, PowerSource
 from app.adapters.ring_schemas import RingDevice, RingEvent
 
 _MAPPABLE_EVENT_KINDS: frozenset[str] = frozenset({"motion", "ding"})
@@ -63,16 +63,16 @@ _UNKNOWN_FIRMWARE: str = "unknown"
 # by default than silently hide it.
 _CAMERA_KIND_SUBSTRINGS: tuple[str, ...] = (
     "doorbell",
-    "cam",         # covers ``stickup_cam``, ``spotlight_cam``, ``indoor_cam``, ``cocoa_cam``, ...
+    "cam",  # covers ``stickup_cam``, ``spotlight_cam``, ``indoor_cam``, ``cocoa_cam``, ...
     "floodlight",  # covers ``cocoa_floodlight`` and the older ``hp_cam_v2`` family
     "spotlight",
-    "lpd_",        # ``lpd_v1``/``lpd_v4`` — Lighted Peephole Doorbell
-    "jbox_",       # ``jbox_v1``/``jbox_v2`` — junction-box doorbell chassis
+    "lpd_",  # ``lpd_v1``/``lpd_v4`` — Lighted Peephole Doorbell
+    "jbox_",  # ``jbox_v1``/``jbox_v2`` — junction-box doorbell chassis
 )
 _NON_CAMERA_KIND_PREFIXES: tuple[str, ...] = (
     "chime_",
-    "beams_",       # outdoor smart lighting; no camera
-    "security_",    # alarm base stations, keypads
+    "beams_",  # outdoor smart lighting; no camera
+    "security_",  # alarm base stations, keypads
     "base_station_",
     "keypad_",
     "rangextender_",
@@ -110,7 +110,7 @@ def map_device(device: RingDevice) -> DeviceResource:
     # Prefer nested battery_life; fall back to top-level.
     nested_battery = device.health.battery_life if device.health else None
     battery = nested_battery if nested_battery is not None else device.battery_life
-    power_source = "battery" if battery is not None else "hardwired"
+    power_source: PowerSource = "battery" if battery is not None else "hardwired"
 
     firmware = (
         device.firmware_version

@@ -40,13 +40,9 @@ class RateLimitGovernor:
 
     def __init__(self, max_per_minute: int, queue_wait_seconds: float) -> None:
         if max_per_minute < 1:
-            raise ValueError(
-                f"max_per_minute must be >= 1, got {max_per_minute}"
-            )
+            raise ValueError(f"max_per_minute must be >= 1, got {max_per_minute}")
         if queue_wait_seconds < 0:
-            raise ValueError(
-                f"queue_wait_seconds must be >= 0, got {queue_wait_seconds}"
-            )
+            raise ValueError(f"queue_wait_seconds must be >= 0, got {queue_wait_seconds}")
         self._max = max_per_minute
         self._wait = queue_wait_seconds
         self._events: deque[float] = deque()
@@ -76,9 +72,7 @@ class RateLimitGovernor:
             sleep_until_free = oldest + self.WINDOW_SECONDS
             now = time.monotonic()
             if now >= deadline:
-                raise RateLimitedError(
-                    f"rate limit exceeded; waited {self._wait:.1f}s"
-                )
+                raise RateLimitedError(f"rate limit exceeded; waited {self._wait:.1f}s")
             sleep_for = max(0.0, min(sleep_until_free, deadline) - now)
             await asyncio.sleep(sleep_for)
 

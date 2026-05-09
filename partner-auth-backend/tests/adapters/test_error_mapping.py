@@ -80,7 +80,5 @@ def test_property2_each_error_subclass_maps_to_stable_envelope(
         # Remove the transient route so follow-up tests don't collide on
         # duplicate paths across parameter instances.
         app.router.routes = [
-            route
-            for route in app.router.routes
-            if getattr(route, "path", None) != path
+            route for route in app.router.routes if getattr(route, "path", None) != path
         ]

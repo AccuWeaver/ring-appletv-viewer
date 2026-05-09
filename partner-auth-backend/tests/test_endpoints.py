@@ -58,9 +58,7 @@ async def _init_db() -> None:
 
 def _compute_hmac(nonce: str) -> str:
     """Compute HMAC-SHA256 signature for a nonce using the active HMAC key."""
-    return hmac.new(
-        _ACTIVE_HMAC_KEY_BYTES, nonce.encode("utf-8"), hashlib.sha256
-    ).hexdigest()
+    return hmac.new(_ACTIVE_HMAC_KEY_BYTES, nonce.encode("utf-8"), hashlib.sha256).hexdigest()
 
 
 def _mock_ring_token_response(

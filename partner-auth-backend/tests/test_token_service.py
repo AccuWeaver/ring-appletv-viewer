@@ -126,21 +126,17 @@ async def test_token_exchange_persistence_round_trip(
     # Allow 5 seconds tolerance for test execution time
     tolerance = timedelta(seconds=5)
     assert stored_expires_at >= expected_min - tolerance, (
-        f"expires_at {stored_expires_at} is too early "
-        f"(expected >= {expected_min - tolerance})"
+        f"expires_at {stored_expires_at} is too early (expected >= {expected_min - tolerance})"
     )
     assert stored_expires_at <= expected_max + tolerance, (
-        f"expires_at {stored_expires_at} is too late "
-        f"(expected <= {expected_max + tolerance})"
+        f"expires_at {stored_expires_at} is too late (expected <= {expected_max + tolerance})"
     )
 
     # Assert token_type matches
     assert stored["token_type"] == "Bearer"
 
     # Assert scope matches
-    assert stored["scope"] == scope, (
-        f"Stored scope {stored['scope']!r} != original {scope!r}"
-    )
+    assert stored["scope"] == scope, f"Stored scope {stored['scope']!r} != original {scope!r}"
 
     # Assert the exchange result also matches
     assert result["access_token"] == access_token

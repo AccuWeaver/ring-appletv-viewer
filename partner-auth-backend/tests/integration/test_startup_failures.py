@@ -57,9 +57,7 @@ except SystemExit as e:
         [sys.executable, "-c", script],
         capture_output=True,
         text=True,
-        cwd=os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        ),
+        cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
         env=env,
         timeout=10,
         check=False,

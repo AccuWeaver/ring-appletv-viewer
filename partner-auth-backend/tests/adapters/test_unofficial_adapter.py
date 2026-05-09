@@ -68,9 +68,7 @@ class FakeConsumerClient:
         self.get_devices_calls += 1
         return []
 
-    async def get_history(
-        self, device_id: str, limit: int
-    ) -> list[dict[str, Any]]:
+    async def get_history(self, device_id: str, limit: int) -> list[dict[str, Any]]:
         self.get_history_calls.append((device_id, limit))
         if self.raise_on_history is not None:
             raise self.raise_on_history
@@ -129,9 +127,7 @@ def _http_status_error(status: int) -> httpx.HTTPStatusError:
     """
     request = httpx.Request("GET", "https://api.ring.com/test")
     response = httpx.Response(status, request=request)
-    return httpx.HTTPStatusError(
-        f"ring api {status}", request=request, response=response
-    )
+    return httpx.HTTPStatusError(f"ring api {status}", request=request, response=response)
 
 
 def _whep_mock_transport() -> httpx.MockTransport:
@@ -320,6 +316,58 @@ async def test_ring_404_on_snapshot_maps_to_snapshot_unavailable() -> None:
         await whep.aclose()
 
 
+async def test_ring_204_on_snapshot_maps_to_snapshot_unavailable() -> None:
+    """Ring 204 on snapshot → ``SnapshotUnavailableError`` (→ HTTP 503).
+
+    Validates Requirement 5.2.
+    """
+    consumer = FakeConsumerClient()
+    consumer.raise_on_snapshot = _http_status_error(204)
+    adapter, whep = await _build_adapter(consumer, FakeSipBridge())
+    try:
+        with pytest.raises(SnapshotUnavailableError) as exc_info:
+            await adapter.download_snapshot("dev_1")
+        assert exc_info.value.http_status == 503
+    finally:
+        await whep.aclose()
+
+
+async def test_ring_429_on_snapshot_maps_to_rate_limited() -> None:
+    """Ring 429 on snapshot → ``RateLimitedError`` (→ HTTP 429).
+
+    Validates Requirement 5.3.
+    """
+    from app.adapters.errors import RateLimitedError
+
+    consumer = FakeConsumerClient()
+    consumer.raise_on_snapshot = _http_status_error(429)
+    adapter, whep = await _build_adapter(consumer, FakeSipBridge())
+    try:
+        with pytest.raises(RateLimitedError) as exc_info:
+            await adapter.download_snapshot("dev_1")
+        assert exc_info.value.http_status == 429
+    finally:
+        await whep.aclose()
+
+
+async def test_ring_401_on_snapshot_maps_to_authentication_required() -> None:
+    """Ring 401 on snapshot → ``AuthenticationRequiredError`` (→ HTTP 401).
+
+    Validates Requirement 5.5.
+    """
+    from app.adapters.errors import AuthenticationRequiredError
+
+    consumer = FakeConsumerClient()
+    consumer.raise_on_snapshot = _http_status_error(401)
+    adapter, whep = await _build_adapter(consumer, FakeSipBridge())
+    try:
+        with pytest.raises(AuthenticationRequiredError) as exc_info:
+            await adapter.download_snapshot("dev_1")
+        assert exc_info.value.http_status == 401
+    finally:
+        await whep.aclose()
+
+
 async def test_ring_402_on_clip_maps_to_subscription_required() -> None:
     """Ring 402 on clip → ``SubscriptionRequiredError`` (→ HTTP 402).
 
@@ -344,9 +392,7 @@ async def test_sidecar_timeout_propagates_as_upstream_timeout() -> None:
     verbatim rather than wrapping it as an ``UpstreamUnavailableError``.
     """
     consumer = FakeConsumerClient()
-    sip = FakeSipBridge(
-        start_raises=UpstreamTimeoutError("sip bridge start timeout")
-    )
+    sip = FakeSipBridge(start_raises=UpstreamTimeoutError("sip bridge start timeout"))
     adapter, whep = await _build_adapter(consumer, sip)
     try:
         with pytest.raises(UpstreamTimeoutError) as exc_info:
@@ -427,3 +473,91 @@ async def test_list_devices_filters_non_camera_kinds() -> None:
     assert "chime_v3" not in kinds
     assert "chime_pro_v2" not in kinds
     assert "base_station_v1" not in kinds
+
+
+# ---------------------------------------------------------------------------
+# Task 10.3 — Property 13: Capacity Enforcement
+# ---------------------------------------------------------------------------
+
+
+@settings(
+    max_examples=50,
+    deadline=None,
+    suppress_health_check=[
+        HealthCheck.function_scoped_fixture,
+        HealthCheck.too_slow,
+    ],
+)
+@given(
+    max_concurrent=st.integers(min_value=1, max_value=10),
+    sessions_to_create=st.integers(min_value=0, max_value=10),
+)
+def test_property13_capacity_enforcement(
+    max_concurrent: int,
+    sessions_to_create: int,
+) -> None:
+    """**Validates: Requirements 3.5**
+
+    Property 13: Capacity Enforcement.
+
+    When the session map already holds ``max_concurrent`` sessions,
+    ``create_stream_session`` MUST raise ``StreamCapacityExceededError``
+    WITHOUT contacting the SIP bridge (i.e. ``sip.start`` call count is
+    unchanged).
+
+    For cases where ``sessions_to_create < max_concurrent`` the map has
+    room; the call succeeds and the SIP bridge IS contacted exactly once.
+    """
+    # Clamp sessions_to_create to [0, max_concurrent] so the generator
+    # covers the boundary (full) and sub-capacity cases.
+    sessions_to_create = min(sessions_to_create, max_concurrent)
+
+    async def run() -> None:
+        sessions = StreamSessionMap()
+        sip = FakeSipBridge()
+        consumer = FakeConsumerClient()
+        whep = httpx.AsyncClient(transport=_whep_mock_transport())
+        try:
+            adapter = UnofficialRingAdapter(
+                client=consumer,  # type: ignore[arg-type]
+                sip=sip,  # type: ignore[arg-type]
+                sessions=sessions,
+                max_concurrent=max_concurrent,
+                mediamtx_whep_base="http://mediamtx.test:8889",
+                http=whep,
+            )
+
+            # Pre-fill the session map with ``sessions_to_create`` sessions.
+            for i in range(sessions_to_create):
+                await adapter.create_stream_session(device_id=f"dev_prefill_{i}", sdp_offer="v=0")
+
+            assert await sessions.count() == sessions_to_create
+
+            # Record the SIP bridge start call count before the probe call.
+            start_calls_before = len(sip.start_calls)
+
+            if sessions_to_create == max_concurrent:
+                # Map is at capacity — must raise without touching the bridge.
+                with pytest.raises(StreamCapacityExceededError):
+                    await adapter.create_stream_session(device_id="dev_probe", sdp_offer="v=0")
+
+                # SIP bridge must NOT have been called.
+                assert len(sip.start_calls) == start_calls_before, (
+                    f"sip.start was called {len(sip.start_calls) - start_calls_before} "
+                    f"time(s) after capacity was exceeded "
+                    f"(max_concurrent={max_concurrent}, active={sessions_to_create})"
+                )
+
+                # Session count must be unchanged.
+                assert await sessions.count() == max_concurrent
+            else:
+                # Map has room — call must succeed and bridge must be contacted.
+                result = await adapter.create_stream_session(device_id="dev_probe", sdp_offer="v=0")
+                assert result.session_id  # non-empty UUID
+                assert len(sip.start_calls) == start_calls_before + 1
+                assert await sessions.count() == sessions_to_create + 1
+
+        finally:
+            await whep.aclose()
+
+    asyncio.run(run())

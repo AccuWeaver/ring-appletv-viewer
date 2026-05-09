@@ -35,14 +35,10 @@ async def test_ring_returns_new_refresh_token_updates_store_encrypted() -> None:
         await store.save("t1")
         assert await store.load() == "t1"
 
-        transport, request_log = build_ring_api_transport(
-            rotate_refresh_token="t2"
-        )
+        transport, request_log = build_ring_api_transport(rotate_refresh_token="t2")
         ring_http = httpx.AsyncClient(transport=transport)
         try:
-            governor = RateLimitGovernor(
-                max_per_minute=60, queue_wait_seconds=0.0
-            )
+            governor = RateLimitGovernor(max_per_minute=60, queue_wait_seconds=0.0)
             client = RingConsumerClient(ring_http, governor, store)
 
             # Trigger a Ring API call; the client refreshes the access
@@ -55,21 +51,20 @@ async def test_ring_returns_new_refresh_token_updates_store_encrypted() -> None:
         # Store now holds t2.
         assert await store.load() == "t2"
 
-        # Raw ciphertext equals neither plaintext.
+        # Raw ciphertext is not the plaintext — it must decrypt to t2.
         async with aiosqlite.connect(db_path) as db:
-            cur = await db.execute(
-                "SELECT refresh_token FROM ring_refresh_token WHERE id = 1"
-            )
+            cur = await db.execute("SELECT refresh_token FROM ring_refresh_token WHERE id = 1")
             row = await cur.fetchone()
         assert row is not None
         ciphertext = row[0]
-        assert "t1" not in ciphertext
-        assert "t2" not in ciphertext
+        # The stored value must be encrypted (not the raw token strings).
+        assert ciphertext != "t1"
+        assert ciphertext != "t2"
+        # And it must decrypt back to t2.
+        assert encryptor.decrypt(ciphertext) == "t2"
 
         # And the OAuth endpoint was hit at least once (single refresh path).
-        oauth_calls = [
-            r for r in request_log if "oauth.ring.com" in str(r.url)
-        ]
+        oauth_calls = [r for r in request_log if "oauth.ring.com" in str(r.url)]
         assert len(oauth_calls) >= 1
     finally:
         with contextlib.suppress(FileNotFoundError):

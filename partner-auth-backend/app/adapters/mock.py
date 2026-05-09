@@ -12,6 +12,8 @@ from datetime import UTC, datetime, timedelta
 import httpx
 
 from app.adapters.base import RingAdapter, SnapshotPayload, StreamSessionResult
+from app.adapters.session_map import StreamSessionMap
+from app.adapters.types import MockStreamSession
 
 # ---------------------------------------------------------------------------
 # Mock device data (ported verbatim from app/routes/mock_ring_api.py)
@@ -127,10 +129,19 @@ class MockRingAdapter(RingAdapter):
     No outbound calls are made to ``*.ring.com``. The WHEP endpoint forwards
     SDP offers to a local ``mediamtx`` instance if reachable; otherwise it
     falls back to the stub SDP answer.
+
+    An optional ``session_map`` may be supplied so that ``create_stream_session``
+    binds sessions and ``SourceRouter.delete_stream_session`` can look them up.
+    When no map is provided a private one is used (backward-compatible behaviour).
     """
 
-    def __init__(self, mediamtx_whep_url: str) -> None:
+    def __init__(
+        self,
+        mediamtx_whep_url: str,
+        session_map: StreamSessionMap | None = None,
+    ) -> None:
         self._whep_url = mediamtx_whep_url
+        self._sessions = session_map if session_map is not None else StreamSessionMap()
 
     def mode(self) -> str:
         return "mock"
@@ -144,14 +155,10 @@ class MockRingAdapter(RingAdapter):
     async def download_snapshot(self, device_id: str) -> SnapshotPayload:
         return SnapshotPayload(content=_BLUE_PIXEL_PNG, content_type="image/png")
 
-    async def download_video(
-        self, device_id: str, event_id: str | None
-    ) -> dict:
+    async def download_video(self, device_id: str, event_id: str | None) -> dict:
         return {"url": _HLS_TEST_STREAM_URL}
 
-    async def create_stream_session(
-        self, device_id: str, sdp_offer: str
-    ) -> StreamSessionResult:
+    async def create_stream_session(self, device_id: str, sdp_offer: str) -> StreamSessionResult:
         session_id = str(uuid.uuid4())
         location = f"/mock/session/{session_id}"
 
@@ -164,17 +171,27 @@ class MockRingAdapter(RingAdapter):
                 )
 
             if proxy_response.status_code == 201:
-                return StreamSessionResult(
-                    sdp_answer=proxy_response.content.decode(),
-                    location=location,
-                    session_id=session_id,
-                )
+                sdp_answer = proxy_response.content.decode()
+            else:
+                sdp_answer = _STUB_SDP_ANSWER
         except (httpx.ConnectError, httpx.TimeoutException, httpx.ReadTimeout):
             # mediamtx not running — fall through to stub
-            pass
+            sdp_answer = _STUB_SDP_ANSWER
+
+        # Bind to the session map so SourceRouter.delete_stream_session can
+        # look up the session and dispatch back to this adapter.
+        import time
+
+        await self._sessions.bind(
+            MockStreamSession(
+                session_id=session_id,
+                device_id=device_id,
+                created_at=time.time(),
+            )
+        )
 
         return StreamSessionResult(
-            sdp_answer=_STUB_SDP_ANSWER,
+            sdp_answer=sdp_answer,
             location=location,
             session_id=session_id,
         )

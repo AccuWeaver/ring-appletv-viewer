@@ -20,9 +20,7 @@ from app.services.hmac_verifier import HMACVerifier
 TEST_FERNET_KEY = Fernet.generate_key().decode()
 
 # Strategy: random bytes for the HMAC signing key (16-64 bytes), base64-encoded
-hmac_key_strategy = st.binary(min_size=16, max_size=64).map(
-    lambda b: base64.b64encode(b).decode()
-)
+hmac_key_strategy = st.binary(min_size=16, max_size=64).map(lambda b: base64.b64encode(b).decode())
 
 # Strategy: random account_id (non-empty printable strings)
 account_id_strategy = st.text(

@@ -100,16 +100,12 @@ class TokenService:
             )
 
             if response.status_code != 200:
-                raise UpstreamError(
-                    f"Ring OAuth token endpoint returned {response.status_code}"
-                )
+                raise UpstreamError(f"Ring OAuth token endpoint returned {response.status_code}")
 
             token_response = RingOAuthTokenResponse.model_validate(response.json())
 
             # Compute absolute expiration time
-            expires_at = datetime.now(UTC) + timedelta(
-                seconds=token_response.expires_in
-            )
+            expires_at = datetime.now(UTC) + timedelta(seconds=token_response.expires_in)
             expires_at_iso = expires_at.isoformat()
 
             # Store encrypted tokens
@@ -155,9 +151,7 @@ class TokenService:
             raise TokenNotFoundError(f"No tokens found for user '{user_id}'")
 
         if not tokens["is_valid"]:
-            raise SessionInvalidError(
-                f"Session for user '{user_id}' has been invalidated"
-            )
+            raise SessionInvalidError(f"Session for user '{user_id}' has been invalidated")
 
         # Check if token needs proactive refresh
         expires_at = datetime.fromisoformat(tokens["expires_at"])
@@ -216,16 +210,13 @@ class TokenService:
 
             if response.status_code != 200:
                 raise UpstreamError(
-                    f"Ring OAuth token endpoint returned {response.status_code} "
-                    "during refresh"
+                    f"Ring OAuth token endpoint returned {response.status_code} during refresh"
                 )
 
             token_response = RingOAuthTokenResponse.model_validate(response.json())
 
             # Compute new expiration time
-            expires_at = datetime.now(UTC) + timedelta(
-                seconds=token_response.expires_in
-            )
+            expires_at = datetime.now(UTC) + timedelta(seconds=token_response.expires_in)
             expires_at_iso = expires_at.isoformat()
 
             # Update stored tokens

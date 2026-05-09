@@ -97,9 +97,7 @@ class RefreshTokenStore:
         async with aiosqlite.connect(self._db_path) as db:
             await db.execute("BEGIN")
             try:
-                cursor = await db.execute(
-                    "SELECT 1 FROM ring_refresh_token WHERE id = 1"
-                )
+                cursor = await db.execute("SELECT 1 FROM ring_refresh_token WHERE id = 1")
                 exists = await cursor.fetchone()
                 if exists is None:
                     await db.execute(
@@ -137,8 +135,6 @@ class RefreshTokenStore:
     async def is_valid(self) -> bool:
         """Return True iff a row exists and ``is_valid = 1``."""
         async with aiosqlite.connect(self._db_path) as db:
-            cursor = await db.execute(
-                "SELECT is_valid FROM ring_refresh_token WHERE id = 1"
-            )
+            cursor = await db.execute("SELECT is_valid FROM ring_refresh_token WHERE id = 1")
             row = await cursor.fetchone()
         return row is not None and bool(row[0])

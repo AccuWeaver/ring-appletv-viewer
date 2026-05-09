@@ -67,9 +67,7 @@ async def _client_with_mode(
     try:
         async with (
             app.router.lifespan_context(app),
-            AsyncClient(
-                transport=ASGITransport(app=app), base_url="http://test"
-            ) as client,
+            AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client,
         ):
             yield client, api_key
     finally:
@@ -104,8 +102,7 @@ async def test_partner_auth_routes_preserved(mode: str) -> None:
         # /ring/token-exchange — route exists; with no body, 422 (validation).
         r = await client.post("/ring/token-exchange")
         assert r.status_code in (400, 422), (
-            f"unexpected {r.status_code} from /ring/token-exchange "
-            f"(route should be registered)"
+            f"unexpected {r.status_code} from /ring/token-exchange (route should be registered)"
         )
 
         # /ring/webhook — route exists; with a minimal unrecognized event

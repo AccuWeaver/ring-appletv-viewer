@@ -117,9 +117,7 @@ async def test_input_sanitization_detects_dangerous_patterns(payload: str) -> No
     **Validates: Requirements 9.2**
     """
     result = contains_dangerous_pattern(payload)
-    assert result is not None, (
-        f"Expected dangerous pattern detection for {payload!r}, got None"
-    )
+    assert result is not None, f"Expected dangerous pattern detection for {payload!r}, got None"
     assert result in ("sql_injection", "script_injection", "null_byte")
 
 

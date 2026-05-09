@@ -58,17 +58,13 @@ async def test_list_devices_matches_legacy_hardcoded_shape() -> None:
 # Hypothesis varies device_id and limit to exercise that boundary.
 @given(
     device_id=st.text(
-        alphabet=st.characters(
-            min_codepoint=0x20, max_codepoint=0x7E, blacklist_characters="/"
-        ),
+        alphabet=st.characters(min_codepoint=0x20, max_codepoint=0x7E, blacklist_characters="/"),
         min_size=1,
         max_size=40,
     ),
     limit=st.integers(min_value=0, max_value=200),
 )
-async def test_list_events_matches_generator_capped_at_50(
-    device_id: str, limit: int
-) -> None:
+async def test_list_events_matches_generator_capped_at_50(device_id: str, limit: int) -> None:
     """Byte-for-byte equivalence modulo ``created_at``.
 
     ``_generate_mock_events`` calls ``datetime.now(UTC)`` internally, so two

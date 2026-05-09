@@ -159,28 +159,20 @@ class RingConsumerClient:
         except httpx.TimeoutException as exc:
             raise UpstreamTimeoutError("ring oauth timeout") from exc
         except httpx.HTTPError as exc:
-            raise UpstreamUnavailableError(
-                f"ring oauth transport error: {exc!r}"
-            ) from exc
+            raise UpstreamUnavailableError(f"ring oauth transport error: {exc!r}") from exc
 
         if response.status_code == 401:
             await self._store.mark_invalid()
-            logger.warning(
-                "ring_auth_failure status=401 action=refresh_token_invalidated"
-            )
+            logger.warning("ring_auth_failure status=401 action=refresh_token_invalidated")
             raise AuthenticationRequiredError(
                 "refresh token rejected by Ring; regenerate via ring-auth-cli"
             )
 
         if response.status_code >= 500:
-            raise UpstreamUnavailableError(
-                f"ring oauth returned {response.status_code}"
-            )
+            raise UpstreamUnavailableError(f"ring oauth returned {response.status_code}")
 
         if response.status_code != 200:
-            raise UpstreamUnavailableError(
-                f"unexpected oauth status {response.status_code}"
-            )
+            raise UpstreamUnavailableError(f"unexpected oauth status {response.status_code}")
 
         parsed = RingOAuthTokenResponse.model_validate(response.json())
         new_refresh = parsed.refresh_token
@@ -235,9 +227,7 @@ class RingConsumerClient:
         self._cache_set("devices", flattened, _DEVICES_CACHE_TTL_SECONDS)
         return flattened
 
-    async def get_history(
-        self, device_id: str, limit: int
-    ) -> list[dict[str, Any]]:
+    async def get_history(self, device_id: str, limit: int) -> list[dict[str, Any]]:
         """Return up to ``limit`` raw history events, cached for 10 s (Req 4.6)."""
         cache_key = f"history:{device_id}:{limit}"
         cached = self._cache_get(cache_key)
@@ -274,14 +264,10 @@ class RingConsumerClient:
         so behavior stays predictable when debugging against Ring's
         own client.
         """
-        response = await self._request(
-            "GET", f"/clients_api/snapshots/image/{device_id}"
-        )
+        response = await self._request("GET", f"/clients_api/snapshots/image/{device_id}")
 
         if response.status_code == 404:
-            logger.info(
-                "ring_snapshot_refresh_requested device_id=%s", device_id
-            )
+            logger.info("ring_snapshot_refresh_requested device_id=%s", device_id)
             # Best-effort refresh: errors here are non-fatal — we still try
             # the second GET and let its status drive the outcome.
             #
@@ -314,9 +300,7 @@ class RingConsumerClient:
             # the tvOS client can retry later.
             await asyncio.sleep(self._snapshot_refresh_settle)
 
-            response = await self._request(
-                "GET", f"/clients_api/snapshots/image/{device_id}"
-            )
+            response = await self._request("GET", f"/clients_api/snapshots/image/{device_id}")
 
         response.raise_for_status()
         content_type = response.headers.get("content-type", "image/jpeg")
@@ -347,17 +331,13 @@ class RingConsumerClient:
                     return url
         # Let the adapter translate non-2xx via HTTPStatusError semantics.
         response.raise_for_status()
-        raise UpstreamUnavailableError(
-            f"unexpected clip response status={response.status_code}"
-        )
+        raise UpstreamUnavailableError(f"unexpected clip response status={response.status_code}")
 
     # ------------------------------------------------------------------
     # Request plumbing: governor → auth → retries
     # ------------------------------------------------------------------
 
-    async def _get_json(
-        self, path: str, params: dict[str, Any] | None = None
-    ) -> Any:
+    async def _get_json(self, path: str, params: dict[str, Any] | None = None) -> Any:
         response = await self._request("GET", path, params=params)
         response.raise_for_status()
         return response.json()
@@ -405,9 +385,7 @@ class RingConsumerClient:
                     timeout=_REQUEST_TIMEOUT_SECONDS,
                 )
             except httpx.TimeoutException as exc:
-                raise UpstreamTimeoutError(
-                    f"ring api timeout: {method} {path}"
-                ) from exc
+                raise UpstreamTimeoutError(f"ring api timeout: {method} {path}") from exc
             except httpx.HTTPError as exc:
                 raise UpstreamUnavailableError(
                     f"ring api transport error: {method} {path}: {exc!r}"
@@ -453,9 +431,7 @@ class RingConsumerClient:
         return entry.data
 
     def _cache_set(self, key: str, data: Any, ttl_seconds: float) -> None:
-        self._cache[key] = _CacheEntry(
-            data=data, expires_at=time.monotonic() + ttl_seconds
-        )
+        self._cache[key] = _CacheEntry(data=data, expires_at=time.monotonic() + ttl_seconds)
 
 
 def _parse_retry_after(header_value: str | None) -> float | None:

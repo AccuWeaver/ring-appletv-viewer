@@ -50,6 +50,20 @@ services:
       MEDIAMTX_RTSP_URL: ${MEDIAMTX_RTSP_URL:-rtsp://mediamtx:8554/ring}
       MEDIAMTX_WHEP_BASE: ${MEDIAMTX_WHEP_BASE:-http://mediamtx:8889}
       RING_SIP_BRIDGE_URL: ${RING_SIP_BRIDGE_URL:-http://ring-sip-bridge:3000}
+
+      # Source routing profile (Req 9.1). Comma-separated ordered list of
+      # adapter modes to try. Empty string falls back to RING_ADAPTER.
+      RING_ADAPTER_ROUTING: ${RING_ADAPTER_ROUTING:-}
+
+      # Snapshot cache TTL and refresh settings (Req 9.5).
+      SNAPSHOT_TTL_FRESH_SECONDS: ${SNAPSHOT_TTL_FRESH_SECONDS:-60}
+      SNAPSHOT_TTL_STALE_SERVE_SECONDS: ${SNAPSHOT_TTL_STALE_SERVE_SECONDS:-600}
+      SNAPSHOT_REFRESH_INTERVAL_SECONDS: ${SNAPSHOT_REFRESH_INTERVAL_SECONDS:-45}
+      SNAPSHOT_CACHE_MAX_BYTES: ${SNAPSHOT_CACHE_MAX_BYTES:-67108864}
+
+      # Source quarantine settings (Req 9.5).
+      SOURCE_QUARANTINE_THRESHOLD: ${SOURCE_QUARANTINE_THRESHOLD:-3}
+      SOURCE_QUARANTINE_SECONDS: ${SOURCE_QUARANTINE_SECONDS:-60}
     volumes:
       - backend-data:/data
     depends_on:

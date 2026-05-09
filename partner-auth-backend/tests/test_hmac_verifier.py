@@ -13,9 +13,7 @@ from hypothesis import strategies as st
 from app.services.hmac_verifier import HMACVerifier
 
 # Strategy: random bytes for the signing key (16-64 bytes), base64-encoded
-key_strategy = st.binary(min_size=16, max_size=64).map(
-    lambda b: base64.b64encode(b).decode()
-)
+key_strategy = st.binary(min_size=16, max_size=64).map(lambda b: base64.b64encode(b).decode())
 
 # Strategy: random text strings for the nonce
 nonce_strategy = st.text(min_size=1, max_size=200)

@@ -48,7 +48,7 @@ struct EventsView: View {
                     } label: {
                         EventRowView(event: event)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.card)
                 }
             }
             .padding(Constants.UI.gridSpacing)

@@ -25,9 +25,7 @@ def test_encrypt_decrypt_round_trip(plaintext: str) -> None:
     encryptor = FernetEncryptor(TEST_KEY)
     ciphertext = encryptor.encrypt(plaintext)
     decrypted = encryptor.decrypt(ciphertext)
-    assert decrypted == plaintext, (
-        f"Round-trip failed: expected {plaintext!r}, got {decrypted!r}"
-    )
+    assert decrypted == plaintext, f"Round-trip failed: expected {plaintext!r}, got {decrypted!r}"
 
 
 @settings(max_examples=100)

@@ -97,9 +97,7 @@ async def test_unofficial_without_env_or_stored_token_fails_fast() -> None:
 
 async def test_unofficial_with_env_only_seeds_store_encrypted() -> None:
     """Env-bootstrap populates the store with an encrypted value."""
-    settings = _fake_settings(
-        ring_adapter="unofficial", ring_refresh_token="env-bootstrap-token"
-    )
+    settings = _fake_settings(ring_adapter="unofficial", ring_refresh_token="env-bootstrap-token")
     with _cleanup_db(settings.database_path):
         adapter = await create_adapter(settings)
         try:
@@ -124,9 +122,7 @@ async def test_unofficial_with_env_only_seeds_store_encrypted() -> None:
 
 async def test_unofficial_with_env_plus_stored_keeps_stored_value() -> None:
     """Stored value wins over env bootstrap — bootstrap is a no-op."""
-    settings = _fake_settings(
-        ring_adapter="unofficial", ring_refresh_token="env-bootstrap-token"
-    )
+    settings = _fake_settings(ring_adapter="unofficial", ring_refresh_token="env-bootstrap-token")
     with _cleanup_db(settings.database_path):
         # Pre-seed the store with a rotated value.
         encryptor = FernetEncryptor(settings.token_encryption_key)

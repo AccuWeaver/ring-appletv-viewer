@@ -65,9 +65,7 @@ class TokenStore:
         """Return the current UTC time as an ISO 8601 string."""
         return datetime.now(UTC).isoformat()
 
-    async def create_or_update_user(
-        self, user_id: str, account_id: str | None = None
-    ) -> None:
+    async def create_or_update_user(self, user_id: str, account_id: str | None = None) -> None:
         """Create a new user record or update the existing one.
 
         Args:

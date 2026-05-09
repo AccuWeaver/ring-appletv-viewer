@@ -21,6 +21,13 @@ final class PlayerViewModel: ObservableObject {
 
     let streamSessionManager: StreamSessionManagerProtocol?
 
+    /// Optional services used for the simulator/mock HLS fallback. When the
+    /// WebRTC stream manager is unavailable we fetch the most recent recorded
+    /// event for the device and surface its playback URL instead of a
+    /// hard-coded test stream.
+    private let eventService: EventService?
+    private let mediaService: MediaService?
+
     // MARK: - Placeholder URLs
 
     /// Placeholder session URL used when no real WebRTC manager is available
@@ -51,8 +58,14 @@ final class PlayerViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init(streamSessionManager: StreamSessionManagerProtocol? = nil) {
+    init(
+        streamSessionManager: StreamSessionManagerProtocol? = nil,
+        eventService: EventService? = nil,
+        mediaService: MediaService? = nil
+    ) {
         self.streamSessionManager = streamSessionManager
+        self.eventService = eventService
+        self.mediaService = mediaService
         subscribeToConnectionState()
     }
 
@@ -92,12 +105,17 @@ final class PlayerViewModel: ObservableObject {
 
         do {
             guard let manager = streamSessionManager else {
-                // No WebRTC stream manager — likely running in mock mode or on a platform
-                // without WebRTC support. Transition to .loaded so the view can render a
-                // fallback (e.g., HLS playback) instead of showing an error.
+                // No WebRTC stream manager — running in mock mode, on the
+                // tvOS simulator, or any platform without WebRTC. Attempt
+                // to resolve the most recent recorded clip for the device
+                // so the HLS fallback player shows real footage. If that
+                // fails (no events, no Ring Protect, network error) we
+                // still transition to .loaded with a placeholder URL; the
+                // view falls back to a hard-coded test stream.
+                let clipURL = await resolveLatestClipURL(for: deviceId)
                 let fallbackSession = StreamSession(
                     deviceId: deviceId,
-                    sessionURL: Self.placeholderMockSessionURL,
+                    sessionURL: clipURL ?? Self.placeholderMockSessionURL,
                     powerSource: powerSource,
                     createdAt: Date()
                 )
@@ -142,5 +160,40 @@ final class PlayerViewModel: ObservableObject {
     func retry() async {
         guard let deviceId = lastDeviceId, let powerSource = lastPowerSource else { return }
         await requestStream(for: deviceId, powerSource: powerSource)
+    }
+
+    // MARK: - Fallback clip resolution
+
+    /// How many of the most-recent events to try when resolving a fallback clip URL.
+    /// Ring stores recordings only for events covered by an active Ring Protect
+    /// subscription, so any given event may 404. We probe a handful to find one
+    /// with an actual recording rather than falling back to the test stream too
+    /// aggressively.
+    private static let maxFallbackEventProbes = 5
+
+    /// Try to resolve the URL of the device's most recent recorded event so
+    /// the HLS fallback player can show real footage instead of a test stream.
+    ///
+    /// Returns `nil` when there is no event service wired in, no events exist,
+    /// or the first `maxFallbackEventProbes` events all fail URL lookup (e.g.
+    /// missing Ring Protect recording). Callers should treat `nil` as "use the
+    /// hard-coded test stream" so the UI stays useful.
+    private func resolveLatestClipURL(for deviceId: String) async -> URL? {
+        guard let eventService = eventService else { return nil }
+        do {
+            let events = try await eventService.fetchEvents(for: deviceId)
+            // Probe the most-recent N events. The first one to resolve wins.
+            for event in events.prefix(Self.maxFallbackEventProbes) {
+                do {
+                    return try await eventService.fetchEventVideoURL(for: event)
+                } catch {
+                    // 404 on this specific event — try the next one.
+                    continue
+                }
+            }
+            return nil
+        } catch {
+            return nil
+        }
     }
 }

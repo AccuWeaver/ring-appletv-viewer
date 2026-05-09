@@ -85,9 +85,7 @@ class SipBridgeClient:
         """
         refresh_token = await self._get_refresh_token()
         if refresh_token is None:
-            raise AuthenticationRequiredError(
-                "no refresh token available for sip bridge start"
-            )
+            raise AuthenticationRequiredError("no refresh token available for sip bridge start")
 
         url = f"{self._base_url}/sessions"
         try:
@@ -99,22 +97,16 @@ class SipBridgeClient:
         except httpx.TimeoutException as exc:
             raise UpstreamTimeoutError("sip bridge start timeout") from exc
         except httpx.HTTPError as exc:
-            raise UpstreamUnavailableError(
-                f"sip bridge transport error: {exc!r}"
-            ) from exc
+            raise UpstreamUnavailableError(f"sip bridge transport error: {exc!r}") from exc
 
         if response.status_code == 409:
             raise StreamCapacityExceededError(
                 f"sip bridge rejected session for {device_id}: device busy"
             )
         if 500 <= response.status_code < 600:
-            raise UpstreamUnavailableError(
-                f"sip bridge returned {response.status_code}"
-            )
+            raise UpstreamUnavailableError(f"sip bridge returned {response.status_code}")
         if response.status_code not in (200, 201):
-            raise UpstreamUnavailableError(
-                f"sip bridge unexpected status {response.status_code}"
-            )
+            raise UpstreamUnavailableError(f"sip bridge unexpected status {response.status_code}")
 
         data = response.json()
         return BridgeSession(
@@ -136,15 +128,11 @@ class SipBridgeClient:
         except httpx.TimeoutException as exc:
             raise UpstreamTimeoutError("sip bridge stop timeout") from exc
         except httpx.HTTPError as exc:
-            raise UpstreamUnavailableError(
-                f"sip bridge stop transport error: {exc!r}"
-            ) from exc
+            raise UpstreamUnavailableError(f"sip bridge stop transport error: {exc!r}") from exc
 
         if response.status_code in (200, 202, 204, 404):
             return
-        raise UpstreamUnavailableError(
-            f"sip bridge stop unexpected status {response.status_code}"
-        )
+        raise UpstreamUnavailableError(f"sip bridge stop unexpected status {response.status_code}")
 
     async def healthy(self) -> bool:
         """Return True if the sidecar responds 2xx to ``GET /health``."""

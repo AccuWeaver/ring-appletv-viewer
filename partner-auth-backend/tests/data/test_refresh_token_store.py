@@ -97,9 +97,7 @@ def test_property3_rotation_round_trip_and_ciphertext_at_rest(
             raw: str = row[0]
             for t in sequence:
                 assert raw != t, f"ciphertext equals plaintext {t!r}"
-                assert t not in raw, (
-                    f"plaintext leak: {t!r} appears in ciphertext"
-                )
+                assert t not in raw, f"plaintext leak: {t!r} appears in ciphertext"
         finally:
             path.unlink(missing_ok=True)
 

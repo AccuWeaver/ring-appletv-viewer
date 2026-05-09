@@ -39,9 +39,7 @@ def _whep_transport() -> httpx.MockTransport:
             b"m=video 9 UDP/TLS/RTP/SAVPF 96\r\n"
             b"m=audio 9 UDP/TLS/RTP/SAVPF 111\r\n"
         )
-        return httpx.Response(
-            201, content=body, headers={"content-type": "application/sdp"}
-        )
+        return httpx.Response(201, content=body, headers={"content-type": "application/sdp"})
 
     return httpx.MockTransport(handler)
 
