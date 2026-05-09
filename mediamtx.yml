@@ -10,9 +10,11 @@
 hls: yes
 hlsAddress: :8888
 hlsAllowOrigins: ['*']
-# Low-latency HLS so the simulator stays close to real-time when receiving
-# the republished Ring RTP feed via `ring-sip-bridge`.
-hlsVariant: lowLatency
+# Use the standard (MPEG-TS) HLS variant rather than low-latency HLS. LL-HLS
+# requires CMAF-friendly segment timing that Ring's live stream does not
+# always deliver promptly; plain HLS with short segments keeps compatibility
+# with AVPlayer on the tvOS simulator.
+hlsVariant: mpegts
 
 paths:
   # ffmpeg test pattern (docker compose --profile mock up).
