@@ -49,6 +49,10 @@ services:
       # Unofficial adapter endpoints.
       MEDIAMTX_RTSP_URL: ${MEDIAMTX_RTSP_URL:-rtsp://mediamtx:8554/ring}
       MEDIAMTX_WHEP_BASE: ${MEDIAMTX_WHEP_BASE:-http://mediamtx:8889}
+      # Public HLS base URL the simulator can reach from the host. The
+      # backend returns HLS URLs using this prefix so clients bypass the
+      # Docker-internal hostname. Override per environment as needed.
+      MEDIAMTX_HLS_PUBLIC_BASE: ${MEDIAMTX_HLS_PUBLIC_BASE:-http://localhost:8888}
       RING_SIP_BRIDGE_URL: ${RING_SIP_BRIDGE_URL:-http://ring-sip-bridge:3000}
 
       # Source routing profile (Req 9.1). Comma-separated ordered list of
@@ -76,6 +80,7 @@ services:
     restart: unless-stopped
     ports:
       - "8554:8554"   # RTSP (sidecar + ffmpeg publish here)
+      - "8888:8888"   # HLS (simulator subscribes here via backend)
       - "8889:8889"   # WHEP (tvOS app subscribes here via backend)
       - "8189:8189/udp" # WebRTC ICE
     volumes:

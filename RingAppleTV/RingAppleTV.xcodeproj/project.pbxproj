@@ -71,6 +71,8 @@
 		F5217B7DF43870A621D4A51B /* Date+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C13201EE27808D60995A58B0 /* Date+Extensions.swift */; };
 		FA6253F58FBC7DD577C6EBF2 /* PartnerDeviceResource.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA5C24BF6C4ABF65B4DD5BB /* PartnerDeviceResource.swift */; };
 		FAE2EC19A7403B220526B373 /* PartnerEventResource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B90F2A1A270F60B73C20C40 /* PartnerEventResource.swift */; };
+		CCCC000000000001SIMLIVE /* SimulatorLiveStreamService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCC000000000002SIMLIVE /* SimulatorLiveStreamService.swift */; };
+		CCCC000000000003SIMLIVE /* DefaultSimulatorLiveStreamService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCCC000000000004SIMLIVE /* DefaultSimulatorLiveStreamService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -148,6 +150,8 @@
 		F16DD32B81CE82CECAA07B7F /* KeychainServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainServiceProtocol.swift; sourceTree = "<group>"; };
 		F542A15318BD38878A6EE65F /* RingDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingDevice.swift; sourceTree = "<group>"; };
 		F72CD94C558B17741AEF3DAD /* WebRTCVideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCVideoView.swift; sourceTree = "<group>"; };
+		CCCC000000000002SIMLIVE /* SimulatorLiveStreamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorLiveStreamService.swift; sourceTree = "<group>"; };
+		CCCC000000000004SIMLIVE /* DefaultSimulatorLiveStreamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultSimulatorLiveStreamService.swift; sourceTree = "<group>"; };
 		FE3C9C519E36FA42EB9F54DC /* ServiceContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceContainer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -183,6 +187,7 @@
 				F16DD32B81CE82CECAA07B7F /* KeychainServiceProtocol.swift */,
 				966808F25C905A4D3A772F2F /* MediaServiceProtocol.swift */,
 				E05E34930F483D23F9F233D3 /* PartnerAPIClientProtocol.swift */,
+				CCCC000000000002SIMLIVE /* SimulatorLiveStreamService.swift */,
 				AFAE4F3A347D597C2EB958F2 /* StreamSessionManagerProtocol.swift */,
 			);
 			path = Protocols;
@@ -348,6 +353,7 @@
 				CE74F4EA7488DF9CD7B2C4B5 /* DefaultEventService.swift */,
 				876756043363CAAC63BE0D95 /* DefaultKeychainService.swift */,
 				82EA02B3BD92D8EA8DF2C800 /* DefaultMediaService.swift */,
+				CCCC000000000004SIMLIVE /* DefaultSimulatorLiveStreamService.swift */,
 				BBBB000000000002MOCKAUTH /* MockAuthService.swift */,
 				076C08F46F5EC60796378977 /* PartnerAPIClient.swift */,
 				87B749A4B0FCB06D80E337A5 /* StreamSessionManager.swift */,
@@ -487,6 +493,8 @@
 				BE069189AA9E5A4DB862A846 /* DefaultEventService.swift in Sources */,
 				A428C8D04BEE93E07AE06DBA /* DefaultKeychainService.swift in Sources */,
 				EF8407443C8973EA9368A341 /* DefaultMediaService.swift in Sources */,
+				CCCC000000000001SIMLIVE /* SimulatorLiveStreamService.swift in Sources */,
+				CCCC000000000003SIMLIVE /* DefaultSimulatorLiveStreamService.swift in Sources */,
 				0297E3CFAE1108292A2416A5 /* DeviceCardView.swift in Sources */,
 				BE9DB4E50E7BC4CBC43AF6E6 /* DeviceCodeResponse.swift in Sources */,
 				898777680995D0F40B44E6AE /* DeviceFilter.swift in Sources */,

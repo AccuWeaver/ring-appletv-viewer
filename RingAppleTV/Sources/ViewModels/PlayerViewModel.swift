@@ -22,17 +22,19 @@ final class PlayerViewModel: ObservableObject {
     let streamSessionManager: StreamSessionManagerProtocol?
 
     /// Optional services used for the simulator/mock HLS fallback. When the
-    /// WebRTC stream manager is unavailable we fetch the most recent recorded
-    /// event for the device and surface its playback URL instead of a
-    /// hard-coded test stream.
+    /// WebRTC stream manager is unavailable we first try to get a live HLS
+    /// feed via the backend's SIP-bridge path, then fall back to the most
+    /// recent recorded event for the device, then finally to Apple's BipBop
+    /// test stream.
     private let eventService: EventService?
     private let mediaService: MediaService?
+    private let simulatorLiveStreamService: SimulatorLiveStreamService?
 
     // MARK: - Placeholder URLs
 
     /// Placeholder session URL used when no real WebRTC manager is available
-    /// (mock mode or unsupported platforms). Rendered only as an identifier on
-    /// the synthesised `StreamSession` and never dereferenced as a network URL.
+    /// and no live/recorded/fallback URL could be resolved. The view reads
+    /// this and substitutes the BipBop test stream.
     static let placeholderMockSessionURL: URL = {
         guard let url = URL(string: "https://mock.local/session") else {
             fatalError("PlayerViewModel: placeholderMockSessionURL literal is invalid")
@@ -54,6 +56,7 @@ final class PlayerViewModel: ObservableObject {
 
     private var lastDeviceId: String?
     private var lastPowerSource: PowerSource?
+    private var activeHLSBridgeSessionId: String?
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Init
@@ -61,11 +64,13 @@ final class PlayerViewModel: ObservableObject {
     init(
         streamSessionManager: StreamSessionManagerProtocol? = nil,
         eventService: EventService? = nil,
-        mediaService: MediaService? = nil
+        mediaService: MediaService? = nil,
+        simulatorLiveStreamService: SimulatorLiveStreamService? = nil
     ) {
         self.streamSessionManager = streamSessionManager
         self.eventService = eventService
         self.mediaService = mediaService
+        self.simulatorLiveStreamService = simulatorLiveStreamService
         subscribeToConnectionState()
     }
 
@@ -106,20 +111,14 @@ final class PlayerViewModel: ObservableObject {
         do {
             guard let manager = streamSessionManager else {
                 // No WebRTC stream manager — running in mock mode, on the
-                // tvOS simulator, or any platform without WebRTC. Attempt
-                // to resolve the most recent recorded clip for the device
-                // so the HLS fallback player shows real footage. If that
-                // fails (no events, no Ring Protect, network error) we
-                // still transition to .loaded with a placeholder URL; the
-                // view falls back to a hard-coded test stream.
-                let clipURL = await resolveLatestClipURL(for: deviceId)
-                let fallbackSession = StreamSession(
+                // tvOS simulator, or any platform without WebRTC. Try three
+                // fallbacks in order so we show the most-live content the
+                // environment can actually render.
+                let session = await resolveSimulatorSession(
                     deviceId: deviceId,
-                    sessionURL: clipURL ?? Self.placeholderMockSessionURL,
-                    powerSource: powerSource,
-                    createdAt: Date()
+                    powerSource: powerSource
                 )
-                state = .loaded(fallbackSession)
+                state = .loaded(session)
                 isPlaying = true
                 return
             }
@@ -131,7 +130,8 @@ final class PlayerViewModel: ObservableObject {
                 deviceId: deviceId,
                 sessionURL: Self.placeholderLiveSessionURL,
                 powerSource: powerSource,
-                createdAt: Date()
+                createdAt: Date(),
+                source: .liveWebRTC
             )
             state = .loaded(session)
             isPlaying = true
@@ -144,6 +144,16 @@ final class PlayerViewModel: ObservableObject {
 
     /// Stop the current stream and release resources.
     func stopStream() {
+        // Release the backend-side SIP/HLS session if we allocated one for the
+        // simulator live-bridge path. Fire-and-forget — teardown shouldn't
+        // block the UI even if the backend is slow.
+        if let sessionId = activeHLSBridgeSessionId {
+            let service = simulatorLiveStreamService
+            Task.detached { [service] in
+                await service?.releaseSession(sessionId)
+            }
+            activeHLSBridgeSessionId = nil
+        }
         Task {
             await streamSessionManager?.stopStream()
         }
@@ -162,7 +172,7 @@ final class PlayerViewModel: ObservableObject {
         await requestStream(for: deviceId, powerSource: powerSource)
     }
 
-    // MARK: - Fallback clip resolution
+    // MARK: - Simulator fallback resolution
 
     /// How many of the most-recent events to try when resolving a fallback clip URL.
     /// Ring stores recordings only for events covered by an active Ring Protect
@@ -170,6 +180,64 @@ final class PlayerViewModel: ObservableObject {
     /// with an actual recording rather than falling back to the test stream too
     /// aggressively.
     private static let maxFallbackEventProbes = 5
+
+    /// Build the StreamSession we hand to the player when WebRTC is unavailable.
+    ///
+    /// Tries in order:
+    /// 1. Live HLS via the backend's SIP-bridge path (real live video on the
+    ///    simulator when the unofficial adapter is active).
+    /// 2. The most recent recorded event for the device.
+    /// 3. A placeholder URL that the view replaces with Apple's BipBop stream.
+    ///
+    /// The `source` on the returned session tells the view which banner to show.
+    private func resolveSimulatorSession(
+        deviceId: String,
+        powerSource: PowerSource
+    ) async -> StreamSession {
+        // 1. Live HLS bridge.
+        if let live = await tryLiveHLSBridge(deviceId: deviceId) {
+            activeHLSBridgeSessionId = live.sessionId
+            return StreamSession(
+                deviceId: deviceId,
+                sessionURL: live.url,
+                powerSource: powerSource,
+                createdAt: Date(),
+                source: .liveHLSBridge,
+                backendSessionId: live.sessionId
+            )
+        }
+
+        // 2. Most recent recorded event.
+        if let clipURL = await resolveLatestClipURL(for: deviceId) {
+            return StreamSession(
+                deviceId: deviceId,
+                sessionURL: clipURL,
+                powerSource: powerSource,
+                createdAt: Date(),
+                source: .recordedEvent
+            )
+        }
+
+        // 3. Placeholder → view renders BipBop.
+        return StreamSession(
+            deviceId: deviceId,
+            sessionURL: Self.placeholderMockSessionURL,
+            powerSource: powerSource,
+            createdAt: Date(),
+            source: .testPattern
+        )
+    }
+
+    /// Ask the backend to start a live HLS bridge session. Returns `nil` on any
+    /// failure so the caller can cleanly fall through to recorded content.
+    private func tryLiveHLSBridge(deviceId: String) async -> SimulatorLiveStream? {
+        guard let service = simulatorLiveStreamService else { return nil }
+        do {
+            return try await service.startStream(deviceId: deviceId)
+        } catch {
+            return nil
+        }
+    }
 
     /// Try to resolve the URL of the device's most recent recorded event so
     /// the HLS fallback player can show real footage instead of a test stream.

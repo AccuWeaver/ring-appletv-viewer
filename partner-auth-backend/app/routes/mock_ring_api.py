@@ -131,6 +131,31 @@ async def create_whep_session(
     )
 
 
+@router.post("/devices/{device_id}/media/streaming/hls/sessions")
+async def create_hls_session(
+    device_id: str,
+    router: SourceRouter = Depends(get_source_router),  # noqa: B008
+) -> JSONResponse:
+    """Start a live HLS stream by republishing Ring SIP/RTP through mediamtx.
+
+    Used by clients that can't play WebRTC (currently the tvOS simulator).
+    Returns the playable ``index.m3u8`` URL plus the session id callers use
+    to tear the session down via ``DELETE /mock/session/{session_id}``.
+    """
+    result = await router.create_hls_stream_session(device_id)
+    if result.error is not None:
+        raise result.error
+    hls_result = result.payload
+    return JSONResponse(
+        status_code=201,
+        content={
+            "session_id": hls_result.session_id,
+            "hls_url": hls_result.hls_url,
+        },
+        headers=_source_headers(result.source_mode, result.cache_age_seconds),
+    )
+
+
 @router.delete("/session/{session_id}")
 async def delete_session(
     session_id: str,

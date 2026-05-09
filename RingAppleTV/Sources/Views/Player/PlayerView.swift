@@ -73,6 +73,74 @@ struct PlayerView: View {
             // Device name overlay
             deviceNameOverlay
         }
+        .overlay(alignment: .topTrailing) {
+            sourceBanner(for: session.source)
+        }
+    }
+
+    // MARK: - Source Banner
+
+    /// Small pill in the top-right that tells the viewer where the current
+    /// video is actually coming from. Hidden for the live WebRTC path so the
+    /// real-camera experience stays uncluttered.
+    @ViewBuilder
+    private func sourceBanner(for source: StreamSource) -> some View {
+        if let config = bannerConfig(for: source) {
+            HStack(spacing: 8) {
+                Image(systemName: config.iconName)
+                    .font(.system(size: 18, weight: .semibold))
+                Text(config.label)
+                    .font(.system(size: 18, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(
+                Capsule().fill(config.background.opacity(0.85))
+            )
+            .overlay(
+                Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1)
+            )
+            .padding(Constants.UI.cardPadding)
+            .accessibilityLabel(Text(config.accessibilityLabel))
+            .accessibilityAddTraits(.isStaticText)
+        }
+    }
+
+    private struct BannerConfig {
+        let label: String
+        let iconName: String
+        let background: Color
+        let accessibilityLabel: String
+    }
+
+    private func bannerConfig(for source: StreamSource) -> BannerConfig? {
+        switch source {
+        case .liveWebRTC:
+            // Real live partner-API path; leave the frame clean.
+            return nil
+        case .liveHLSBridge:
+            return BannerConfig(
+                label: "Live via bridge",
+                iconName: "dot.radiowaves.left.and.right",
+                background: .blue,
+                accessibilityLabel: "Live video via the local SIP bridge"
+            )
+        case .recordedEvent:
+            return BannerConfig(
+                label: "Recorded",
+                iconName: "clock.arrow.circlepath",
+                background: .orange,
+                accessibilityLabel: "Most recent recorded event, not live"
+            )
+        case .testPattern:
+            return BannerConfig(
+                label: "Test pattern",
+                iconName: "tv.and.hifispeaker.fill",
+                background: .gray,
+                accessibilityLabel: "Apple test video, no Ring footage available"
+            )
+        }
     }
 
     // MARK: - Mock HLS Player (simulator / dev)
@@ -91,8 +159,19 @@ struct PlayerView: View {
         // Uses a custom AVPlayerLayer wrapper (HLSPlayerView) instead of AVKit's
         // VideoPlayer so the Menu button isn't captured by AVKit's player chrome —
         // our `.onExitCommand` handler on the parent view can receive it and dismiss.
-        let isPlaceholder = session.sessionURL == PlayerViewModel.placeholderMockSessionURL
-        let url = isPlaceholder ? Self.bipBopFallbackURL : session.sessionURL
+        //
+        // Source-based URL selection:
+        //   - `.testPattern` → hard-coded BipBop fallback
+        //   - everything else (`.liveHLSBridge`, `.recordedEvent`) → the session's
+        //     resolved URL. We guard on the placeholder URL too in case a code
+        //     path surfaces it without updating `source`.
+        let url: URL = {
+            if session.source == .testPattern
+                || session.sessionURL == PlayerViewModel.placeholderMockSessionURL {
+                return Self.bipBopFallbackURL
+            }
+            return session.sessionURL
+        }()
         return HLSPlayerView(url: url)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .accessibilityLabel(Text("HLS stream for \(device.name)"))

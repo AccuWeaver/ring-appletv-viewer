@@ -25,6 +25,19 @@ class StreamSessionResult(NamedTuple):
     session_id: str  # backend-generated UUID
 
 
+class HLSStreamSessionResult(NamedTuple):
+    """Result of `RingAdapter.create_hls_stream_session`.
+
+    Returned only by adapters that can route a live feed through mediamtx
+    so HLS clients (notably the tvOS simulator) can subscribe. The
+    ``session_id`` is the same identifier used by
+    ``delete_stream_session`` so the teardown contract is uniform.
+    """
+
+    hls_url: str
+    session_id: str
+
+
 class RingAdapter(ABC):
     """Abstract interface for all Ring-facing operations.
 
@@ -58,6 +71,17 @@ class RingAdapter(ABC):
     @abstractmethod
     async def create_stream_session(self, device_id: str, sdp_offer: str) -> StreamSessionResult:
         """Create a WHEP stream session for ``device_id`` from an SDP offer."""
+
+    async def create_hls_stream_session(self, device_id: str) -> HLSStreamSessionResult:
+        """Create an HLS stream session for ``device_id``.
+
+        Concrete adapters that can republish a live feed via mediamtx
+        override this. The default implementation signals "not supported"
+        by raising so the route layer maps it to 501.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support HLS stream sessions"
+        )
 
     @abstractmethod
     async def delete_stream_session(self, session_id: str) -> None:

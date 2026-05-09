@@ -1,9 +1,28 @@
-# Minimal mediamtx config for local WebRTC testing
-# Allows the /test path to be published via RTSP and subscribed via WHEP
+# Minimal mediamtx config for local WebRTC + HLS testing.
+#
+# Local-dev only (never use in production):
+#   - Anonymous auth below grants every action to any connection.
+#   - HLS is enabled so the tvOS simulator can subscribe via AVPlayer when
+#     WebRTC playback isn't viable on that platform.
+
+# HLS is served on :8888 by default; this block makes the intent explicit and
+# keeps it enabled even if mediamtx's upstream defaults ever change.
+hls: yes
+hlsAddress: :8888
+hlsAllowOrigins: ['*']
+# Low-latency HLS so the simulator stays close to real-time when receiving
+# the republished Ring RTP feed via `ring-sip-bridge`.
+hlsVariant: lowLatency
 
 paths:
+  # ffmpeg test pattern (docker compose --profile mock up).
   test:
-    # Allow any RTSP/WHIP publisher
+    source: publisher
+
+  # `ring-sip-bridge` publishes each live session to `ring/<device_id>`.
+  # mediamtx's regex path syntax uses a `~` prefix on the pattern itself.
+  # This accepts any path shaped like ``ring/<whatever>``.
+  "~^ring/.+$":
     source: publisher
 
 # Allow all connections (local dev only - never use in production)

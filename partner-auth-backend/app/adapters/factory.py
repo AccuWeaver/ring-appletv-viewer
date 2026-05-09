@@ -140,6 +140,7 @@ async def _create_unofficial_adapter(settings: Settings) -> UnofficialRingAdapte
         sessions=StreamSessionMap(),
         max_concurrent=settings.ring_max_concurrent_streams,
         mediamtx_whep_base=settings.mediamtx_whep_base,
+        mediamtx_hls_public_base=settings.mediamtx_hls_public_base,
     )
 
     # Stash the Ring-API httpx client on the adapter so the lifespan hook

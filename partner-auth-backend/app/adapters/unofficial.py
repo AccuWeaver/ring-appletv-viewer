@@ -16,7 +16,12 @@ from functools import wraps
 
 import httpx
 
-from app.adapters.base import RingAdapter, SnapshotPayload, StreamSessionResult
+from app.adapters.base import (
+    HLSStreamSessionResult,
+    RingAdapter,
+    SnapshotPayload,
+    StreamSessionResult,
+)
 from app.adapters.errors import (
     AuthenticationRequiredError,
     DeviceNotFoundError,
@@ -115,6 +120,7 @@ class UnofficialRingAdapter(RingAdapter):
         sessions: StreamSessionMap,
         max_concurrent: int,
         mediamtx_whep_base: str,
+        mediamtx_hls_public_base: str = "",
         http: httpx.AsyncClient | None = None,
     ) -> None:
         self._client = client
@@ -122,6 +128,7 @@ class UnofficialRingAdapter(RingAdapter):
         self._sessions = sessions
         self._max_concurrent = max_concurrent
         self._mediamtx_whep_base = mediamtx_whep_base.rstrip("/")
+        self._mediamtx_hls_public_base = mediamtx_hls_public_base.rstrip("/")
         # Optional separate httpx client for mediamtx WHEP traffic so it
         # does not share the Ring-API client's rate-limit path. If omitted
         # we create our own and close it on aclose().
@@ -334,6 +341,56 @@ class UnofficialRingAdapter(RingAdapter):
             session_id,
             session.device_id,
         )
+
+    @_logged("create_hls_stream_session")
+    async def create_hls_stream_session(self, device_id: str) -> HLSStreamSessionResult:
+        """Start a SIP session and expose it as a mediamtx HLS URL.
+
+        Used by tvOS simulator builds where WebRTC frames don't render
+        through the Metal decoder. The SIP/RTSP leg is identical to
+        ``create_stream_session``; we just skip the WHEP proxy and point
+        the client at mediamtx's HLS endpoint for the same path.
+
+        Teardown uses the same ``delete_stream_session`` path so both
+        WebRTC and HLS sessions share a single lifecycle surface.
+        """
+        await self._sessions.check_capacity(self._max_concurrent)
+
+        bridge = await self._sip.start(device_id)
+
+        session_id = str(uuid.uuid4())
+        session = UnofficialStreamSession(
+            session_id=session_id,
+            bridge_session_id=bridge.bridge_session_id,
+            device_id=device_id,
+            mediamtx_path=bridge.rtsp_path,
+            created_at=time.time(),
+            state="active",
+            has_audio=False,
+        )
+        await self._sessions.bind(session)
+
+        logger.info(
+            "sip_bridge_lifecycle event=sip_established session_id=%s device_id=%s mode=%s",
+            session_id,
+            device_id,
+            self.mode(),
+        )
+        logger.info(
+            "sip_bridge_lifecycle event=rtsp_publish_started session_id=%s device_id=%s mode=%s",
+            session_id,
+            device_id,
+            self.mode(),
+        )
+
+        hls_url = f"{self._mediamtx_hls_public_base}/{bridge.rtsp_path}/index.m3u8"
+        logger.info(
+            "hls_stream_session_created session_id=%s device_id=%s url=%s",
+            session_id,
+            device_id,
+            hls_url,
+        )
+        return HLSStreamSessionResult(hls_url=hls_url, session_id=session_id)
 
     # ------------------------------------------------------------------
     # Shutdown

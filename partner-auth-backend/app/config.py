@@ -118,6 +118,13 @@ class Settings:
             "MEDIAMTX_RTSP_URL", "rtsp://mediamtx:8554/ring"
         )
         self.mediamtx_whep_base: str = os.environ.get("MEDIAMTX_WHEP_BASE", "http://mediamtx:8889")
+        # Public HLS base URL that external clients (e.g. the tvOS simulator)
+        # can use to subscribe to mediamtx HLS. This is distinct from the
+        # Docker-internal `mediamtx:8888` used on the backend side so the app
+        # can fetch `index.m3u8` from the host.
+        self.mediamtx_hls_public_base: str = os.environ.get(
+            "MEDIAMTX_HLS_PUBLIC_BASE", "http://localhost:8888"
+        )
         # Preserved for MockRingAdapter (matches mock_ring_api.py default)
         self.mediamtx_whep_url: str = os.environ.get(
             "MEDIAMTX_WHEP_URL", "http://localhost:8889/test/whep"

@@ -107,6 +107,35 @@ class SourceRouter:
             request_id=request_id or _UNKNOWN_REQUEST_ID,
         )
 
+    async def create_hls_stream_session(
+        self, device_id: str, *, request_id: str | None = None
+    ) -> SourceResult:
+        """Route HLS stream session creation through the profile.
+
+        Mirrors ``create_stream_session`` but targets adapters that can
+        republish the live feed through mediamtx so HLS clients (notably
+        the tvOS simulator) can subscribe. Adapters that don't implement
+        the HLS path raise ``NotImplementedError`` from the base class;
+        the router treats that as ``UpstreamUnavailableError`` so the
+        fallback loop behaves uniformly.
+        """
+
+        async def _call(adapter: RingAdapter) -> Any:
+            try:
+                return await adapter.create_hls_stream_session(device_id)
+            except NotImplementedError as exc:
+                raise UpstreamUnavailableError(
+                    f"{adapter.mode()} does not support HLS stream sessions"
+                ) from exc
+
+        return await self._route_operation(
+            "create_hls_stream_session",
+            _call,
+            is_live_media=True,
+            is_snapshot=False,
+            request_id=request_id or _UNKNOWN_REQUEST_ID,
+        )
+
     async def delete_stream_session(
         self, session_id: str, *, request_id: str | None = None
     ) -> SourceResult:

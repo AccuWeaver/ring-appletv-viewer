@@ -11,7 +11,12 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 
-from app.adapters.base import RingAdapter, SnapshotPayload, StreamSessionResult
+from app.adapters.base import (
+    HLSStreamSessionResult,
+    RingAdapter,
+    SnapshotPayload,
+    StreamSessionResult,
+)
 from app.adapters.session_map import StreamSessionMap
 from app.adapters.types import MockStreamSession
 
@@ -199,3 +204,26 @@ class MockRingAdapter(RingAdapter):
     async def delete_stream_session(self, session_id: str) -> None:
         # Legacy behavior is a no-op acknowledgement; nothing to tear down.
         return None
+
+    async def create_hls_stream_session(self, device_id: str) -> HLSStreamSessionResult:
+        """Return an HLS URL pointing at the fixed test-pattern clip.
+
+        The mock adapter doesn't run mediamtx or the SIP bridge, so we hand
+        back the same BipBop stream used by `download_video`. Binding the
+        session in the map lets `delete_stream_session` look it up and
+        clean up, matching the WHEP teardown contract.
+        """
+        import time
+
+        session_id = str(uuid.uuid4())
+        await self._sessions.bind(
+            MockStreamSession(
+                session_id=session_id,
+                device_id=device_id,
+                created_at=time.time(),
+            )
+        )
+        return HLSStreamSessionResult(
+            hls_url=_HLS_TEST_STREAM_URL,
+            session_id=session_id,
+        )

@@ -54,6 +54,7 @@ def _fake_settings(
         ring_api_rate_limit_per_minute=60,
         mediamtx_rtsp_url="rtsp://mediamtx:8554/ring",
         mediamtx_whep_base="http://mediamtx:8889",
+        mediamtx_hls_public_base="http://localhost:8888",
         mediamtx_whep_url="http://localhost:8889/test/whep",
         ring_sip_bridge_url="http://ring-sip-bridge:3000",
         token_encryption_key=Fernet.generate_key().decode(),

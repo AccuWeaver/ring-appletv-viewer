@@ -22,6 +22,7 @@ final class PlayerViewModelTests: XCTestCase {
             return
         }
         XCTAssertEqual(loadedSession.deviceId, "42")
+        XCTAssertEqual(loadedSession.source, .liveWebRTC)
         XCTAssertTrue(sut.isPlaying)
         XCTAssertEqual(mock.startStreamCalls.count, 1)
         XCTAssertEqual(mock.startStreamCalls.first?.deviceId, "42")
@@ -121,6 +122,7 @@ final class PlayerViewModelTests: XCTestCase {
         }
         XCTAssertEqual(session.deviceId, "42")
         XCTAssertEqual(session.sessionURL, PlayerViewModel.placeholderMockSessionURL)
+        XCTAssertEqual(session.source, .testPattern)
         XCTAssertTrue(vm.isPlaying)
     }
 
@@ -152,6 +154,7 @@ final class PlayerViewModelTests: XCTestCase {
             return
         }
         XCTAssertEqual(session.sessionURL, expectedURL)
+        XCTAssertEqual(session.source, .recordedEvent)
         XCTAssertEqual(eventService.fetchEventsCalls, ["42"])
         XCTAssertEqual(eventService.fetchEventVideoURLCalls.first?.id, "evt-1")
     }
@@ -200,5 +203,92 @@ final class PlayerViewModelTests: XCTestCase {
             return
         }
         XCTAssertEqual(session.sessionURL, PlayerViewModel.placeholderMockSessionURL)
+        XCTAssertEqual(session.source, .testPattern)
+    }
+
+    // MARK: - Simulator live HLS bridge
+
+    func testRequestStream_withoutManager_liveHLSBridgeSucceeds_usesBridgeURL() async {
+        // When the simulator live-stream service returns a usable HLS URL,
+        // the session carries it with source=.liveHLSBridge and we skip the
+        // recorded-event fallback.
+        let eventService = MockEventService()
+        let sim = MockSimulatorLiveStreamService()
+        let liveURL = URL(string: "http://localhost:8888/ring/42/index.m3u8")!
+        sim.startStreamResult = .success(
+            SimulatorLiveStream(url: liveURL, sessionId: "session-123")
+        )
+
+        let vm = PlayerViewModel(
+            streamSessionManager: nil,
+            eventService: eventService,
+            mediaService: MockMediaService(),
+            simulatorLiveStreamService: sim
+        )
+        await vm.requestStream(for: "42", powerSource: .line)
+
+        guard case .loaded(let session) = vm.state else {
+            XCTFail("Expected .loaded state, got \(vm.state)")
+            return
+        }
+        XCTAssertEqual(session.sessionURL, liveURL)
+        XCTAssertEqual(session.source, .liveHLSBridge)
+        XCTAssertEqual(session.backendSessionId, "session-123")
+        XCTAssertEqual(sim.startStreamCalls, ["42"])
+        // The recorded-event path should not be consulted on the happy path.
+        XCTAssertTrue(eventService.fetchEventsCalls.isEmpty)
+    }
+
+    func testRequestStream_withoutManager_liveHLSFails_fallsBackToRecordedEvent() async {
+        // When the HLS bridge can't start (e.g. sidecar isn't ready) we should
+        // still land on the most recent recorded event rather than giving up.
+        let eventService = MockEventService()
+        let expectedURL = URL(string: "https://cdn.ring.invalid/clip.m3u8")!
+        eventService.fetchEventsResult = .success([
+            RingEvent(
+                id: "evt-1", deviceId: "42", eventType: .motion,
+                createdAt: Date(), duration: 30
+            )
+        ])
+        eventService.fetchEventVideoURLResult = .success(expectedURL)
+        let sim = MockSimulatorLiveStreamService()
+        // Default startStreamResult is already a failure.
+
+        let vm = PlayerViewModel(
+            streamSessionManager: nil,
+            eventService: eventService,
+            mediaService: MockMediaService(),
+            simulatorLiveStreamService: sim
+        )
+        await vm.requestStream(for: "42", powerSource: .line)
+
+        guard case .loaded(let session) = vm.state else {
+            XCTFail("Expected .loaded state, got \(vm.state)")
+            return
+        }
+        XCTAssertEqual(session.sessionURL, expectedURL)
+        XCTAssertEqual(session.source, .recordedEvent)
+        XCTAssertEqual(sim.startStreamCalls, ["42"])
+    }
+
+    func testStopStream_releasesLiveHLSBridgeSession() async {
+        // After a successful live HLS bridge start, stopStream should ask the
+        // service to release the backend-side session id.
+        let sim = MockSimulatorLiveStreamService()
+        let liveURL = URL(string: "http://localhost:8888/ring/42/index.m3u8")!
+        sim.startStreamResult = .success(
+            SimulatorLiveStream(url: liveURL, sessionId: "session-123")
+        )
+        let vm = PlayerViewModel(
+            streamSessionManager: nil,
+            eventService: MockEventService(),
+            mediaService: MockMediaService(),
+            simulatorLiveStreamService: sim
+        )
+        await vm.requestStream(for: "42", powerSource: .line)
+        vm.stopStream()
+        // Detached release task needs a beat to run.
+        try? await Task.sleep(nanoseconds: 150_000_000)
+        XCTAssertEqual(sim.releaseSessionCalls, ["session-123"])
     }
 }

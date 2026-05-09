@@ -21,6 +21,7 @@ final class ServiceContainer: ObservableObject {
     let eventService: EventService
     let mediaService: MediaService
     let streamSessionManager: StreamSessionManagerProtocol?
+    let simulatorLiveStreamService: SimulatorLiveStreamService?
 
     // MARK: - Background
 
@@ -66,8 +67,21 @@ final class ServiceContainer: ObservableObject {
             partnerAPIClient: infra.apiClient,
             authService: domain.authService
         )
+        // Real Apple TV uses WebRTC; the simulator-only HLS bridge isn't needed.
+        self.simulatorLiveStreamService = nil
         #else
         self.streamSessionManager = nil
+        // On the simulator we try to route the live feed through the backend's
+        // SIP bridge + mediamtx so the player shows real live video via HLS.
+        // Only makes sense when we're pointed at our local backend (mock mode
+        // covers that; a real partner-API deployment won't expose /mock/*).
+        if configuration.useMocks {
+            self.simulatorLiveStreamService = DefaultSimulatorLiveStreamService(
+                backendBaseURL: configuration.authBackendBaseURL
+            )
+        } else {
+            self.simulatorLiveStreamService = nil
+        }
         #endif
 
         // 3. Background refresh
@@ -93,7 +107,8 @@ final class ServiceContainer: ObservableObject {
         PlayerViewModel(
             streamSessionManager: streamSessionManager,
             eventService: eventService,
-            mediaService: mediaService
+            mediaService: mediaService,
+            simulatorLiveStreamService: simulatorLiveStreamService
         )
     }
 
