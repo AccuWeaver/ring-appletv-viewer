@@ -103,3 +103,4 @@ partner-auth-backend/*.db
 # Kiro (keep specs)
 # .kiro/
 .go2rtc-*.yaml
+.go2rtc-host/

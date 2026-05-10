@@ -17,6 +17,8 @@ log:
   # troubleshooting. Never set to "trace" — it echoes full URLs (which
   # contain the refresh token on Ring streams) to the log.
   level: info
+  streams: debug
+  hls: debug
 
 rtsp:
   default_query: 'video&audio'

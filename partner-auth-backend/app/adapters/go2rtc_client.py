@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import logging
 from typing import Final
-from urllib.parse import urlencode
 
 import httpx
 
@@ -90,12 +89,14 @@ class Go2rtcClient:
         replace the registration. Errors are surfaced as adapter errors
         so the router's health tracking sees them.
         """
-        src = "ring:?" + urlencode(
-            {
-                "device_id": device_id,
-                "camera_id": camera_id,
-                "refresh_token": self._token,
-            }
+        # Build the ``src`` value manually rather than via ``urlencode``
+        # so httpx (which will percent-encode query values itself) does
+        # the encoding exactly once. Double-encoding the base64 padding
+        # ``==`` breaks go2rtc's refresh-token parse.
+        src = (
+            f"ring:?device_id={device_id}"
+            f"&camera_id={camera_id}"
+            f"&refresh_token={self._token}"
         )
         params = {"name": self.stream_name(device_id), "src": src}
         url = f"{self._internal_base}/api/streams"
@@ -117,6 +118,8 @@ class Go2rtcClient:
             raise UpstreamUnavailableError(
                 f"go2rtc ensure_stream returned {response.status_code}"
             )
+        # Intentionally omit the URL from the log — it contains the
+        # wrapped refresh token in the query string.
         logger.info(
             "go2rtc_stream_upsert name=%s status=%d",
             self.stream_name(device_id),

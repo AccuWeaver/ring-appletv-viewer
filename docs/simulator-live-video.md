@@ -3,109 +3,162 @@
 WebRTC's Metal-backed video decoder does not render frames in the tvOS
 simulator even when the connection succeeds. That's why the app gates
 `StreamSessionManager` on `!targetEnvironment(simulator)`. This document
-explains how to get *live* video flowing in the simulator by routing the
-feed through a local proxy.
+explains how to route the feed through a local proxy so AVPlayer can play
+it instead.
 
-## Recommended path: go2rtc
+## Architecture
 
-[go2rtc] is a Go-based streaming proxy with a native Ring WebRTC client
-written by the same author as the homebridge-ring plugin. It pulls Ring's
-WebRTC feed directly (no ffmpeg SDP demuxer in the critical path) and
-serves it as fMP4 HLS that AVPlayer can play natively.
+The backend's unofficial adapter exposes `create_hls_stream_session` on
+its route layer. When `RING_REFRESH_TOKEN_G2R` is set, that call:
+
+1. Upserts a named `ring_<camera_id>` stream on a [go2rtc][] instance via
+   its HTTP API (`PUT /api/streams`). Go2rtc has a native Ring WebRTC
+   client that fetches the live feed directly — no ffmpeg SDP demuxer in
+   the critical path.
+2. Returns an HLS URL of the form
+   `<public-go2rtc-url>/api/stream.m3u8?src=ring_<camera_id>&mp4=flac`
+   that the tvOS client plays through AVPlayer.
+3. Later teardown calls `DELETE /mock/session/{session_id}` which
+   releases the go2rtc stream.
+
+When `RING_REFRESH_TOKEN_G2R` is unset, the same route falls back to the
+legacy `ring-sip-bridge + mediamtx` chain for backward compatibility.
 
 [go2rtc]: https://github.com/AlexxIT/go2rtc
 
-### 1. Wrap your Ring refresh token
+## Token wrapping (required once)
 
 go2rtc's Ring source expects the legacy base64'd AuthConfig envelope
-rather than the raw JWT that `/oauth.ring.com` issues. We ship a wrapper
-script that converts a JWT into the expected format:
+rather than the raw JWT that `oauth.ring.com` issues. The repo ships a
+wrapper script:
 
 ```bash
 echo "$RING_REFRESH_TOKEN" | uv run python scripts/wrap-ring-token.py
 ```
 
-Copy the output into your root `.env`:
+Copy the output into the root `.env` as `RING_REFRESH_TOKEN_G2R=…`.
+Rotate the wrapper output any time you rotate the underlying Ring
+refresh token.
+
+## Running go2rtc
+
+There are two ways to run go2rtc. Pick one based on your environment:
+
+### In Docker (Linux / works for most macOS networks)
+
+The bundled compose stack includes a `go2rtc` service, gated on the
+`compose` profile so it doesn't start by default. If bridged Docker
+networking happens to work for WebRTC on your machine:
+
+```bash
+docker compose --profile compose up -d --build
+```
+
+Verify it's up:
+
+```bash
+curl http://localhost:1984/api            # version info
+curl http://localhost:1984/api/streams    # empty object, then populated
+```
+
+### On the host (reliable on macOS Docker Desktop)
+
+Docker Desktop on macOS routes outbound UDP through a VM with
+symmetric NAT. Ring's ICE handshake does not complete in that setup.
+Running go2rtc directly on the host avoids the problem:
+
+```bash
+ARCH=$(uname -m)
+case "$ARCH" in
+  arm64) PKG=go2rtc_mac_arm64.zip ;;
+  x86_64) PKG=go2rtc_mac_amd64.zip ;;
+esac
+mkdir -p .go2rtc-host && cd .go2rtc-host
+curl -sLo go2rtc.zip "https://github.com/AlexxIT/go2rtc/releases/latest/download/$PKG"
+unzip -oq go2rtc.zip && chmod +x go2rtc
+cp ../go2rtc.yaml .
+./go2rtc -config go2rtc.yaml
+```
+
+`.go2rtc-host/` is git-ignored. Leave the process running in its own
+terminal.
+
+Then point the backend at the host:
 
 ```dotenv
-RING_REFRESH_TOKEN_G2R=<wrapped value>
+# in .env
+GO2RTC_URL=http://host.docker.internal:1984
+GO2RTC_PUBLIC_URL=http://localhost:1984
 ```
 
-Rotate the wrapper output any time you rotate your Ring refresh token.
-
-### 2. Bring up the stack
-
-The `go2rtc` container is part of `docker-compose.yml`. A fresh bring-up:
+and bounce the backend:
 
 ```bash
-docker compose up -d --build
+docker compose up -d --force-recreate backend
 ```
 
-Verify go2rtc is healthy:
+## Verifying end-to-end
 
 ```bash
-curl http://localhost:1984/api   # returns version info
+# kick a session through the backend
+curl -X POST http://localhost:8000/mock/devices/<camera_id>/media/streaming/hls/sessions
+
+# confirm go2rtc has the stream
+curl http://localhost:1984/api/streams | jq keys
+
+# pull the master playlist (succeeds once ICE completes and segments exist)
+curl -IL 'http://localhost:1984/api/stream.m3u8?src=ring_<camera_id>&mp4=flac'
 ```
 
-### 3. Ask the backend for an HLS session
+A 200 on the last command with a non-empty playlist means live video
+will render in the simulator.
 
-```bash
-curl -X POST \
-  http://localhost:8000/mock/devices/<camera_id>/media/streaming/hls/sessions
+## Known constraint: Ring ICE / WebRTC
+
+Ring's media is delivered over WebRTC using AWS Kinesis Video Streams
+STUN/TURN. Go2rtc's Ring source hard-codes only STUN servers in its
+`pkg/ring/client.go` ICE config and relies on Ring to send server-
+reflexive candidates over the SIP-over-WebSocket channel. On some
+networks (notably Docker Desktop VM networking on macOS and ISPs with
+symmetric NAT), the ICE handshake does not complete — the Ring producer
+starts, exchanges SDP, and then tears down within ~17 seconds without
+ever reaching `ice_connected`.
+
+Symptoms you'll see in `go2rtc` logs:
+
+```
+DBG [streams] start producer url=ring:?device_id=…
+DBG [streams] stop producer  url=ring:?device_id=…  ← 15–20 s later
 ```
 
-When `RING_REFRESH_TOKEN_G2R` is set, the backend's unofficial adapter
-registers a `ring_<camera_id>` stream on go2rtc and returns a URL like:
+and on the app side:
 
-```json
-{
-  "session_id": "…",
-  "hls_url": "http://localhost:1984/api/stream.m3u8?src=ring_<camera_id>&mp4=flac"
-}
+```
+WRN [hls] can't get init id=…
 ```
 
-That URL plays directly in the tvOS simulator's AVPlayer (the Player view
-already consumes `hls_url` via `DefaultSimulatorLiveStreamService`).
+The snapshot path (`ring_snap_<id>` via `/api/frame.jpeg`) uses Ring's
+REST JPEG endpoint and does NOT require WebRTC; it will still work even
+when live does not. That's your debug probe: if snapshots work but live
+does not, it is unambiguously an ICE problem, not an auth problem.
 
-### 4. Teardown
+### Workarounds
 
-The existing `DELETE /mock/session/{session_id}` works for both
-go2rtc-backed and mediamtx-backed HLS sessions. The app calls this
-automatically when the player view disappears.
-
-## Network caveats
-
-go2rtc's Ring source is a **WebRTC client** — it makes outbound UDP
-connections to Ring's Kinesis TURN/STUN endpoints. This works out of the
-box on Linux with bridge networking. On macOS Docker Desktop some ISPs
-NAT outbound UDP in ways that break the ICE handshake; if live streams
-start but never emit bytes and `docker logs ring-go2rtc` shows no
-`ice_connected` transition, try:
-
-- Switching Docker Desktop's networking backend (Settings → Resources →
-  Network → enable VZ or gRPC-fuse VirtioFS as applicable)
-- Setting `network_mode: host` on the `go2rtc` service (Linux only)
-- Port-forwarding 8555/udp explicitly on your router
-
-The snapshot path (`ring_snap_<id>`) does *not* require WebRTC — it uses
-Ring's REST JPEG endpoint — so if snapshots work but live does not, it's
-an ICE problem, not an auth problem.
-
-## Fallback path: ring-sip-bridge + mediamtx
-
-When `RING_REFRESH_TOKEN_G2R` is unset, `create_hls_stream_session` falls
-back to the original `ring-sip-bridge` sidecar which republishes Ring's
-SIP/RTP as RTSP into `mediamtx`. That path is also present in the compose
-stack for backward compatibility, but the go2rtc path is both simpler and
-more reliable.
+- **Linux with `network_mode: host`**: most reliable. Add that stanza to
+  the `go2rtc` service in `docker-compose.yml` when running on Linux.
+- **Host go2rtc**: as above — bypasses Docker Desktop's VM networking.
+- **TURN relay**: go2rtc accepts a `webrtc.ice_servers` config for the
+  WebRTC *server* role, but NOT for the Ring client role. Patching the
+  Ring source to accept a configured TURN URL is the right upstream fix.
 
 ## Security
 
 - `RING_REFRESH_TOKEN_G2R` is a capability token — anyone with it can
-  subscribe to your live video feed. `.env` and `.env.local` are
-  gitignored; keep it that way.
-- Never set `log: level: trace` in `go2rtc.yaml`. TRACE echoes full
-  request URLs, which include the wrapped refresh token.
-- If you suspect a token has leaked (for example by being logged in an
-  earlier trace run), regenerate it with `ring-auth-cli` and regenerate
-  the wrapped form.
+  subscribe to your live video feed. Keep `.env` git-ignored.
+- Do not set `log: level: trace` in `go2rtc.yaml` or the backend.
+  TRACE echoes full request URLs, which include the wrapped refresh
+  token. The backend has a `RedactingFilter` that scrubs URL query
+  params for known-sensitive field names at INFO and above; go2rtc does
+  not, so its own TRACE output will leak.
+- The backend silences `httpx`'s info-level logs (which include outbound
+  URLs) to WARNING as a belt-and-suspenders measure.

@@ -96,13 +96,14 @@ services:
     volumes:
       - ./mediamtx.yml:/mediamtx.yml:ro
 
-  # go2rtc: native Ring → HLS/fMP4 bridge. Receives a wrapped refresh
-  # token via RING_REFRESH_TOKEN_G2R (see scripts/wrap-ring-token.py) and
-  # serves live HLS at http://localhost:1984/api/stream.m3u8?src=ring_<id>.
-  # Outbound WebRTC to Ring requires reachable UDP; on Linux use
-  # `network_mode: host`. On macOS bridged mode works for most ISPs but
-  # not all — see README for troubleshooting.
+  # go2rtc: native Ring → HLS/fMP4 bridge. When running on Linux this
+  # stanza works in-compose. On macOS Docker Desktop the Ring WebRTC
+  # ICE handshake fails from inside a bridged container, so we run the
+  # go2rtc binary on the host and set GO2RTC_URL=http://host.docker.internal:1984
+  # in .env. In that mode this service is started only on the "compose"
+  # profile so a plain `docker compose up -d` leaves it off.
   go2rtc:
+    profiles: ["compose"]
     image: alexxit/go2rtc:latest
     container_name: ring-go2rtc
     restart: unless-stopped

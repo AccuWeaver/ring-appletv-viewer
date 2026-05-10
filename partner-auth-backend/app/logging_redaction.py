@@ -32,6 +32,15 @@ _FIELD_VALUE_RE = re.compile(
     r"(?i)\b(" + "|".join(re.escape(f) for f in REDACTED_FIELDS) + r")=(\S+)"
 )
 
+# Regex catching URL query strings: ``field=value`` terminated by ``&``,
+# space, or end of string. Separate from the above because URL values
+# end at ``&`` rather than whitespace.
+_URL_QUERY_RE = re.compile(
+    r"(?i)([?&])("
+    + "|".join(re.escape(f) for f in REDACTED_FIELDS)
+    + r")=([^&\s\"]+)"
+)
+
 # Regex catching ``"field": "value"`` JSON-ish patterns.
 _JSON_FIELD_RE = re.compile(
     r'(?i)"(' + "|".join(re.escape(f) for f in REDACTED_FIELDS) + r')"\s*:\s*"([^"]*)"'
@@ -46,6 +55,9 @@ def _redact_dict(args: dict) -> dict:
 
 
 def _redact_string(value: str) -> str:
+    # URL query params first so the scrubbed value in ``field=...``
+    # doesn't leak through the looser ``\S+`` matcher afterwards.
+    value = _URL_QUERY_RE.sub(r"\1\2=[REDACTED]", value)
     value = _FIELD_VALUE_RE.sub(r"\1=[REDACTED]", value)
     value = _JSON_FIELD_RE.sub(r'"\1": "[REDACTED]"', value)
     return value
@@ -114,5 +126,11 @@ def install() -> None:
     root = logging.getLogger()
     for existing in root.filters:
         if isinstance(existing, RedactingFilter):
-            return
-    root.addFilter(RedactingFilter())
+            break
+    else:
+        root.addFilter(RedactingFilter())
+    # httpx logs full request URLs at INFO, which can include secrets in
+    # query strings (e.g. the wrapped Ring refresh token). The URL-query
+    # redactor above catches them, but quieting httpx to WARNING removes
+    # the risk entirely while keeping its error signal visible.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
