@@ -70,6 +70,10 @@ services:
       # ``relay`` forces TURN; empty/``all`` lets pion choose.
       GO2RTC_RING_ICE_TRANSPORT_POLICY: ${GO2RTC_RING_ICE_TRANSPORT_POLICY:-}
       RING_SIP_BRIDGE_URL: ${RING_SIP_BRIDGE_URL:-http://ring-sip-bridge:3000}
+      # Public URL of the sidecar as seen by external clients (the tvOS
+      # simulator runs on the host and talks to the sidecar over its
+      # published port).
+      RING_SIP_BRIDGE_PUBLIC_URL: ${RING_SIP_BRIDGE_PUBLIC_URL:-http://localhost:3000}
 
       # Source routing profile (Req 9.1). Comma-separated ordered list of
       # adapter modes to try. Empty string falls back to RING_ADAPTER.
@@ -88,7 +92,6 @@ services:
       - backend-data:/data
     depends_on:
       - mediamtx
-      - ring-sip-bridge
 
   mediamtx:
     image: bluenviron/mediamtx:latest
@@ -121,6 +124,11 @@ services:
       - go2rtc-data:/data
 
   ring-sip-bridge:
+    # On macOS Docker Desktop the Ring RTP path is unreliable from
+    # inside a bridged container, so we run the sidecar on the host by
+    # default and gate the in-compose variant behind the ``compose``
+    # profile. Docker bring-up: ``docker compose --profile compose up``.
+    profiles: ["compose"]
     build:
       context: ./ring-sip-bridge
     container_name: ring-sip-bridge
@@ -130,6 +138,10 @@ services:
     environment:
       PORT: 3000
       MEDIAMTX_RTSP_URL: ${MEDIAMTX_RTSP_URL:-rtsp://mediamtx:8554/ring}
+      # HLS output directory. The sidecar serves files under
+      # ``/hls/<device_id>/`` from this root when a session requests
+      # ``output=hls``.
+      HLS_ROOT: /tmp/ring-hls
       # Turn on verbose ring-client-api + session logs while we're
       # bringing up the live SIP path. Harmless when unset.
       RING_SIP_BRIDGE_DEBUG: ${RING_SIP_BRIDGE_DEBUG:-}

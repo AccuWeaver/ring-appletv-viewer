@@ -62,6 +62,7 @@ def _fake_settings(
         go2rtc_ring_ice_transport_policy="",
         mediamtx_whep_url="http://localhost:8889/test/whep",
         ring_sip_bridge_url="http://ring-sip-bridge:3000",
+        ring_sip_bridge_public_url="http://localhost:3000",
         token_encryption_key=Fernet.generate_key().decode(),
         database_path=database_path,
     )

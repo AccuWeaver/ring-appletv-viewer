@@ -36,10 +36,17 @@ _HEALTH_TIMEOUT_SECONDS: Final[float] = 3.0
 
 @dataclass(frozen=True, slots=True)
 class BridgeSession:
-    """Return value of :meth:`SipBridgeClient.start`."""
+    """Return value of :meth:`SipBridgeClient.start`.
+
+    ``rtsp_path`` and ``hls_path`` are mutually exclusive — exactly one
+    is populated depending on the ``output`` requested at start time.
+    Empty string for whichever one is not in use keeps the type simple
+    and round-trippable across JSON.
+    """
 
     bridge_session_id: str
-    rtsp_path: str
+    rtsp_path: str = ""
+    hls_path: str = ""
 
 
 RefreshTokenProvider = Callable[[], Awaitable[str | None]]
@@ -72,8 +79,15 @@ class SipBridgeClient:
             self._owned_client = http
         self._http = http
 
-    async def start(self, device_id: str) -> BridgeSession:
+    async def start(
+        self, device_id: str, *, output: str = "rtsp"
+    ) -> BridgeSession:
         """Negotiate a new SIP session for ``device_id`` via the sidecar.
+
+        Args:
+            device_id: Ring camera id to stream from.
+            output: ``"rtsp"`` (default, publishes to mediamtx) or
+                ``"hls"`` (sidecar writes fMP4 segments and serves them).
 
         Raises:
             AuthenticationRequiredError: when the refresh-token provider
@@ -91,7 +105,11 @@ class SipBridgeClient:
         try:
             response = await self._http.post(
                 url,
-                json={"device_id": device_id, "refresh_token": refresh_token},
+                json={
+                    "device_id": device_id,
+                    "refresh_token": refresh_token,
+                    "output": output,
+                },
                 timeout=_START_TIMEOUT_SECONDS,
             )
         except httpx.TimeoutException as exc:
@@ -111,7 +129,8 @@ class SipBridgeClient:
         data = response.json()
         return BridgeSession(
             bridge_session_id=str(data["bridge_session_id"]),
-            rtsp_path=str(data["rtsp_path"]),
+            rtsp_path=str(data.get("rtsp_path") or ""),
+            hls_path=str(data.get("hls_path") or ""),
         )
 
     async def stop(self, bridge_session_id: str) -> None:

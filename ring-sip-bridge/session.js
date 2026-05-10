@@ -4,16 +4,25 @@
  * The production factory drives ``ring-client-api``: we authenticate with
  * the caller-supplied refresh token, find the requested camera, and ask
  * ``camera.streamVideo`` to spin up an ffmpeg process that receives the
- * RTP tracks from Ring and publishes the result as RTSP to mediamtx.
- * From mediamtx's point of view the stream arrives exactly the way the
- * ffmpeg test pattern does, so the existing HLS / WHEP surfaces work
- * without any further changes.
+ * RTP tracks from Ring. On request the factory can target two different
+ * outputs:
+ *
+ *   * RTSP (default) — the legacy path that publishes to mediamtx.
+ *   * HLS — writes fMP4 segments directly into a well-known directory
+ *     the HTTP server can then serve to clients such as the tvOS
+ *     simulator. This path avoids the ICE and RTSP quirks we ran into
+ *     with go2rtc and mediamtx and is the recommended production
+ *     configuration.
+ *
+ * The output target is selected per-session by ``output: 'rtsp' | 'hls'``
+ * in the ``start`` options.
  *
  * Tests (`npm test`) inject a custom factory via ``sessionFactory`` on
- * ``buildApp`` so the full sidecar surface runs offline (Req 6.1, 6.5,
- * 6.6, 6.8).
+ * ``buildApp`` so the full sidecar surface runs offline.
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
 import { RingApi } from 'ring-client-api';
 import { enableDebug, useLogger } from 'ring-client-api/util';
 
@@ -32,19 +41,18 @@ if (DEBUG) {
 /**
  * @typedef {Object} RingCameraSession
  * @property {string} deviceId
- * @property {string} rtspPath      e.g. "ring/<device_id>"
+ * @property {string} rtspPath          e.g. "ring/<device_id>"  (rtsp target only)
+ * @property {string | null} hlsPath    e.g. "/hls/<device_id>/index.m3u8"  (hls target only)
  * @property {boolean} hasAudio
- * @property {string} state         "active" | "terminated"
- * @property {number} startedAt     ms since epoch
+ * @property {string} state             "active" | "terminated"
+ * @property {number} startedAt         ms since epoch
  * @property {() => Promise<void>} stop
  * @property {(cb: () => void) => void} onTerminated
  */
 
 /**
  * Build the ffmpeg output args that publish the Ring live feed to
- * mediamtx via RTSP. Mirrors the pattern in ring-client-api's own docs:
- * a single output target using the RTSP muxer with TCP transport so the
- * publish survives UDP-hostile networks.
+ * mediamtx via RTSP. Used when ``output: 'rtsp'`` is selected.
  */
 function buildRtspOutputArgs(mediamtxRtspUrl, deviceId) {
     const base = mediamtxRtspUrl.replace(/\/$/, '');
@@ -55,18 +63,76 @@ function buildRtspOutputArgs(mediamtxRtspUrl, deviceId) {
     ];
 }
 
-export function createSessionFactory({ mediamtxRtspUrl }) {
+/**
+ * Build the ffmpeg output args for HLS / fMP4. Writes an ``index.m3u8``
+ * playlist and a ring buffer of segment files into the per-device
+ * directory. Used when ``output: 'hls'`` is selected.
+ *
+ * The flag soup:
+ *   - ``-f hls``: HLS muxer.
+ *   - ``-hls_time 2``: 2-second target segment duration. AVPlayer's
+ *     adaptive engine handles shorter segments fine; 2s keeps
+ *     glass-to-glass latency near 4-6 s.
+ *   - ``-hls_list_size 6``: keep six segments on the playlist so AVPlayer
+ *     has room for startup buffer.
+ *   - ``-hls_flags delete_segments+append_list+discont_start+independent_segments``:
+ *     classic live-HLS flags — autovac old segments, support playlist
+ *     truncation, mark each segment as independent to let AVPlayer
+ *     start anywhere.
+ *   - ``-hls_segment_type fmp4``: fragmented MP4 instead of MPEG-TS.
+ *     tvOS / iOS AVPlayer strongly prefers fMP4; fMP4 also supports
+ *     H.265 if we ever want to pass HEVC through.
+ *   - ``-hls_fmp4_init_filename init.mp4``: standard name for the init
+ *     segment.
+ *   - ``-hls_segment_filename segment-%d.m4s``: match what the playlist
+ *     will reference (URL-relative).
+ *   - ``-movflags ... empty_moov+default_base_moof``: required for
+ *     streaming fMP4 segments in the HLS muxer.
+ */
+function buildHlsOutputArgs(hlsDir) {
+    const playlist = path.join(hlsDir, 'index.m3u8');
+    const segmentPattern = path.join(hlsDir, 'segment-%d.m4s');
+    return [
+        '-f', 'hls',
+        '-hls_time', '2',
+        '-hls_list_size', '6',
+        '-hls_flags', 'delete_segments+append_list+discont_start+independent_segments',
+        '-hls_segment_type', 'fmp4',
+        '-hls_fmp4_init_filename', 'init.mp4',
+        '-hls_segment_filename', segmentPattern,
+        '-movflags', '+frag_keyframe+empty_moov+default_base_moof',
+        playlist,
+    ];
+}
+
+function ensureHlsDir(hlsRoot, deviceId) {
+    const dir = path.join(hlsRoot, deviceId);
+    // Wipe any stale segments from a prior session so AVPlayer never
+    // picks up half-written files from the last run.
+    try {
+        fs.rmSync(dir, { recursive: true, force: true });
+    } catch { /* empty */ }
+    fs.mkdirSync(dir, { recursive: true });
+    return dir;
+}
+
+export function createSessionFactory({ mediamtxRtspUrl, hlsRoot }) {
     return {
         /**
          * Start a new SIP session for the given device.
          *
-         * @param {{ deviceId: string, refreshToken: string, bridgeSessionId: string }} opts
+         * @param {{
+         *   deviceId: string,
+         *   refreshToken: string,
+         *   bridgeSessionId: string,
+         *   output?: 'rtsp' | 'hls',
+         * }} opts
          * @returns {Promise<RingCameraSession>}
          */
-        async start({ deviceId, refreshToken, bridgeSessionId }) {
+        async start({ deviceId, refreshToken, bridgeSessionId, output = 'rtsp' }) {
             // Construct a per-session RingApi instance. The refresh token
             // is only held inside this closure for the lifetime of the
-            // call; we never persist it (Req 6.6).
+            // call; we never persist it.
             const ringApi = new RingApi({
                 refreshToken,
                 cameraStatusPollingSeconds: 600,
@@ -74,16 +140,30 @@ export function createSessionFactory({ mediamtxRtspUrl }) {
             });
 
             const cameras = await ringApi.getCameras();
-            dbg(`cameras.length=${cameras.length} looking_for=${deviceId}`);
+            dbg(`cameras.length=${cameras.length} looking_for=${deviceId} output=${output}`);
             const camera = cameras.find((c) => String(c.id) === String(deviceId));
             if (!camera) {
                 throw new Error(`camera ${deviceId} not visible to ring account`);
             }
             dbg(`matched camera id=${camera.id} name=${camera.name}`);
 
-            const rtspPath = `ring/${deviceId}`;
-            const output = buildRtspOutputArgs(mediamtxRtspUrl, deviceId);
-            dbg(`starting live call; ffmpeg output args=${JSON.stringify(output)}`);
+            let outputArgs;
+            let hlsPath = null;
+            let rtspPath = `ring/${deviceId}`;
+
+            if (output === 'hls') {
+                if (!hlsRoot) {
+                    throw new Error('hlsRoot not configured on session factory');
+                }
+                const dir = ensureHlsDir(hlsRoot, String(deviceId));
+                outputArgs = buildHlsOutputArgs(dir);
+                hlsPath = `/hls/${deviceId}/index.m3u8`;
+                rtspPath = '';
+                dbg(`hls output dir=${dir} path=${hlsPath}`);
+            } else {
+                outputArgs = buildRtspOutputArgs(mediamtxRtspUrl, String(deviceId));
+                dbg(`rtsp output args=${JSON.stringify(outputArgs)}`);
+            }
 
             // streamVideo = startLiveCall + startTranscoding. The
             // returned StreamingSession tracks the ffmpeg + SIP lifetime
@@ -101,15 +181,19 @@ export function createSessionFactory({ mediamtxRtspUrl }) {
             //     resulting HLS stream plays in AVPlayer on tvOS.
             const liveCall = await camera.streamVideo({
                 input: [
-                    '-rtbufsize', '100M',
-                    '-max_delay', '500000',
+                    '-rtbufsize', '512M',
+                    '-buffer_size', '16777216',
+                    '-max_delay', '5000000',
+                    '-reorder_queue_size', '2048',
                     '-analyzeduration', '15000000',
                     '-probesize', '10000000',
                     '-fflags', '+genpts+discardcorrupt',
+                    '-use_wallclock_as_timestamps', '1',
+                    '-thread_queue_size', '4096',
                 ],
                 video: ['-vcodec', 'copy', '-bsf:v', 'dump_extra=freq=keyframe'],
                 audio: ['-acodec', 'aac', '-ar', '44100', '-ac', '2', '-b:a', '128k'],
-                output,
+                output: outputArgs,
             });
             dbg(`live call started bridge_session_id=${bridgeSessionId}`);
 
@@ -129,6 +213,7 @@ export function createSessionFactory({ mediamtxRtspUrl }) {
             const session = {
                 deviceId,
                 rtspPath,
+                hlsPath,
                 hasAudio: true,
                 state: 'active',
                 startedAt: Date.now(),
@@ -140,9 +225,6 @@ export function createSessionFactory({ mediamtxRtspUrl }) {
                     try {
                         liveCall.stop();
                     } catch (err) {
-                        // Swallow: the only path forward is to drop our
-                        // entry and let Ring's SIP timeout reap any
-                        // residue on their side.
                         console.error(
                             `liveCall.stop failed bridge_session_id=${bridgeSessionId} ` +
                                 `device_id=${deviceId} error=${err?.message}`
@@ -185,14 +267,15 @@ export function createSessionFactory({ mediamtxRtspUrl }) {
 export function createTestSessionFactory(opts = {}) {
     const { startBehavior = 'ok', hasAudio = true, terminationDelayMs = 0 } = opts;
     return {
-        async start({ deviceId, refreshToken, bridgeSessionId }) {
+        async start({ deviceId, refreshToken, bridgeSessionId, output = 'rtsp' }) {
             if (startBehavior === 'fail') {
                 throw new Error('ring sip negotiation failed (test)');
             }
             const listeners = [];
             const session = {
                 deviceId,
-                rtspPath: `ring/${deviceId}`,
+                rtspPath: output === 'rtsp' ? `ring/${deviceId}` : '',
+                hlsPath: output === 'hls' ? `/hls/${deviceId}/index.m3u8` : null,
                 hasAudio,
                 state: 'active',
                 startedAt: Date.now(),

@@ -156,6 +156,13 @@ class Settings:
         self.ring_sip_bridge_url: str = os.environ.get(
             "RING_SIP_BRIDGE_URL", "http://ring-sip-bridge:3000"
         )
+        # Public URL of the sidecar as seen by external clients (e.g.
+        # the tvOS simulator). When the sidecar is configured to produce
+        # HLS directly (``output=hls``), it also serves the playlist and
+        # segment files, so the app subscribes via this URL.
+        self.ring_sip_bridge_public_url: str = os.environ.get(
+            "RING_SIP_BRIDGE_PUBLIC_URL", "http://localhost:3000"
+        )
 
 
 def _parse_routing_profile(ring_adapter_fallback: str) -> list[str]:

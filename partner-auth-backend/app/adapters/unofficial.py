@@ -122,6 +122,7 @@ class UnofficialRingAdapter(RingAdapter):
         max_concurrent: int,
         mediamtx_whep_base: str,
         mediamtx_hls_public_base: str = "",
+        sip_bridge_public_url: str = "",
         go2rtc: Go2rtcClient | None = None,
         http: httpx.AsyncClient | None = None,
     ) -> None:
@@ -131,6 +132,7 @@ class UnofficialRingAdapter(RingAdapter):
         self._max_concurrent = max_concurrent
         self._mediamtx_whep_base = mediamtx_whep_base.rstrip("/")
         self._mediamtx_hls_public_base = mediamtx_hls_public_base.rstrip("/")
+        self._sip_bridge_public_url = sip_bridge_public_url.rstrip("/")
         self._go2rtc = go2rtc
         # Optional separate httpx client for mediamtx WHEP traffic so it
         # does not share the Ring-API client's rate-limit path. If omitted
@@ -359,17 +361,19 @@ class UnofficialRingAdapter(RingAdapter):
     async def create_hls_stream_session(self, device_id: str) -> HLSStreamSessionResult:
         """Produce an HLS URL for the given device.
 
-        When a go2rtc client is configured we delegate the whole Ring
-        → HLS path to go2rtc (native Go WebRTC client, no ffmpeg in the
-        critical path). The backend just upserts a named stream and
-        hands the tvOS client the public HLS URL; go2rtc handles the
-        SIP/WebRTC/HLS dance internally.
-
-        When go2rtc is not configured we fall back to the legacy
-        ring-sip-bridge + mediamtx path.
+        Path selection:
+          1. If a go2rtc client is configured (``RING_REFRESH_TOKEN_G2R``
+             set), delegate the entire Ring → HLS chain to go2rtc.
+          2. Otherwise, if the SIP bridge's public URL is set, ask the
+             sidecar to produce HLS directly and return its URL. This
+             avoids the RTSP → mediamtx hop and has proven more reliable
+             than routing through pion's WebRTC stack.
+          3. Fall back to the legacy ring-sip-bridge + mediamtx chain.
         """
         if self._go2rtc is not None and self._go2rtc.is_configured:
             return await self._create_go2rtc_hls_session(device_id)
+        if self._sip_bridge_public_url:
+            return await self._create_sidecar_hls_session(device_id)
         return await self._create_mediamtx_hls_session(device_id)
 
     async def _create_go2rtc_hls_session(self, device_id: str) -> HLSStreamSessionResult:
@@ -405,6 +409,52 @@ class UnofficialRingAdapter(RingAdapter):
             hls_url=self._go2rtc.public_hls_url(device_id),
             session_id=session_id,
         )
+
+    async def _create_sidecar_hls_session(self, device_id: str) -> HLSStreamSessionResult:
+        """HLS produced directly by the ring-sip-bridge sidecar.
+
+        Asks the sidecar to write fMP4 segments to its own HLS directory
+        and return the relative path. We then compose the public URL
+        from the sidecar's external base URL so the tvOS simulator can
+        reach it from the host.
+
+        This bypasses mediamtx entirely and is significantly more
+        reliable on macOS Docker Desktop than the go2rtc + pion path:
+        the feed Ring delivers to ring-client-api is received cleanly
+        (ffmpeg sees ``Video: h264, 1920x1080, 25 fps`` within seconds)
+        and the HLS muxer produces segments the tvOS AVPlayer plays
+        natively.
+        """
+        await self._sessions.check_capacity(self._max_concurrent)
+
+        bridge = await self._sip.start(device_id, output="hls")
+
+        if not bridge.hls_path:
+            # Belt and braces — shouldn't happen because the sidecar's
+            # output=hls branch always sets hls_path.
+            raise UpstreamUnavailableError(
+                "sip bridge returned no hls_path for hls output"
+            )
+
+        session_id = str(uuid.uuid4())
+        session = UnofficialStreamSession(
+            session_id=session_id,
+            bridge_session_id=bridge.bridge_session_id,
+            device_id=device_id,
+            mediamtx_path="",  # unused for HLS output
+            created_at=time.time(),
+            state="active",
+            has_audio=False,
+        )
+        await self._sessions.bind(session)
+
+        hls_url = f"{self._sip_bridge_public_url}{bridge.hls_path}"
+        logger.info(
+            "hls_stream_session_created backend=sidecar session_id=%s device_id=%s",
+            session_id,
+            device_id,
+        )
+        return HLSStreamSessionResult(hls_url=hls_url, session_id=session_id)
 
     async def _create_mediamtx_hls_session(
         self, device_id: str

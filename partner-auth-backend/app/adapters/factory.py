@@ -142,6 +142,7 @@ async def _create_unofficial_adapter(settings: Settings) -> UnofficialRingAdapte
         max_concurrent=settings.ring_max_concurrent_streams,
         mediamtx_whep_base=settings.mediamtx_whep_base,
         mediamtx_hls_public_base=settings.mediamtx_hls_public_base,
+        sip_bridge_public_url=settings.ring_sip_bridge_public_url,
         go2rtc=_build_go2rtc_client(settings),
     )
 
