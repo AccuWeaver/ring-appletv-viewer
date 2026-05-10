@@ -63,6 +63,12 @@ services:
       # Base64-encoded AuthConfig envelope for go2rtc. Generate with:
       #   echo "$RING_REFRESH_TOKEN" | uv run python scripts/wrap-ring-token.py
       RING_REFRESH_TOKEN_G2R: ${RING_REFRESH_TOKEN_G2R:-}
+      # Optional TURN/STUN override for go2rtc's Ring source — requires
+      # a patched go2rtc build (see docs/simulator-live-video.md). JSON
+      # array of RTCIceServer objects. Empty = use go2rtc defaults.
+      GO2RTC_RING_ICE_SERVERS: ${GO2RTC_RING_ICE_SERVERS:-}
+      # ``relay`` forces TURN; empty/``all`` lets pion choose.
+      GO2RTC_RING_ICE_TRANSPORT_POLICY: ${GO2RTC_RING_ICE_TRANSPORT_POLICY:-}
       RING_SIP_BRIDGE_URL: ${RING_SIP_BRIDGE_URL:-http://ring-sip-bridge:3000}
 
       # Source routing profile (Req 9.1). Comma-separated ordered list of

@@ -47,11 +47,15 @@ class Go2rtcClient:
         internal_base_url: str,
         public_base_url: str,
         wrapped_refresh_token: str,
+        ice_servers_json: str = "",
+        ice_transport_policy: str = "",
         http: httpx.AsyncClient | None = None,
     ) -> None:
         self._internal_base = internal_base_url.rstrip("/")
         self._public_base = public_base_url.rstrip("/")
         self._token = wrapped_refresh_token
+        self._ice_servers_json = ice_servers_json
+        self._ice_transport_policy = ice_transport_policy
         self._owned_http: httpx.AsyncClient | None = None
         if http is None:
             http = httpx.AsyncClient()
@@ -98,6 +102,10 @@ class Go2rtcClient:
             f"&camera_id={camera_id}"
             f"&refresh_token={self._token}"
         )
+        if self._ice_servers_json:
+            src += f"&ice_servers={self._ice_servers_json}"
+        if self._ice_transport_policy:
+            src += f"&ice_transport_policy={self._ice_transport_policy}"
         params = {"name": self.stream_name(device_id), "src": src}
         url = f"{self._internal_base}/api/streams"
         try:

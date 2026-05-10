@@ -147,9 +147,28 @@ does not, it is unambiguously an ICE problem, not an auth problem.
 - **Linux with `network_mode: host`**: most reliable. Add that stanza to
   the `go2rtc` service in `docker-compose.yml` when running on Linux.
 - **Host go2rtc**: as above — bypasses Docker Desktop's VM networking.
-- **TURN relay**: go2rtc accepts a `webrtc.ice_servers` config for the
-  WebRTC *server* role, but NOT for the Ring client role. Patching the
-  Ring source to accept a configured TURN URL is the right upstream fix.
+- **TURN relay**: supported via the `GO2RTC_RING_ICE_SERVERS` and
+  `GO2RTC_RING_ICE_TRANSPORT_POLICY` environment variables **when running
+  a patched go2rtc build**. Upstream go2rtc hard-codes the ICE servers
+  for its Ring source; the repo ships a patch under `.go2rtc-src/` (git-
+  ignored) that adds `ice_servers` + `ice_transport_policy` query
+  parameters. Build it with `go build -o go2rtc .` and run it alongside
+  your TURN server (e.g. coturn) configured with long-term credentials.
+  The patch plumbs values through as:
+
+  ```json
+  GO2RTC_RING_ICE_SERVERS=[{"urls":["turn:host:3478"],"username":"u","credential":"p"}]
+  GO2RTC_RING_ICE_TRANSPORT_POLICY=relay
+  ```
+
+  Diagnostic status on macOS Docker Desktop: with a local coturn, ICE
+  completes to `connected`, peer DTLS succeeds, Ring sends
+  `camera_started`, and ping/pong keepalive flows — but video RTP
+  packets from Ring never arrive at pion's selected candidate pair.
+  Root cause is still under investigation; suspect a BUNDLE /
+  candidate-pair reselection issue specific to pion's interaction with
+  Ring's RMS (Ring Media Service). The patch is necessary for TURN, but
+  not by itself sufficient.
 
 ## Security
 

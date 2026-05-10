@@ -137,6 +137,18 @@ class Settings:
         self.ring_refresh_token_g2r: str = os.environ.get(
             "RING_REFRESH_TOKEN_G2R", ""
         )
+        # Optional JSON array of ICE servers to prepend to go2rtc's
+        # hard-coded Ring STUN list. Useful for forcing TURN relay when
+        # direct peer-to-peer ICE with Ring fails (Docker Desktop macOS,
+        # symmetric NAT, etc.). Requires the patched go2rtc build that
+        # respects the ``ice_servers`` query param on ``ring:`` sources.
+        self.go2rtc_ring_ice_servers: str = os.environ.get(
+            "GO2RTC_RING_ICE_SERVERS", ""
+        )
+        # Optional ``all`` (default) or ``relay`` to force TURN relay.
+        self.go2rtc_ring_ice_transport_policy: str = os.environ.get(
+            "GO2RTC_RING_ICE_TRANSPORT_POLICY", ""
+        )
         # Preserved for MockRingAdapter (matches mock_ring_api.py default)
         self.mediamtx_whep_url: str = os.environ.get(
             "MEDIAMTX_WHEP_URL", "http://localhost:8889/test/whep"

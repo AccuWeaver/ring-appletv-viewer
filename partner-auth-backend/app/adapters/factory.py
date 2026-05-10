@@ -192,6 +192,8 @@ def _build_go2rtc_client(settings: Settings) -> Go2rtcClient | None:
         internal_base_url=settings.go2rtc_url,
         public_base_url=settings.go2rtc_public_url,
         wrapped_refresh_token=settings.ring_refresh_token_g2r,
+        ice_servers_json=settings.go2rtc_ring_ice_servers,
+        ice_transport_policy=settings.go2rtc_ring_ice_transport_policy,
     )
 
 
