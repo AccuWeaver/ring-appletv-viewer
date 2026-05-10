@@ -41,13 +41,11 @@ function buildHlsOutputArgs(hlsDir) {
     const segmentPattern = path.join(hlsDir, 'segment-%d.m4s');
     return [
         '-f', 'hls',
-        '-hls_time', '2',
+        '-hls_time', '4',
         '-hls_list_size', '6',
-        '-hls_flags', 'delete_segments+append_list+discont_start+independent_segments',
+        '-hls_flags', 'delete_segments+independent_segments',
         '-hls_segment_type', 'fmp4',
-        '-hls_fmp4_init_filename', 'init.mp4',
         '-hls_segment_filename', segmentPattern,
-        '-movflags', '+frag_keyframe+empty_moov+default_base_moof',
         playlist,
     ];
 }
@@ -92,68 +90,81 @@ export function createSessionFactory({ mediamtxRtspUrl, hlsRoot }) {
                 dbg(`rtsp output args=${JSON.stringify(outputArgs)}`);
             }
 
-            // Use streamVideo which handles the full SDP/ffmpeg pipeline,
-            // but with our custom input flags for better buffering.
-            const liveCall = await camera.streamVideo({
-                input: [
-                    '-rtbufsize', '512M',
-                    '-max_delay', '5000000',
-                    '-analyzeduration', '15000000',
-                    '-probesize', '10000000',
-                    '-fflags', '+genpts+discardcorrupt',
-                ],
-                video: ['-vcodec', 'copy', '-bsf:v', 'dump_extra=freq=keyframe'],
-                audio: ['-acodec', 'aac', '-ar', '44100', '-ac', '2', '-b:a', '128k'],
-                output: outputArgs,
-            });
-            dbg(`live call started bridge_session_id=${bridgeSessionId}`);
+            // --- JITTER BUFFER ---
+            // We need to intercept video RTP BEFORE streamVideo subscribes.
+            // Replace the onVideoRtp Subject with a buffered version that
+            // holds packets for 60ms and emits them in sequence order.
+            let liveCall;
+            try {
+                const { Subject } = await import('rxjs');
+                const { JitterBuffer } = await import('./jitter-buffer.js');
+                const { RtpPacket } = await import('werift');
 
-            // --- JITTER BUFFER PATCH ---
-            // After streamVideo starts, the StreamingSession's internal
-            // videoSplitter is already forwarding RTP to ffmpeg's UDP port.
-            // We intercept by replacing the videoSplitter's send method
-            // with one that buffers and reorders before forwarding.
-            //
-            // Access the private videoSplitter (JS runtime allows it even
-            // though TypeScript marks it private).
-            const videoSplitter = liveCall.videoSplitter;
-            if (videoSplitter) {
-                const originalSend = videoSplitter.send.bind(videoSplitter);
+                liveCall = await camera.startLiveCall();
+                dbg(`live call started bridge_session_id=${bridgeSessionId}`);
+
+                // Patch: wrap onVideoRtp with our jitter buffer
+                const bufferedVideoRtp = new Subject();
                 const jb = new JitterBuffer({
                     flushIntervalMs: 60,
-                    send: (buf) => originalSend(buf, { port: videoSplitter._port }),
+                    send: (buf) => {
+                        try {
+                            const pkt = RtpPacket.deSerialize(buf);
+                            bufferedVideoRtp.next(pkt);
+                        } catch { /* drop malformed */ }
+                    },
                 });
 
-                // Override the splitter's send to route through our buffer.
-                // The RTP observable calls splitter.send(serialized, {port}).
-                // We capture the port on first call and route through the JB.
-                let capturedPort = null;
-                videoSplitter.send = (buf, opts) => {
-                    if (!capturedPort && opts?.port) capturedPort = opts.port;
-                    // Deserialize to get sequence number for reordering
-                    try {
-                        const { RtpPacket } = require('werift');
-                        const pkt = RtpPacket.deSerialize(buf);
-                        jb.push(pkt);
-                    } catch {
-                        // If deserialization fails, forward directly
-                        return originalSend(buf, opts);
+                // Subscribe to the real onVideoRtp and route through JB
+                let jbPacketCount = 0;
+                const jbSub = liveCall.onVideoRtp.subscribe(rtp => {
+                    jbPacketCount++;
+                    if (jbPacketCount <= 3 || jbPacketCount % 100 === 0) {
+                        dbg(`jb received video pkt #${jbPacketCount} seq=${rtp.header.sequenceNumber}`);
                     }
-                    return Promise.resolve();
-                };
+                    jb.push(rtp);
+                });
 
-                // Fix the JB's send to use the captured port
-                const origJBSend = jb._send;
-                jb._send = (buf) => {
-                    if (capturedPort) {
-                        return originalSend(buf, { port: capturedPort });
-                    }
-                    return origJBSend(buf);
-                };
+                // Replace the session's onVideoRtp with our buffered version
+                const realOnVideoRtp = liveCall.onVideoRtp;
+                liveCall.onVideoRtp = bufferedVideoRtp;
 
-                // Store for cleanup
+                // Now call startTranscoding with our ffmpeg options
+                await liveCall.startTranscoding({
+                    input: [
+                        '-rtbufsize', '512M',
+                        '-max_delay', '5000000',
+                        '-analyzeduration', '15000000',
+                        '-probesize', '10000000',
+                        '-fflags', '+genpts+discardcorrupt',
+                    ],
+                    video: ['-vcodec', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency', '-b:v', '2M', '-g', '50'],
+                    audio: ['-acodec', 'aac', '-ar', '44100', '-ac', '2', '-b:a', '128k'],
+                    output: outputArgs,
+                });
+
+                // Restore for cleanup purposes
+                liveCall.onVideoRtp = realOnVideoRtp;
                 liveCall._jitterBuffer = jb;
-                dbg('jitter buffer installed on videoSplitter');
+                liveCall._jbSub = jbSub;
+                dbg('jitter buffer active on video RTP path');
+            } catch (jbErr) {
+                // If jitter buffer setup fails, fall back to streamVideo
+                console.error(`[sip-bridge] jitter buffer setup failed: ${jbErr?.message}`);
+                console.error(jbErr?.stack);
+                liveCall = await camera.streamVideo({
+                    input: [
+                        '-rtbufsize', '512M',
+                        '-max_delay', '5000000',
+                        '-analyzeduration', '15000000',
+                        '-probesize', '10000000',
+                        '-fflags', '+genpts+discardcorrupt',
+                    ],
+                    video: ['-vcodec', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency', '-b:v', '2M', '-g', '50'],
+                    audio: ['-acodec', 'aac', '-ar', '44100', '-ac', '2', '-b:a', '128k'],
+                    output: outputArgs,
+                });
+                dbg(`fallback to streamVideo bridge_session_id=${bridgeSessionId}`);
             }
 
             // Periodically request key frames
@@ -173,6 +184,7 @@ export function createSessionFactory({ mediamtxRtspUrl, hlsRoot }) {
                     this.state = 'terminated';
                     clearInterval(keyFrameTimer);
                     if (liveCall._jitterBuffer) liveCall._jitterBuffer.stop();
+                    if (liveCall._jbSub) liveCall._jbSub.unsubscribe();
                     try { liveCall.stop(); } catch (err) {
                         console.error(`liveCall.stop failed bridge=${bridgeSessionId} err=${err?.message}`);
                     }
@@ -183,6 +195,7 @@ export function createSessionFactory({ mediamtxRtspUrl, hlsRoot }) {
             liveCall.onCallEnded.subscribe(() => {
                 clearInterval(keyFrameTimer);
                 if (liveCall._jitterBuffer) liveCall._jitterBuffer.stop();
+                if (liveCall._jbSub) liveCall._jbSub.unsubscribe();
                 session.state = 'terminated';
                 for (const cb of listeners) {
                     try { cb(); } catch (err) {
