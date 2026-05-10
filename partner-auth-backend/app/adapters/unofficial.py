@@ -274,25 +274,53 @@ class UnofficialRingAdapter(RingAdapter):
         )
 
         # Proxy the SDP offer to the mediamtx WHEP endpoint for the RTSP
-        # path the sidecar just started publishing to.
+        # path the sidecar just started publishing to. The sidecar needs
+        # time to negotiate with Ring and start the RTSP publish, so we
+        # retry the WHEP call for up to 15s.
         whep_url = f"{self._mediamtx_whep_base}/{bridge.rtsp_path}/whep"
-        try:
-            response = await self._whep.post(
-                whep_url,
-                content=sdp_offer.encode(),
-                headers={"Content-Type": "application/sdp"},
-                timeout=_MEDIAMTX_WHEP_TIMEOUT_SECONDS,
-            )
-        except httpx.TimeoutException as exc:
-            await self._cleanup_failed_session(session)
-            raise UpstreamTimeoutError("mediamtx whep timeout") from exc
-        except httpx.HTTPError as exc:
-            await self._cleanup_failed_session(session)
-            raise UpstreamUnavailableError(f"mediamtx whep transport error: {exc!r}") from exc
+        import asyncio
 
-        if response.status_code != 201:
+        max_whep_attempts = 8
+        whep_response = None
+        for attempt in range(max_whep_attempts):
+            try:
+                response = await self._whep.post(
+                    whep_url,
+                    content=sdp_offer.encode(),
+                    headers={"Content-Type": "application/sdp"},
+                    timeout=_MEDIAMTX_WHEP_TIMEOUT_SECONDS,
+                )
+                if response.status_code == 201:
+                    whep_response = response
+                    break
+                # mediamtx returns 404 when the path has no publisher yet
+                if response.status_code == 404 and attempt < max_whep_attempts - 1:
+                    logger.info(
+                        "whep_retry attempt=%d status=%d path=%s",
+                        attempt + 1,
+                        response.status_code,
+                        bridge.rtsp_path,
+                    )
+                    await asyncio.sleep(2)
+                    continue
+                # Other non-201 status — fail
+                break
+            except httpx.TimeoutException:
+                if attempt < max_whep_attempts - 1:
+                    await asyncio.sleep(2)
+                    continue
+                await self._cleanup_failed_session(session)
+                raise UpstreamTimeoutError("mediamtx whep timeout") from None
+            except httpx.HTTPError as exc:
+                await self._cleanup_failed_session(session)
+                raise UpstreamUnavailableError(f"mediamtx whep transport error: {exc!r}") from exc
+
+        if whep_response is None or whep_response.status_code != 201:
             await self._cleanup_failed_session(session)
-            raise UpstreamUnavailableError(f"mediamtx whep returned {response.status_code}")
+            status = whep_response.status_code if whep_response else 0
+            raise UpstreamUnavailableError(f"mediamtx whep returned {status} after {max_whep_attempts} attempts")
+
+        response = whep_response
 
         sdp_answer = response.content.decode()
         session.has_audio = "m=audio" in sdp_answer

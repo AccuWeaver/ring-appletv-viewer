@@ -28,7 +28,7 @@ final class BackgroundRefreshManager: @unchecked Sendable {
 
     // MARK: - Dependencies
 
-    nonisolated(unsafe) private let deviceService: DeviceService
+    private let deviceService: DeviceService
     private let mediaService: MediaService
 
     // MARK: - Logging

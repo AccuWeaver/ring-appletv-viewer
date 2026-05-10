@@ -39,7 +39,7 @@ struct AppConfiguration: Codable, Equatable {
         cacheExpirationSeconds: TimeInterval = 300,
         enableCrashReporting: Bool = true,
         enableLocalAnalytics: Bool = false,
-        authBackendBaseURL: String = "http://localhost:8000",
+        authBackendBaseURL: String = "http://192.168.4.34:8000",
         authBackendAPIKey: String = "local-dev-api-key",
         authBackendUserId: String = "default"
     ) {

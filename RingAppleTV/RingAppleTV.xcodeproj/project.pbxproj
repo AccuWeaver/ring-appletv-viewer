@@ -72,17 +72,20 @@
 		FA43C89EB9CD439054464A14 /* DefaultSimulatorLiveStreamService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE1C5E163909681B643B2A8 /* DefaultSimulatorLiveStreamService.swift */; };
 		FA6253F58FBC7DD577C6EBF2 /* PartnerDeviceResource.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA5C24BF6C4ABF65B4DD5BB /* PartnerDeviceResource.swift */; };
 		FAE2EC19A7403B220526B373 /* PartnerEventResource.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B90F2A1A270F60B73C20C40 /* PartnerEventResource.swift */; };
+		AAAA000000000001WEBRTCBF /* WebRTC.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = AAAA000000000002WEBRTCFR /* WebRTC.xcframework */; };
+		AAAA000000000003WEBRTCEM /* WebRTC.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = AAAA000000000002WEBRTCFR /* WebRTC.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		01CC70E81AEE8850787D3C91 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
-		02CC59F8BA7E065FAE58F2DC /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		AAAA000000000002WEBRTCFR /* WebRTC.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = WebRTC.xcframework; sourceTree = "<group>"; };
+		01CC70E81AEE8850787D3C91 /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
+		02CC59F8BA7E065FAE58F2DC /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
 		04E97B2CBA46DEC59E6908F5 /* BackendAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendAuthService.swift; sourceTree = "<group>"; };
 		076C08F46F5EC60796378977 /* PartnerAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartnerAPIClient.swift; sourceTree = "<group>"; };
 		0B4767010F7C2757B47851F1 /* DeviceServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceServiceProtocol.swift; sourceTree = "<group>"; };
 		0CBA4D76097C6E69AB722D39 /* DefaultAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultAuthService.swift; sourceTree = "<group>"; };
 		0E9CCE082CD44051EADE04B6 /* NoOpAudioDevice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoOpAudioDevice.swift; sourceTree = "<group>"; };
-		0ED9269DB47BE3B08099F154 /* RingAppleTV.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = RingAppleTV.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0ED9269DB47BE3B08099F154 /* RingAppleTV.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RingAppleTV.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0FCB1BAC7B3B61A8B6D9D52F /* MockAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockAuthService.swift; sourceTree = "<group>"; };
 		164577FAB4F472E99D34B67D /* WebRTCConnectionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCConnectionState.swift; sourceTree = "<group>"; };
 		26FE7880D33E71750F270D5E /* PartnerAPIError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartnerAPIError.swift; sourceTree = "<group>"; };
@@ -93,15 +96,15 @@
 		3E533D5DF19D3343CC7FA01F /* EventServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventServiceProtocol.swift; sourceTree = "<group>"; };
 		46B086FE1DF3B4844C53E20E /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		4BC380126EE3228008AE8189 /* DeviceFilter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceFilter.swift; sourceTree = "<group>"; };
-		4D5221790E9129D8A687259B /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
-		592DB1F475D25D54DE2B05B6 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		4D5221790E9129D8A687259B /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
+		592DB1F475D25D54DE2B05B6 /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
 		5940D14E98F2E8AF93BE1897 /* SimulatorLiveStreamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorLiveStreamService.swift; sourceTree = "<group>"; };
 		5C04FA103FAC29E9D5261503 /* PowerSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerSource.swift; sourceTree = "<group>"; };
-		64BAD38700D1C2350D9F6926 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		64BAD38700D1C2350D9F6926 /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
 		67B3C253329C080A02076EF1 /* DefaultCacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultCacheService.swift; sourceTree = "<group>"; };
 		68188868983E7120393D016F /* StreamSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSession.swift; sourceTree = "<group>"; };
 		76C587B829F19C310855B1D4 /* View+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Extensions.swift"; sourceTree = "<group>"; };
-		776BA4D9912FA0C44B593CF6 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		776BA4D9912FA0C44B593CF6 /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
 		7B90F2A1A270F60B73C20C40 /* PartnerEventResource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartnerEventResource.swift; sourceTree = "<group>"; };
 		7F18E3B7675874A3FE224B5D /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
 		8144BEAF7CCCD375A0B2B9C9 /* ViewState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewState.swift; sourceTree = "<group>"; };
@@ -115,13 +118,13 @@
 		966808F25C905A4D3A772F2F /* MediaServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaServiceProtocol.swift; sourceTree = "<group>"; };
 		9AF12EBBECB84BE1088F140B /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		9B279E24ADE00F7C6B24F00C /* RingAppleTVApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RingAppleTVApp.swift; sourceTree = "<group>"; };
-		9D2E5E4C67E1239EA787A30E /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		9D2E5E4C67E1239EA787A30E /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
 		9DE63A31A7A4D1D89E3A7177 /* RevealableSecureField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RevealableSecureField.swift; sourceTree = "<group>"; };
 		9E7D6A6FA9C897CD89D9B667 /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
 		A17A80C1E08174E937F6EAAA /* DeviceCodeResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCodeResponse.swift; sourceTree = "<group>"; };
-		A6024444CCC2AACA7F91C61B /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		A6024444CCC2AACA7F91C61B /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
 		AAA5C24BF6C4ABF65B4DD5BB /* PartnerDeviceResource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PartnerDeviceResource.swift; sourceTree = "<group>"; };
-		AC18CFE991078FFE02A4728F /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		AC18CFE991078FFE02A4728F /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
 		AEE1C5E163909681B643B2A8 /* DefaultSimulatorLiveStreamService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultSimulatorLiveStreamService.swift; sourceTree = "<group>"; };
 		AFAE4F3A347D597C2EB958F2 /* StreamSessionManagerProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSessionManagerProtocol.swift; sourceTree = "<group>"; };
 		B092035C2CA6DB1F3011F946 /* EventRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventRowView.swift; sourceTree = "<group>"; };
@@ -129,12 +132,12 @@
 		BBBDCC14F97F609F97822736 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		BC3E26CFCD98630831A8C86D /* DashboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardViewModel.swift; sourceTree = "<group>"; };
 		BD701046FF97DC3865CCA67C /* ErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorView.swift; sourceTree = "<group>"; };
-		BDAF4C718859D551A635F5D1 /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		BDAF4C718859D551A635F5D1 /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
 		BEEACBFA2E10FD99A252FD64 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
 		C13201EE27808D60995A58B0 /* Date+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Date+Extensions.swift"; sourceTree = "<group>"; };
 		C13DD1F3FDAE6A014835F89F /* KeychainError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainError.swift; sourceTree = "<group>"; };
 		C46EF0BAB75E8208F3A5F312 /* DeviceCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceCardView.swift; sourceTree = "<group>"; };
-		C48365BE3750F481F6523E3A /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
+		C48365BE3750F481F6523E3A /* .gitkeep */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitkeep; sourceTree = "<group>"; };
 		C6C7ACF9E70B4DE86CC2C782 /* BackgroundRefreshManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundRefreshManager.swift; sourceTree = "<group>"; };
 		C96BCF6B257416A269997E47 /* WHEPSessionResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WHEPSessionResponse.swift; sourceTree = "<group>"; };
 		CB7C7B7D40C5E55718E2A344 /* CacheServiceProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheServiceProtocol.swift; sourceTree = "<group>"; };
@@ -302,6 +305,7 @@
 		84AB28F4DEBE6BB2192FA3AB = {
 			isa = PBXGroup;
 			children = (
+				AAAA000000000002WEBRTCFR /* WebRTC.xcframework */,
 				D614F193ADC74E434D6644D0 /* Assets.xcassets */,
 				3BFF46B703CB42FFEDFD3294 /* Sources */,
 				3C52E584E59AB4D1F22713F2 /* Products */,
@@ -376,13 +380,40 @@
 		};
 /* End PBXGroup section */
 
+/* Begin PBXFrameworksBuildPhase section */
+		AAAA000000000004FRMWKPH /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AAAA000000000001WEBRTCBF /* WebRTC.xcframework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AAAA000000000005EMBEDPH /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				AAAA000000000003WEBRTCEM /* WebRTC.xcframework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXNativeTarget section */
 		2606450BB6B5AD962B92BE04 /* RingAppleTV */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = D58C360078B9252884156F94 /* Build configuration list for PBXNativeTarget "RingAppleTV" */;
 			buildPhases = (
 				EB1248C757A5AFE581DEC32D /* Sources */,
+				AAAA000000000004FRMWKPH /* Frameworks */,
 				DD74540F92F36BC3CB99874E /* Resources */,
+				AAAA000000000005EMBEDPH /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -586,6 +617,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = JNW5656T4U;
 				ENABLE_NS_ASSERTIONS = NO;
 				INFOPLIST_FILE = Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -613,6 +645,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = JNW5656T4U;
 				ENABLE_TESTABILITY = YES;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
