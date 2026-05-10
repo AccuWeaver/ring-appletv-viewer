@@ -106,7 +106,7 @@ export function createSessionFactory({ mediamtxRtspUrl, hlsRoot }) {
                 // Patch: wrap onVideoRtp with our jitter buffer
                 const bufferedVideoRtp = new Subject();
                 const jb = new JitterBuffer({
-                    flushIntervalMs: 60,
+                    flushIntervalMs: 150,
                     send: (buf) => {
                         try {
                             const pkt = RtpPacket.deSerialize(buf);
@@ -136,7 +136,7 @@ export function createSessionFactory({ mediamtxRtspUrl, hlsRoot }) {
                         '-max_delay', '5000000',
                         '-analyzeduration', '15000000',
                         '-probesize', '10000000',
-                        '-fflags', '+genpts+discardcorrupt',
+                        '-fflags', '+genpts+discardcorrupt', '-err_detect', 'ignore_err',
                     ],
                     video: ['-vcodec', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency', '-b:v', '2M', '-g', '50'],
                     audio: ['-acodec', 'aac', '-ar', '44100', '-ac', '2', '-b:a', '128k'],
@@ -158,7 +158,7 @@ export function createSessionFactory({ mediamtxRtspUrl, hlsRoot }) {
                         '-max_delay', '5000000',
                         '-analyzeduration', '15000000',
                         '-probesize', '10000000',
-                        '-fflags', '+genpts+discardcorrupt',
+                        '-fflags', '+genpts+discardcorrupt', '-err_detect', 'ignore_err',
                     ],
                     video: ['-vcodec', 'libx264', '-preset', 'ultrafast', '-tune', 'zerolatency', '-b:v', '2M', '-g', '50'],
                     audio: ['-acodec', 'aac', '-ar', '44100', '-ac', '2', '-b:a', '128k'],

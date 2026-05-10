@@ -51,7 +51,40 @@ final class DefaultSimulatorLiveStreamService: SimulatorLiveStreamService, @unch
         guard let hls = URL(string: decoded.hls_url) else {
             throw URLError(.cannotParseResponse)
         }
+
+        // Poll the HLS playlist URL until it returns 200 with content.
+        // The sidecar needs 10-15s to authenticate with Ring, start the
+        // live call, and produce the first segment. AVPlayer gives up
+        // immediately on a 404, so we wait here.
+        try await waitForPlaylist(url: hls)
+
         return SimulatorLiveStream(url: hls, sessionId: decoded.session_id)
+    }
+
+    /// Poll the HLS playlist URL every 2s for up to 30s until it returns
+    /// a non-empty 200 response. Throws if the timeout expires.
+    private func waitForPlaylist(url: URL) async throws {
+        let maxAttempts = 15
+        let pollInterval: UInt64 = 2_000_000_000 // 2s in nanoseconds
+
+        for attempt in 1...maxAttempts {
+            var probeRequest = URLRequest(url: url)
+            probeRequest.timeoutInterval = 3
+            do {
+                let (data, response) = try await session.data(for: probeRequest)
+                if let http = response as? HTTPURLResponse,
+                   http.statusCode == 200,
+                   data.count > 50 { // playlist with at least one segment
+                    logger.debug("HLS playlist ready after \(attempt, privacy: .public) attempts")
+                    return
+                }
+            } catch {
+                // 404 or network error — keep polling
+            }
+            try await Task.sleep(nanoseconds: pollInterval)
+        }
+        logger.debug("HLS playlist not ready after \(maxAttempts, privacy: .public) attempts, proceeding anyway")
+        // Don't throw — let AVPlayer try anyway; it might work by now
     }
 
     func releaseSession(_ sessionId: String) async {
