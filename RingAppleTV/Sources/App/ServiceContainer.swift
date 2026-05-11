@@ -112,6 +112,23 @@ final class ServiceContainer: ObservableObject {
         )
     }
 
+    /// Creates a `PlayerControlsViewModel` wired to the shared device/event
+    /// services and the supplied `PlayerViewModel`. Callers build the
+    /// controls view model once per player session so its overlay state
+    /// (mute toggle, inactivity timer, timeline position) is scoped to the
+    /// lifetime of the player.
+    func makePlayerControlsViewModel(
+        playerViewModel: PlayerViewModel,
+        activeDevice: RingDevice
+    ) -> PlayerControlsViewModel {
+        PlayerControlsViewModel(
+            playerViewModel: playerViewModel,
+            deviceService: deviceService,
+            eventService: eventService,
+            activeDevice: activeDevice
+        )
+    }
+
     // MARK: - Private Construction Helpers
 
     private struct Infrastructure {

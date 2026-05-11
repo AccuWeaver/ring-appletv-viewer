@@ -2,6 +2,19 @@ import Foundation
 import SwiftCheck
 @testable import RingAppleTV
 
+/// Abstract control interaction used by player-controls property tests (e.g.
+/// Property 2: "any interaction resets inactivity timer"). Each case maps to
+/// a user-facing gesture or button press on the overlay.
+enum InteractionType: Hashable, CaseIterable {
+    case playPause
+    case skipBack
+    case skipForward
+    case cameraSwitcher
+    case mute
+    case scrubLeft
+    case scrubRight
+}
+
 /// Reusable SwiftCheck generators for property-based tests.
 enum TestDataGenerators {
 
@@ -114,4 +127,53 @@ enum TestDataGenerators {
     nonisolated(unsafe) static let deviceSort: Gen<DeviceSort> = Gen<DeviceSort>.fromElements(of: [
         .nameAscending, .nameDescending, .type, .status
     ])
+
+    // MARK: - Player Controls Generators
+
+    /// Generates a random `RingDevice`, optionally forcing the `isOnline`
+    /// value. Useful for property tests that need to mix online/offline
+    /// devices or guarantee a device is reachable.
+    static func randomDevice(online: Bool? = nil) -> Gen<RingDevice> {
+        Gen<RingDevice>.compose { c in
+            RingDevice(
+                id: String(c.generate(using: Int.arbitrary.suchThat { $0 > 0 })),
+                name: c.generate(using: String.arbitrary.suchThat { !$0.isEmpty }),
+                model: c.generate(using: String.arbitrary.suchThat { !$0.isEmpty }),
+                deviceType: c.generate(using: deviceType),
+                firmwareVersion: c.generate(using: String?.arbitrary),
+                powerSource: c.generate(using: Bool.arbitrary) ? .battery : .line,
+                isOnline: online ?? c.generate(using: Bool.arbitrary)
+            )
+        }
+    }
+
+    /// Generates exactly `count` `RingEvent` values. A `count` of `0` yields
+    /// an empty list.
+    static func randomEvents(count: Int) -> Gen<[RingEvent]> {
+        guard count > 0 else { return Gen.pure([]) }
+        return event.proliferate(withSize: count)
+    }
+
+    /// Generates a `TimelinePosition` anchored to the supplied events list
+    /// with a random `eventIndex` that is either `nil` (live edge) or a
+    /// valid in-bounds index. When `events` is empty, always yields the
+    /// live-edge position.
+    static func randomTimelinePosition(events: [RingEvent]) -> Gen<TimelinePosition> {
+        guard !events.isEmpty else {
+            return Gen.pure(TimelinePosition.live(events: events))
+        }
+        // Include `nil` alongside every valid index so the generator covers
+        // both the live edge and every interior position roughly uniformly.
+        let indexGen: Gen<Int?> = Gen<Int>.fromElements(in: 0...events.count)
+            .map { $0 == events.count ? nil : $0 }
+        return indexGen.map { idx in
+            TimelinePosition(eventIndex: idx, events: events)
+        }
+    }
+
+    /// Generates a random `InteractionType`, covering every control surface
+    /// exposed by the overlay.
+    static func randomInteractionType() -> Gen<InteractionType> {
+        Gen<InteractionType>.fromElements(of: InteractionType.allCases)
+    }
 }

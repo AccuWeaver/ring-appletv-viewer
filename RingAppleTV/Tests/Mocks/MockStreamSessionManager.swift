@@ -18,6 +18,7 @@ final class MockStreamSessionManager: StreamSessionManagerProtocol, @unchecked S
 
     var startStreamCalls: [(deviceId: String, powerSource: PowerSource)] = []
     var stopStreamCalls: Int = 0
+    var setAudioMutedCalls: [Bool] = []
 
     // MARK: - Configurable Behavior
 
@@ -45,6 +46,10 @@ final class MockStreamSessionManager: StreamSessionManagerProtocol, @unchecked S
     func stopStream() async {
         stopStreamCalls += 1
         connectionState = .disconnected
+    }
+
+    func setAudioMuted(_ muted: Bool) {
+        setAudioMutedCalls.append(muted)
     }
 
     // MARK: - Test Helpers

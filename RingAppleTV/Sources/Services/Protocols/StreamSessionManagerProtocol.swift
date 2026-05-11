@@ -14,6 +14,15 @@ protocol StreamSessionManagerProtocol: AnyObject, Sendable {
     /// and closes the local `RTCPeerConnection`.
     func stopStream() async
 
+    /// Enable or disable playback of the active audio track.
+    ///
+    /// When `muted` is `true`, the incoming audio track is disabled so the
+    /// user hears nothing without dropping the WebRTC connection. When
+    /// `false`, the track is re-enabled. Safe to call before a stream is
+    /// connected; implementations store the requested state and apply it
+    /// when the track becomes available.
+    func setAudioMuted(_ muted: Bool)
+
     /// The current WebRTC connection state.
     var connectionState: WebRTCConnectionState { get }
 

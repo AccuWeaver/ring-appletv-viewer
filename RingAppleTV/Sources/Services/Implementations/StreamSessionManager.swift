@@ -36,7 +36,17 @@ final class StreamSessionManager: NSObject, StreamSessionManagerProtocol, @unche
     private var peerConnection: RTCPeerConnection?
     private var peerConnectionFactory: RTCPeerConnectionFactory?
     @Published private(set) var videoTrack: RTCVideoTrack?
-    private var audioTrack: RTCAudioTrack?
+    private var audioTrack: RTCAudioTrack? {
+        didSet {
+            // Re-apply the stored mute state whenever the track changes so a
+            // mute toggled before the track arrived still takes effect.
+            audioTrack?.isEnabled = !isAudioMuted
+        }
+    }
+
+    /// Latest caller-requested audio mute state. Stored even when no track is
+    /// attached yet so the value can be applied as soon as one arrives.
+    private var isAudioMuted: Bool = false
 
     // MARK: - Session State
 
@@ -188,6 +198,17 @@ final class StreamSessionManager: NSObject, StreamSessionManagerProtocol, @unche
         if connectionState != .disconnected {
             transitionState(to: .disconnected)
         }
+    }
+
+    /// Enable or disable the active audio track.
+    ///
+    /// Stores the requested state so it applies even if called before the
+    /// audio track has been attached (tracks arrive asynchronously via
+    /// `didAddReceiver`). The `audioTrack.didSet` hook re-applies the state
+    /// when the track becomes available.
+    func setAudioMuted(_ muted: Bool) {
+        isAudioMuted = muted
+        audioTrack?.isEnabled = !muted
     }
 
     // MARK: - State Machine
@@ -559,6 +580,11 @@ final class StreamSessionManager: StreamSessionManagerProtocol, @unchecked Senda
 
     func stopStream() async {
         // No-op when WebRTC is unavailable
+    }
+
+    func setAudioMuted(_ muted: Bool) {
+        // No-op when WebRTC is unavailable; HLS fallback mute is driven
+        // through ``PlayerViewModel.isMuted``.
     }
 }
 

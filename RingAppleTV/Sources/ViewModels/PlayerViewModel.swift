@@ -13,6 +13,11 @@ final class PlayerViewModel: ObservableObject {
     @Published var state: ViewState<StreamSession> = .idle
     @Published var isPlaying = false
     @Published var connectionState: WebRTCConnectionState = .disconnected
+    /// Whether audio output is currently muted. Both the WebRTC audio track
+    /// (via ``StreamSessionManagerProtocol/setAudioMuted(_:)``) and the
+    /// HLS/mock ``AVPlayer`` fallback observe this flag; views that render
+    /// the HLS path bind `AVPlayer.isMuted` to this property.
+    @Published var isMuted: Bool = false
     #if canImport(WebRTC)
     @Published var videoTrack: RTCVideoTrack?
     #endif
@@ -164,6 +169,24 @@ final class PlayerViewModel: ObservableObject {
     func togglePlayPause() {
         guard case .loaded = state else { return }
         isPlaying.toggle()
+    }
+
+    /// Update the mute state and propagate it to the active transport.
+    ///
+    /// Drives two code paths:
+    /// - WebRTC: the current ``StreamSessionManagerProtocol`` is asked to
+    ///   enable or disable its audio track so the live stream stays
+    ///   connected while silenced.
+    /// - HLS / mock fallback: callers observing ``isMuted`` bind it to the
+    ///   `AVPlayer.isMuted` property of the HLS player view so the mock
+    ///   path also respects the toggle.
+    ///
+    /// Safe to call before a stream is loaded; the manager stores the
+    /// latest request and applies it once a track arrives.
+    func setMuted(_ muted: Bool) {
+        guard isMuted != muted else { return }
+        isMuted = muted
+        streamSessionManager?.setAudioMuted(muted)
     }
 
     /// Retry the last stream request.

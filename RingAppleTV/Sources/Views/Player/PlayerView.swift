@@ -5,6 +5,7 @@ import AVKit
 /// Displays snapshot backdrop for WebRTC sessions, with loading/error overlays and Siri Remote controls.
 struct PlayerView: View {
     @ObservedObject var viewModel: PlayerViewModel
+    @ObservedObject var controlsViewModel: PlayerControlsViewModel
     let device: RingDevice
     let snapshotData: Data?
 
@@ -51,6 +52,38 @@ struct PlayerView: View {
         .onExitCommand {
             dismiss()
         }
+        // Task 5.3 / Requirements 1.1, 1.2: Siri Remote center-click toggles
+        // the controls overlay. The tap gesture is installed on the same
+        // view that owns `.focusable(true)` because tvOS delivers Select
+        // presses to the focused view, not to non-focused descendants.
+        //
+        // The `if viewModel.state == .loaded` guard keeps the toggle
+        // inactive during loading/error/empty states so it doesn't pop the
+        // overlay over a spinner or error message.
+        //
+        // When the overlay is visible, its own buttons are focusable and
+        // consume the Select press before it reaches this handler. When the
+        // overlay is hidden, its subtree is removed from the hierarchy
+        // (`Group { if isOverlayVisible { ... } }` in PlayerControlsOverlay),
+        // so the outer `.focusable(true)` retains focus and the Select
+        // press lands here.
+        .onTapGesture {
+            if case .loaded = viewModel.state {
+                controlsViewModel.toggleOverlay()
+            }
+        }
+        // Task 5.4 / Requirement 4.3: the Siri Remote's dedicated
+        // Play/Pause button toggles playback regardless of whether the
+        // controls overlay is visible. `togglePlayPause()` delegates to
+        // `PlayerViewModel.togglePlayPause()` and the inactivity-timer
+        // reset inside it is a no-op when the overlay is hidden, so this
+        // modifier is safe to keep installed at all times.
+        // `onPlayPauseCommand` is tvOS-only.
+        #if os(tvOS)
+        .onPlayPauseCommand {
+            controlsViewModel.togglePlayPause()
+        }
+        #endif
         .onDisappear {
             viewModel.stopStream()
         }
@@ -75,6 +108,37 @@ struct PlayerView: View {
         }
         .overlay(alignment: .topTrailing) {
             sourceBanner(for: session.source)
+        }
+        // Task 5.2: Netflix-style controls overlay layered above the video
+        // content. `PlayerControlsOverlay` renders its own subtree only when
+        // `controlsViewModel.isOverlayVisible` is true (Requirements 1.6 /
+        // 6.6), so this modifier is a no-op on the hidden path and leaves
+        // the existing device-name and source-banner overlays untouched
+        // (Requirements 7.1–7.5).
+        .overlay {
+            PlayerControlsOverlay(viewModel: controlsViewModel)
+        }
+        // Task 5.6 / Requirements 2.7, 3.1: on transition to `.loaded`,
+        // populate the overlay's dependent data — the device list for
+        // the camera switcher and the event list for the timeline bar.
+        // `playerContent(session:)` is only rendered from the `.loaded`
+        // arm of the `body` switch, so `.task` here fires exactly once
+        // per `.loaded` transition and is cancelled automatically when
+        // the view leaves that state.
+        //
+        // Both loads are launched concurrently via `async let` because
+        // they hit independent services (`DeviceService` and
+        // `EventService`) and have no ordering dependency. Each view
+        // model method already catches and logs its own errors (see
+        // ``PlayerControlsViewModel/loadAvailableDevices`` and
+        // ``PlayerControlsViewModel/loadEvents``), so there's nothing
+        // to surface here — a failed device fetch leaves the camera
+        // switcher hidden and a failed event fetch leaves the timeline
+        // empty, per the design's error handling table.
+        .task {
+            async let devices: Void = controlsViewModel.loadAvailableDevices()
+            async let events: Void = controlsViewModel.loadEvents()
+            _ = await (devices, events)
         }
     }
 

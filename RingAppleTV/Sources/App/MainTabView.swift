@@ -17,7 +17,16 @@ struct MainTabView: View {
                 viewModel: container.dashboardViewModel,
                 playerViewBuilder: { device, snapshotData in
                     let playerVM = container.makePlayerViewModel()
-                    return PlayerView(viewModel: playerVM, device: device, snapshotData: snapshotData)
+                    let controlsVM = container.makePlayerControlsViewModel(
+                        playerViewModel: playerVM,
+                        activeDevice: device
+                    )
+                    return PlayerView(
+                        viewModel: playerVM,
+                        controlsViewModel: controlsVM,
+                        device: device,
+                        snapshotData: snapshotData
+                    )
                 }
             )
             .tabItem {
@@ -38,7 +47,16 @@ struct MainTabView: View {
                         powerSource: .battery,
                         isOnline: true
                     )
-                    return PlayerView(viewModel: playerVM, device: device, snapshotData: nil)
+                    let controlsVM = container.makePlayerControlsViewModel(
+                        playerViewModel: playerVM,
+                        activeDevice: device
+                    )
+                    return PlayerView(
+                        viewModel: playerVM,
+                        controlsViewModel: controlsVM,
+                        device: device,
+                        snapshotData: nil
+                    )
                 }
             )
             .tabItem {

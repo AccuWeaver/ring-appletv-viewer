@@ -173,7 +173,7 @@ final class EventServiceTests: XCTestCase {
             ),
             RingDevice(
                 id: "2", name: "Back", model: "stickup", deviceType: .stickupCam,
-                firmwareVersion: nil, powerSource: .hardwired, isOnline: true
+                firmwareVersion: nil, powerSource: .line, isOnline: true
             )
         ]
         mockDeviceService.fetchDevicesResult = .success(devices)
